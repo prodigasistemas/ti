@@ -2,9 +2,22 @@
 # https://rvm.io/rvm/install
 # https://www.ruby-lang.org/en/downloads
 
-_DEFAULT_USER=$USER
-_DEFAULT_VERSION=2.3.1
-_TITLE="--backtitle \"Ruby installation\""
+_DEFAULT_USER="$USER"
+_DEFAULT_VERSION="2.3.1"
+_PACKAGE_COMMAND_DEBIAN="apt-get"
+_PACKAGE_COMMAND_CENTOS="yum"
+
+os_check () {
+  if [ $(which lsb_release 2>/dev/null) ]; then
+    _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
+    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+  elif [ -e "/etc/redhat-release" ]; then
+    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
+    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+  fi
+
+  _TITLE="--backtitle \"Ruby installation - OS: $_OS_NAME\""
+}
 
 curl_check() {
   echo "Checking for curl..."
@@ -12,7 +25,7 @@ curl_check() {
     echo "Detected curl..."
   else
     echo "Installing curl..."
-    apt-get install -q -y curl
+    $_PACKAGE_COMMAND install -q -y curl
   fi
 }
 
@@ -23,7 +36,7 @@ dialog_check ()
     echo "Detected dialog..."
   else
     echo "Installing dialog..."
-    apt-get install -q -y dialog
+    $_PACKAGE_COMMAND install -q -y dialog
   fi
 }
 
@@ -40,6 +53,7 @@ params_check() {
 }
 
 main() {
+  os_check
   curl_check
   dialog_check
   params_check
@@ -58,7 +72,7 @@ main() {
 
   echo "gem: --no-rdoc --no-ri" | tee /etc/gemrc
   echo
-  echo "Enter the command: rvm"
+  echo "Enter the command: rvm -v"
   echo "If not found, log out and log back"
   echo
   echo "Done!"
