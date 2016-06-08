@@ -58,6 +58,9 @@ main() {
 
   echo "gem: --no-rdoc --no-ri" | tee /etc/gemrc
   echo
+  echo "Enter the command: rvm"
+  echo "If not found, log out and log back"
+  echo
   echo "Done!"
 }
 
