@@ -70,7 +70,7 @@ install_oracleJava6 () {
     _JAVA_FOLDER="jdk1.6.0_45"
     wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$_JAVA_VERSION-$_BINARY_VERSION/jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
     bash "jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
-    mv "$_JAVA_FOLDER" /usr/lib/jvm
+    mv "$_JAVA_FOLDER" /usr/lib/jvm/
     chown -R root:root "/usr/lib/jvm/$_JAVA_FOLDER"
     ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-6"
 }
@@ -83,12 +83,12 @@ install_oracleJava7 () {
   if [ $_OS_TYPE = "deb" ]; then
     wget --no-cookies --no-check-certificate --header "Cookie:oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$_JAVA_VERSION-$_BINARY_VERSION/jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
     tar -xvzf "jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    mv "$_JAVA_FOLDER" /usr/lib/jvm
+    mv "$_JAVA_FOLDER/" /usr/lib/jvm/
     chown -R root:root "/usr/lib/jvm/$_JAVA_FOLDER"
-    sudo ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-7"
+    ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-7"
   elif [ $_OS_TYPE = "rpm" ]; then
     wget --no-cookies --no-check-certificate --header "Cookie:oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$_JAVA_VERSION-$_BINARY_VERSION/jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
-    $_PACKAGE_COMMAND localinstall "jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
+    $_PACKAGE_COMMAND localinstall -y "jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
   fi
 }
 
@@ -100,12 +100,12 @@ install_oracleJava8 () {
   if [ $_OS_TYPE = "deb" ]; then
     wget --no-cookies --no-check-certificate --header "Cookie:oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$_JAVA_VERSION-$_BINARY_VERSION/jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
     tar -xvzf "jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    mv "$_JAVA_FOLDER" /usr/lib/jvm
+    mv "$_JAVA_FOLDER/" /usr/lib/jvm
     chown -R root:root "/usr/lib/jvm/$_JAVA_FOLDER"
-    sudo ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-8"
+    ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-8"
   elif [ $_OS_TYPE = "rpm" ]; then
     wget --no-cookies --no-check-certificate --header "Cookie:oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$_JAVA_VERSION-$_BINARY_VERSION/jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
-    $_PACKAGE_COMMAND localinstall "jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
+    $_PACKAGE_COMMAND localinstall -y "jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
   fi
 }
 
