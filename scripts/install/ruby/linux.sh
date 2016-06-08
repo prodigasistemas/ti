@@ -29,8 +29,7 @@ curl_check() {
   fi
 }
 
-dialog_check ()
-{
+dialog_check () {
   echo "Checking for dialog..."
   if command -v dialog > /dev/null; then
     echo "Detected dialog..."
