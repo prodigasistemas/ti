@@ -86,7 +86,7 @@ install_postgresql () {
     service postgresql start
   fi
 
-  su postgresql
+  su postgres
 
   change_postgresql_password
 
@@ -126,6 +126,7 @@ configure_locale () {
     rm -rf data/*
 
     su postgres
+
     env LANG=LATIN1 /usr/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D /var/lib/pgsql/data/
 
     cd /var/lib/pgsql/backups
