@@ -26,7 +26,7 @@ wget_check () {
     echo "Detected wget..."
   else
     echo "Installing wget..."
-    $_PACKAGE_COMMAND install -q -y wget
+    $_PACKAGE_COMMAND install -y wget
   fi
 }
 
@@ -36,7 +36,7 @@ dialog_check () {
     echo "Detected dialog..."
   else
     echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -q -y dialog
+    $_PACKAGE_COMMAND install -y dialog
   fi
 }
 
@@ -73,19 +73,19 @@ install_openJDK7 () {
 }
 
 install_oracleJava6 () {
-    _JAVA_VERSION="6u45"
-    _BINARY_VERSION="b06"
-    _JAVA_FOLDER="jdk1.6.0_45"
-    _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
+  _JAVA_VERSION="6u45"
+  _BINARY_VERSION="b06"
+  _JAVA_FOLDER="jdk1.6.0_45"
+  _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
 
-    download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
+  download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
-    bash $_JAVA_FILE
-    mv "$_JAVA_FOLDER" /usr/lib/jvm/
-    chown -R root:root "/usr/lib/jvm/$_JAVA_FOLDER"
-    ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-6"
+  bash $_JAVA_FILE
+  mv "$_JAVA_FOLDER" /usr/lib/jvm/
+  chown -R root:root "/usr/lib/jvm/$_JAVA_FOLDER"
+  ln -s "/usr/lib/jvm/$_JAVA_FOLDER" "/usr/lib/jvm/java-oracle-6"
 
-    delete_file $_JAVA_FILE
+  delete_file $_JAVA_FILE
 }
 
 install_oracleJava7 () {
@@ -139,13 +139,20 @@ main () {
   wget_check
   dialog_check
 
-  _ARCH=$(menu "Select the architecture" "$_ARCH_LIST")
+  _JAVA_VERSION=$(menu "Select the version" "$_VERSION_LIST")
 
-  [ -z "$_ARCH" ] && exit 1
+  if [ -z "$_JAVA_VERSION" ]; then
+    clear
+    exit 0
+  else
+    _ARCH=$(menu "Select the architecture" "$_ARCH_LIST")
+    [ -z "$_ARCH" ] && main
 
-  _VERSION=$(menu "Select the version" "$_VERSION_LIST")
+    dialog --yesno "Do you confirm the installation of $_JAVA_VERSION ($_ARCH)?" 0 0
+    [ $? = 1 ] && main
 
-  [ ! -z "$_VERSION" ] && install_$_VERSION
+    install_$_JAVA_VERSION
+  fi
 }
 
 main

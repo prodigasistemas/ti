@@ -25,7 +25,7 @@ curl_check() {
     echo "Detected curl..."
   else
     echo "Installing curl..."
-    $_PACKAGE_COMMAND install -q -y curl
+    $_PACKAGE_COMMAND install -y curl
   fi
 }
 
@@ -35,7 +35,7 @@ dialog_check () {
     echo "Detected dialog..."
   else
     echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -q -y dialog
+    $_PACKAGE_COMMAND install -y dialog
   fi
 }
 
@@ -43,19 +43,19 @@ input () {
   echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
 }
 
-params_check() {
+message () {
+  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+}
+
+install_ruby () {
   _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
   [ -z "$_VERSION" ] && _VERSION=$_DEFAULT_VERSION
 
   _USER=$(input "User to be added to the group rvm" $_DEFAULT_USER)
   [ -z "$_USER" ] && _USER=$_DEFAULT_USER
-}
 
-main() {
-  os_check
-  curl_check
-  dialog_check
-  params_check
+  dialog --yesno "Do you confirm the installation of Ruby $_VERSION?" 0 0
+  [ $? = 1 ] && exit 0
 
   gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 
@@ -70,11 +70,18 @@ main() {
   rvmsudo rvm alias create default $_VERSION
 
   echo "gem: --no-rdoc --no-ri" | tee /etc/gemrc
-  echo
-  echo "Enter the command: rvm -v"
-  echo "If not found, log out and log back"
-  echo
-  echo "Done!"
+
+  message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back."
+
+  clear
+}
+
+main() {
+  os_check
+  curl_check
+  dialog_check
+
+  install_ruby
 }
 
 main

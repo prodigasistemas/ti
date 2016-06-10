@@ -3,10 +3,12 @@
 # https://wiki.postgresql.org/wiki/Apt
 # https://wiki.postgresql.org/wiki/YUM_Installation
 # https://www.vivaolinux.com.br/dica/Mudando-encoding-do-Postgres-84-para-LATIN1
+# http://serverfault.com/questions/601140/whats-the-difference-between-sudo-su-postgres-and-sudo-u-postgres
+# https://people.debian.org/~schultmc/locales.html
 
 _PACKAGE_COMMAND_DEBIAN="apt-get"
 _PACKAGE_COMMAND_CENTOS="yum"
-_OPTIONS_LIST="install_postgresql 'Install the database server' configure_locale 'Set the locale for LATIN1' create_gsan_databases 'Create GSAN databases'"
+_OPTIONS_LIST="install_postgresql 'Install the database server' configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' create_gsan_databases 'Create GSAN databases' change_password 'Change password the user postgres'"
 
 os_check () {
   if [ $(which lsb_release 2>/dev/null) ]; then
@@ -30,7 +32,7 @@ dialog_check () {
     echo "Detected dialog..."
   else
     echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -q -y dialog
+    $_PACKAGE_COMMAND install -y dialog
   fi
 }
 
@@ -49,104 +51,83 @@ message () {
 change_file () {
   _BACKUP=".backup-`date +"%Y%m%d%H%M%S"`"
 
-  sed -i$_BACKUP -e "s/$1/$2/g" $3
+  sed -i$_BACKUP -e "s/$2/$3/g" $1
 }
 
-input_postgresql_password () {
-  _PASSWORD=$(input "Enter a password for the user postgres" "postgres")
-  if [ -z "$_PASSWORD" ]; then
-    message "Alert" "The password can not be blank!"
-    exit 1
-  fi
+run_as_postgres () {
+  su - postgres -c "$1"
 }
 
-change_postgresql_password () {
-  psql -c "ALTER USER postgres WITH encrypted password '$_PASSWORD';"
+run_as_root () {
+  su -c "$1"
 }
 
 install_postgresql () {
   dialog --yesno 'Confirm the installation of PostgreSQL?' 0 0
-  [ $? = 1 ] && exit 1
-
-  input_postgresql_password
+  [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
-    _HBA_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
-    _METHOD_CHANGE="peer"
-
     $_PACKAGE_COMMAND update
     $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
 
   elif [ $_OS_TYPE = "rpm" ]; then
-    _HBA_PATH="/var/lib/pgsql/data"
-    _METHOD_CHANGE="ident"
-
     $_PACKAGE_COMMAND install -y postgresql-server postgresql-contrib postgresql-devel
     service postgresql initdb
     service postgresql start
   fi
 
-  su postgres
-
-  change_postgresql_password
-
-  change_file "$_METHOD_CHANGE$" "md5" "$_HBA_PATH/pg_hba.conf"
-
-  service postgresql restart
+  message "Notice" "PostgreSQL successfully installed!"
+  main
 }
 
 configure_locale () {
-  dialog --yesno 'You want to configure for LATIN1 ( pt_BR.ISO-8859-1 )?' 0 0
-  [ $? = 1 ] && exit 1
+  dialog --yesno 'Do you want to configure for LATIN1?' 0 0
+  [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
-    echo 'pt_BR ISO-8859-1' >> /var/lib/locales/supported.d/local # not found in debian
+    if [ $_OS_NAME = "ubuntu" ]; then
+      run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local" # not found in debian
+      run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
+      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
+      run_as_root "echo LANG=\"pt_BR\" > /etc/default/locale"
+      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/default/locale"
+      run_as_root "echo \"pt_BR           pt_BR.ISO-8859-1\" >> /etc/locale.alias"
 
-    echo 'LANG="pt_BR"' >> /etc/environment
-    echo 'LANGUAGE="pt_BR:pt:en"' >> /etc/environment
-
-    echo 'LANG="pt_BR"' > /etc/default/locale
-    echo 'LANGUAGE="pt_BR:pt:en"' >> /etc/default/locale
-
-    echo 'pt_BR           pt_BR.ISO-8859-1' >> /etc/locale.alias
+    elif [ $_OS_NAME = "debian" ]; then
+      change_file "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
+    fi
 
     locale-gen
 
-    pg_dropcluster --stop $_POSTGRESQL_VERSION main
-
-    pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main
+    run_as_postgres "pg_dropcluster --stop $_POSTGRESQL_VERSION main"
+    run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
 
   elif [ $_OS_TYPE = "rpm" ]; then
-    cd /var/lib/pgsql/data
-    cp -a pg_hba.conf postgresql.conf ../backups
+    service postgresql stop
 
-    /etc/init.d/postgresql stop
+    _PGSQL_FOLDER="/var/lib/pgsql"
 
-    cd /var/lib/pgsql/
-    rm -rf data/*
+    run_as_postgres "cp $_PGSQL_FOLDER/data/pg_hba.conf $_PGSQL_FOLDER/backups/"
+    run_as_postgres "cp $_PGSQL_FOLDER/data/postgresql.conf $_PGSQL_FOLDER/backups/"
 
-    su postgres
+    run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
 
-    env LANG=LATIN1 /usr/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D /var/lib/pgsql/data/
+    run_as_postgres "env LANG=LATIN1 /usr/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
 
-    cd /var/lib/pgsql/backups
-    cp -a pg_hba.conf postgresql.conf ../data
+    run_as_postgres "cp $_PGSQL_FOLDER/backups/pg_hba.conf $_PGSQL_FOLDER/data/"
+    run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
 
-    /etc/init.d/postgresql restart
-
-    input_postgresql_password
-
-    change_postgresql_password
+    service postgresql restart
 
   fi
 
-  dialog --yesno 'You will need to restart the server, you confirm?' 0 0
-  [ $? = 0 ] && reboot
+  message "Notice" "LATIN1 locale configured successfully!"
+  main
 }
 
 create_gsan_databases () {
-  dialog --yesno 'You confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices ?' 0 0
-  [ $? = 1 ] && exit 1
+  dialog --yesno 'Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?' 0 0
+  [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
     _POSTGRESQL_FOLDER="/var/lib/postgresql/$_POSTGRESQL_VERSION"
@@ -154,19 +135,43 @@ create_gsan_databases () {
     _POSTGRESQL_FOLDER="/var/lib/pgsql"
   fi
 
-  su - postgres
+  _INDEX_FOLDER="$_POSTGRESQL_FOLDER/indices"
 
-  mkdir "$_POSTGRESQL_FOLDER/indices"
-  chmod 700 "$_POSTGRESQL_FOLDER/indices"
+  run_as_postgres "mkdir $_INDEX_FOLDER"
+  run_as_postgres "chmod 700 $_INDEX_FOLDER"
+  run_as_postgres "createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_comercial"
+  run_as_postgres "createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial"
+  run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
 
-  createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_comercial
-  createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial
+  message "Notice" "GSAN databases created successfully!"
+  main
+}
 
-  psql -c "CREATE TABLESPACE indices LOCATION '$_POSTGRESQL_FOLDER/indices';"
+change_password () {
+  if [ $_OS_TYPE = "deb" ]; then
+    _HBA_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
+    _METHOD_CHANGE="peer"
+  elif [ $_OS_TYPE = "rpm" ]; then
+    _HBA_PATH="/var/lib/pgsql/data"
+    _METHOD_CHANGE="ident"
+  fi
 
-  input_postgresql_password
+  _PASSWORD=$(input "Enter a new password for the user postgres" "postgres")
+  [ $? = 1 ] && main
 
-  change_postgresql_password
+  if [ -z "$_PASSWORD" ]; then
+    message "Alert" "The password can not be blank!"
+    main
+  fi
+
+  run_as_postgres "psql -c \"ALTER USER postgres WITH encrypted password '$_PASSWORD';\""
+
+  change_file "$_HBA_PATH/pg_hba.conf" "$_METHOD_CHANGE$" "md5"
+
+  service postgresql restart
+
+  message "Notice" "Password changed successfully!"
+  main
 }
 
 main () {
@@ -175,7 +180,12 @@ main () {
 
   _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  [ $? -eq 0 ] && $_OPTION
+  if [ -z "$_OPTION" ]; then
+    clear
+    exit 0
+  else
+    $_OPTION
+  fi
 }
 
 main
