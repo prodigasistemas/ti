@@ -13,12 +13,12 @@ os_check () {
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
     _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
-    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
     _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
-    _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | uniq | cut -d: -f2 | tr -d [:space:])
+    _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
   fi
 
   _TITLE="--backtitle \"PostgreSQL $_POSTGRESQL_VERSION installation - OS: $_OS_NAME\""
@@ -71,11 +71,11 @@ install_postgresql () {
   input_postgresql_password
 
   if [ $_OS_TYPE = "deb" ]; then
-    _HBA_PATH="/etc/postgresql/$_VERSION/main"
+    _HBA_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
     _METHOD_CHANGE="peer"
 
     $_PACKAGE_COMMAND update
-    $_PACKAGE_COMMAND install -y postgresql-$_VERSION postgresql-contrib-$_VERSION postgresql-server-dev-$_VERSION
+    $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
 
   elif [ $_OS_TYPE = "rpm" ]; then
     _HBA_PATH="/var/lib/pgsql/data"
