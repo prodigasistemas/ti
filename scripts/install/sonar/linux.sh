@@ -3,7 +3,8 @@
 
 _PACKAGE_COMMAND_DEBIAN="apt-get --force-yes"
 _PACKAGE_COMMAND_CENTOS="yum"
-_OPTIONS_LIST="install_sonar 'Install the Sonar Server' configure_database 'Configure sonar with MySQL Database'"
+_PROPERTIES_FOLDER="/opt/sonar/conf"
+_OPTIONS_LIST="install_sonar 'Install the Sonar Server' configure_database 'Configure sonar with MySQL Database' install_sonar_runner 'Install the Sonar Runner'"
 
 os_check () {
   if [ $(which lsb_release 2>/dev/null) ]; then
@@ -38,6 +39,16 @@ dialog_check () {
   else
     echo "Installing dialog..."
     $_PACKAGE_COMMAND install -y dialog
+  fi
+}
+
+unzip_check () {
+  echo "Checking for unzip..."
+  if command -v unzip > /dev/null; then
+    echo "Detected unzip..."
+  else
+    echo "Installing unzip..."
+    $_PACKAGE_COMMAND install -y unzip
   fi
 }
 
@@ -77,7 +88,7 @@ install_sonar () {
 
   $_PACKAGE_COMMAND -y install sonar
 
-  change_file "/opt/sonar/conf/wrapper.conf" "wrapper.java.command=java" "wrapper.java.command=/usr/lib/jvm/java-oracle-8/bin/java"
+  change_file "$_PROPERTIES_FOLDER/wrapper.conf" "wrapper.java.command=java" "wrapper.java.command=/usr/lib/jvm/java-oracle-8/bin/java"
 
   [ $_OS_TYPE = "rpm" ] && service sonar start
 
@@ -102,7 +113,7 @@ configure_database () {
     main
   fi
 
-  _SERVER_ADDRESS=$(input "Enter the address of the MySQL Server " "localhost")
+  _SERVER_ADDRESS=$(input "Enter the address of the MySQL Server" "localhost")
   [ $? = 1 ] && main
 
   if [ -z "$_SERVER_ADDRESS" ]; then
@@ -114,12 +125,39 @@ configure_database () {
   mysql -u root -p$_MYSQL_ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON sonar.* TO 'sonar'@'$_SERVER_ADDRESS' WITH GRANT OPTION;"
   mysql -u sonar -p$_MYSQL_SONAR_PASSWORD -e "CREATE DATABASE sonar;"
 
-  _PROPERTIES_FOLDER="/opt/sonar/conf"
-
   change_file "$_PROPERTIES_FOLDER/sonar.properties" "#sonar.jdbc.username=" "sonar.jdbc.username=sonar"
   change_file "$_PROPERTIES_FOLDER/sonar.properties" "#sonar.jdbc.password=" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
   change_file "$_PROPERTIES_FOLDER/sonar.properties" "localhost:3306" "$_SERVER_ADDRESS:3306"
 
+}
+
+install_sonar_runner () {
+  _SERVER_ADDRESS=$(input "Enter the address of the Sonar Server" "http://localhost:9000")
+  [ $? = 1 ] && main
+
+  if [ -z "$_SERVER_ADDRESS" ]; then
+    message "Alert" "The server address can not be blank!"
+    main
+  fi
+
+  _USER_TOKEN=$(input "Enter the user token in sonar" "")
+  [ $? = 1 ] && main
+
+  if [ -z "$_USER_TOKEN" ]; then
+    message "Alert" "The server address can not be blank!"
+    main
+  fi
+
+  wget http://repo1.maven.org/maven2/org/codehaus/sonar/runner/sonar-runner-dist/2.4/sonar-runner-dist-2.4.zip
+
+  unzip sonar-runner-dist-2.4.zip
+
+  mv sonar-runner-2.4 /opt/sonar-runner
+
+  _PROPERTIES_FILE="/opt/sonar-runner/conf/sonar-runner.properties"
+
+  change_file "$_PROPERTIES_FILE" "#sonar.host.url=http://localhost:9000" "sonar.host.url=$_SERVER_ADDRESS"
+  change_file "$_PROPERTIES_FILE" "#sonar.login=admin" "sonar.login=$_USER_TOKEN"
 }
 
 main () {
