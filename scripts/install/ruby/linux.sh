@@ -77,11 +77,10 @@ install_ruby () {
 }
 
 main() {
-  os_check
-  curl_check
-  dialog_check
-
   install_ruby
 }
 
+os_check
+curl_check
+dialog_check
 main

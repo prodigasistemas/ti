@@ -86,7 +86,7 @@ configure_locale () {
 
   if [ $_OS_TYPE = "deb" ]; then
     if [ $_OS_NAME = "ubuntu" ]; then
-      run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local" # not found in debian
+      run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local"
       run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
       run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
       run_as_root "echo LANG=\"pt_BR\" > /etc/default/locale"
@@ -175,9 +175,6 @@ change_password () {
 }
 
 main () {
-  os_check
-  dialog_check
-
   _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
   if [ -z "$_OPTION" ]; then
@@ -188,4 +185,6 @@ main () {
   fi
 }
 
+os_check
+dialog_check
 main
