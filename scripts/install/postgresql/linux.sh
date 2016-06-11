@@ -46,6 +46,7 @@ input () {
 
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+  main
 }
 
 change_file () {
@@ -77,7 +78,6 @@ install_postgresql () {
   fi
 
   message "Notice" "PostgreSQL successfully installed!"
-  main
 }
 
 configure_locale () {
@@ -122,7 +122,6 @@ configure_locale () {
   fi
 
   message "Notice" "LATIN1 locale configured successfully!"
-  main
 }
 
 create_gsan_databases () {
@@ -144,7 +143,6 @@ create_gsan_databases () {
   run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
 
   message "Notice" "GSAN databases created successfully!"
-  main
 }
 
 change_password () {
@@ -157,12 +155,8 @@ change_password () {
   fi
 
   _PASSWORD=$(input "Enter a new password for the user postgres" "postgres")
-  [ $? = 1 ] && main
-
-  if [ -z "$_PASSWORD" ]; then
-    message "Alert" "The password can not be blank!"
-    main
-  fi
+  [ $? -eq 1 ] && main
+  [ -z "$_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
   run_as_postgres "psql -c \"ALTER USER postgres WITH encrypted password '$_PASSWORD';\""
 
@@ -171,7 +165,6 @@ change_password () {
   service postgresql restart
 
   message "Notice" "Password changed successfully!"
-  main
 }
 
 main () {

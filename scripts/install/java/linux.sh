@@ -37,6 +37,7 @@ menu () {
 
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+  main
 }
 
 download_java () {
@@ -86,7 +87,6 @@ install_oracleJava6 () {
   delete_file $_JAVA_FILE
 
   message "Notice" "Java successfully installed in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6'!"
-  main
 }
 
 install_oracleJava7 () {
@@ -113,7 +113,6 @@ install_oracleJava7 () {
   delete_file $_JAVA_FILE
 
   message "Notice" "Java successfully installed $_INSTALL_FOLDER!"
-  main
 }
 
 install_oracleJava8 () {
@@ -140,7 +139,6 @@ install_oracleJava8 () {
   delete_file $_JAVA_FILE
 
   message "Notice" "Java successfully installed $_INSTALL_FOLDER!"
-  main
 }
 
 main () {

@@ -8,8 +8,9 @@ _PACKAGE_COMMAND_DEBIAN="apt-get --force-yes"
 _PACKAGE_COMMAND_CENTOS="yum"
 _PROPERTIES_FOLDER="/opt/sonar/conf"
 _DEFAULT_HOST="http://localhost:9000"
+_CONNECTION_ADDRESS_MYSQL="localhost:3306"
 _RUNNER_VERSION_DEFAULT="2.4"
-_OPTIONS_LIST="install_sonar 'Install the Sonar Server' configure_database 'Configure sonar with MySQL Database' install_sonar_runner 'Install the Sonar Runner' configure_nginx 'configure host on NGINX'"
+_OPTIONS_LIST="install_sonar 'Install the Sonar Server' configure_database 'Configure connection to MySQL database' install_sonar_runner 'Install the Sonar Runner' configure_nginx 'configure host on NGINX'"
 
 os_check () {
   if [ $(which lsb_release 2>/dev/null) ]; then
@@ -47,6 +48,7 @@ input () {
 
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+  main
 }
 
 change_file () {
@@ -59,14 +61,14 @@ run_as_root () {
   su -c "$1"
 }
 
-install_sonar () {
-  _JAVA_PATH=$(input "Enter the path of java 8" "/opt/java-oracle-8/bin/java")
-  [ $? = 1 ] && main
+mysql_as_root () {
+  mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
+}
 
-  if [ -z "$_JAVA_PATH" ]; then
-    message "Alert" "The java 8 path can not be blank!"
-    main
-  fi
+install_sonar () {
+  _JAVA_PATH=$(input "Enter the path of Java 8" "/opt/java-oracle-8/bin/java")
+  [ $? -eq 1 ] && main
+  [ -z "$_JAVA_PATH" ] && message "Alert" "The Java 8 path can not be blank!"
 
   if [ $_OS_TYPE = "deb" ]; then
     run_as_root "echo deb http://downloads.sourceforge.net/project/sonar-pkg/deb binary/ > /etc/apt/sources.list.d/sonar.list"
@@ -83,78 +85,73 @@ install_sonar () {
   [ $_OS_TYPE = "rpm" ] && service sonar start
 
   message "Notice" "Sonar successfully installed!"
-  main
 }
 
 configure_database () {
-  if command -v mysql > /dev/null; then
-    _SERVER_ADDRESS=$(input "Enter the address of the MySQL Server" "localhost")
-    [ $? = 1 ] && main
+  _OPTION=$(menu "Select which configuration" " database 'Create the user and sonar database' sonar.properties 'Configure the connection to the database'")
+  [ -z "$_OPTION" ] && main
 
-    if [ -z "$_SERVER_ADDRESS" ]; then
-      message "Alert" "The server address can not be blank!"
-      main
+  if [ "$_OPTION" = "database" ]; then
+    if command -v mysql > /dev/null; then
+      _SERVER_ADDRESS=$(input "Enter the address and port of the MySQL Server" "$_CONNECTION_ADDRESS_MYSQL")
+      [ $? -eq 1 ] && main
+      [ -z "$_SERVER_ADDRESS" ] && message "Alert" "The server address can not be blank!"
+
+      _HOST_CONNECTION=$(echo $_SERVER_ADDRESS | cut -d: -f1)
+    else
+      message "Alert" "MySQL Client is not installed!"
     fi
-  else
-    message "Alert" "MySQL Client is not installed!"
-    main
+
+    _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
+    [ $? -eq 1 ] && main
+    [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+
+    _MYSQL_SONAR_PASSWORD=$(input "Enter the password of the sonar user in MySQL")
+    [ $? -eq 1 ] && main
+    [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
+
+    mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS sonar;"
+    mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_HOST_CONNECTION IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
+    mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_HOST_CONNECTION WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+    message "Notice" "User and database sonar successfully created!"
+
+  elif [ "$_OPTION" = "sonar.properties" ]; then
+    _PROPERTIES_FILE="$_PROPERTIES_FOLDER/sonar.properties"
+
+    [ ! -e "$_PROPERTIES_FILE" ] && message "Alert" "The properties file '$_PROPERTIES_FILE' was not found!"
+
+    _SERVER_ADDRESS=$(input "Enter the address and port of the MySQL Server" "$_CONNECTION_ADDRESS_MYSQL")
+    [ $? -eq 1 ] && main
+    [ -z "$_SERVER_ADDRESS" ] && message "Alert" "The server address can not be blank!"
+
+    _MYSQL_SONAR_PASSWORD=$(input "Enter the password of the sonar user in MySQL")
+    [ $? -eq 1 ] && main
+    [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
+
+    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.username=" "sonar.jdbc.username=sonar"
+    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.password=" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
+    change_file "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
+    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
+
+    service sonar restart
+
+    message "Notice" "Connection to the database configured!"
   fi
-
-  _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL" "")
-  [ $? = 1 ] && main
-
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
-    message "Alert" "The password can not be blank!"
-    main
-  fi
-
-  _MYSQL_SONAR_PASSWORD=$(input "Enter the password of the sonar user in MySQL" "")
-  [ $? = 1 ] && main
-
-  if [ -z "$_MYSQL_SONAR_PASSWORD" ]; then
-    message "Alert" "The password can not be blank!"
-    main
-  fi
-
-  mysql -h $_SERVER_ADDRESS -u root -p$_MYSQL_ROOT_PASSWORD -e "CREATE USER 'sonar'@'$_SERVER_ADDRESS' IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
-  mysql -h $_SERVER_ADDRESS -u root -p$_MYSQL_ROOT_PASSWORD -e "GRANT ALL PRIVILEGES ON sonar.* TO 'sonar'@'$_SERVER_ADDRESS' WITH GRANT OPTION;"
-  mysql -h $_SERVER_ADDRESS -u sonar -p$_MYSQL_SONAR_PASSWORD -e "CREATE DATABASE sonar;"
-
-  change_file "$_PROPERTIES_FOLDER/sonar.properties" "^#sonar.jdbc.username=" "sonar.jdbc.username=sonar"
-  change_file "$_PROPERTIES_FOLDER/sonar.properties" "^#sonar.jdbc.password=" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
-  change_file "$_PROPERTIES_FOLDER/sonar.properties" "localhost:3306" "$_SERVER_ADDRESS:3306"
-  change_file "$_PROPERTIES_FOLDER/sonar.properties" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
-
-  service sonar restart
-
-  message "Notice" "Connection to the database configured!"
-  main
 }
 
 install_sonar_runner () {
   _RUNNER_VERSION=$(input "Enter the version of the Sonar Runner" "$_RUNNER_VERSION_DEFAULT")
-  [ $? = 1 ] && main
-
-  if [ -z "$_RUNNER_VERSION" ]; then
-    message "Alert" "The Sonar Runner version can not be blank!"
-    main
-  fi
+  [ $? -eq 1 ] && main
+  [ -z "$_RUNNER_VERSION" ] && message "Alert" "The Sonar Runner version can not be blank!"
 
   _HOST_ADDRESS=$(input "Enter the address of the Sonar Server" "$_DEFAULT_HOST")
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
+  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The server address can not be blank!"
 
-  if [ -z "$_HOST_ADDRESS" ]; then
-    message "Alert" "The server address can not be blank!"
-    main
-  fi
-
-  _USER_TOKEN=$(input "Enter the user token in sonar" "")
-  [ $? = 1 ] && main
-
-  if [ -z "$_USER_TOKEN" ]; then
-    message "Alert" "The server address can not be blank!"
-    main
-  fi
+  _USER_TOKEN=$(input "Enter the user token in sonar")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER_TOKEN" ] && message "Alert" "The user token can not be blank!"
 
   _RUNNER_ZIP_FILE="sonar-runner-dist-$_RUNNER_VERSION.zip"
 
@@ -171,26 +168,17 @@ install_sonar_runner () {
   change_file "$_PROPERTIES_FILE" "^#sonar.login=admin" "sonar.login=$_USER_TOKEN"
 
   message "Notice" "Sonar Runner successfully installed!"
-  main
 }
 
 configure_nginx () {
   if command -v nginx > /dev/null; then
     _DOMAIN=$(input "Enter the domain of sonar" "sonar.company.gov")
-    [ $? = 1 ] && main
-
-    if [ -z "$_DOMAIN" ]; then
-      message "Alert" "The domain can not be blank!"
-      main
-    fi
+    [ $? -eq 1 ] && main
+    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
     _HOST=$(input "Enter the host of Sonar server" "$_DEFAULT_HOST")
-    [ $? = 1 ] && main
-
-    if [ -z "$_HOST" ]; then
-      message "Alert" "The host can not be blank!"
-      main
-    fi
+    [ $? -eq 1 ] && main
+    [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
     curl -sS "$_URL_CENTRAL/scripts/templates/nginx/app.redirect.conf" > sonar.conf
 
@@ -207,18 +195,16 @@ configure_nginx () {
   else
     message "Alert" "NGINX is not installed!"
   fi
-
-  main
 }
 
 main () {
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
+  if [ -z "$_MAIN_OPTION" ]; then
     clear
     exit 0
   else
-    $_OPTION
+    $_MAIN_OPTION
   fi
 }
 
