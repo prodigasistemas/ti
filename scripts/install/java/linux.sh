@@ -3,6 +3,7 @@
 
 _PACKAGE_COMMAND_DEBIAN="apt-get"
 _PACKAGE_COMMAND_CENTOS="yum"
+_DEFAULT_INSTALLATION_FOLDER="/opt"
 _ARCH_LIST="i586 '32 bits' x64 '64 bits'"
 _VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
 
@@ -20,23 +21,13 @@ os_check () {
   _TITLE="--backtitle \"Java installation - OS: $_OS_NAME\""
 }
 
-wget_check () {
-  echo "Checking for wget..."
-  if command -v wget > /dev/null; then
-    echo "Detected wget..."
+tool_check() {
+  echo "Checking for $1..."
+  if command -v $1 > /dev/null; then
+    echo "Detected $1..."
   else
-    echo "Installing wget..."
-    $_PACKAGE_COMMAND install -y wget
-  fi
-}
-
-dialog_check () {
-  echo "Checking for dialog..."
-  if command -v dialog > /dev/null; then
-    echo "Detected dialog..."
-  else
-    echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -y dialog
+    echo "Installing $1..."
+    $_PACKAGE_COMMAND install -y $1
   fi
 }
 
@@ -89,13 +80,12 @@ install_oracleJava6 () {
   download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
   bash $_JAVA_FILE
-  mv $_JAVA_FOLDER /usr/lib/jvm/
-  chown -R root:root /usr/lib/jvm/$_JAVA_FOLDER
-  ln -s /usr/lib/jvm/$_JAVA_FOLDER /usr/lib/jvm/java-oracle-6
+  mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/
+  ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-6
 
   delete_file $_JAVA_FILE
 
-  message "Notice" "Java successfully installed in '/usr/lib/jvm/java-oracle-6'!"
+  message "Notice" "Java successfully installed in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6'!"
   main
 }
 
@@ -108,10 +98,10 @@ install_oracleJava7 () {
     download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.tar.gz"
 
     _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    _INSTALL_FOLDER="in '/usr/lib/jvm/java-oracle-7'"
+    _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-7'"
     tar -xvzf $_JAVA_FILE
-    mv $_JAVA_FOLDER /usr/lib/jvm/
-    ln -s /usr/lib/jvm/$_JAVA_FOLDER /usr/lib/jvm/java-oracle-7
+    mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/
+    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-7
 
   elif [ $_OS_TYPE = "rpm" ]; then
     download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.rpm"
@@ -135,10 +125,10 @@ install_oracleJava8 () {
     download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.tar.gz"
 
     _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    _INSTALL_FOLDER="in '/usr/lib/jvm/java-oracle-8'"
+    _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-8'"
     tar -xvzf $_JAVA_FILE
-    mv $_JAVA_FOLDER /usr/lib/jvm
-    ln -s /usr/lib/jvm/$_JAVA_FOLDER /usr/lib/jvm/java-oracle-8
+    mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER
+    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-8
 
   elif [ $_OS_TYPE = "rpm" ]; then
     download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.rpm"
@@ -171,6 +161,6 @@ main () {
 }
 
 os_check
-wget_check
-dialog_check
+tool_check wget
+tool_check dialog
 main

@@ -19,23 +19,13 @@ os_check () {
   _TITLE="--backtitle \"Ruby installation - OS: $_OS_NAME\""
 }
 
-curl_check() {
-  echo "Checking for curl..."
-  if command -v curl > /dev/null; then
-    echo "Detected curl..."
+tool_check() {
+  echo "Checking for $1..."
+  if command -v $1 > /dev/null; then
+    echo "Detected $1..."
   else
-    echo "Installing curl..."
-    $_PACKAGE_COMMAND install -y curl
-  fi
-}
-
-dialog_check () {
-  echo "Checking for dialog..."
-  if command -v dialog > /dev/null; then
-    echo "Detected dialog..."
-  else
-    echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -y dialog
+    echo "Installing $1..."
+    $_PACKAGE_COMMAND install -y $1
   fi
 }
 
@@ -81,6 +71,6 @@ main() {
 }
 
 os_check
-curl_check
-dialog_check
+tool_check curl
+tool_check dialog
 main

@@ -26,13 +26,13 @@ os_check () {
   _TITLE="--backtitle \"PostgreSQL $_POSTGRESQL_VERSION installation - OS: $_OS_NAME\""
 }
 
-dialog_check () {
-  echo "Checking for dialog..."
-  if command -v dialog > /dev/null; then
-    echo "Detected dialog..."
+tool_check() {
+  echo "Checking for $1..."
+  if command -v $1 > /dev/null; then
+    echo "Detected $1..."
   else
-    echo "Installing dialog..."
-    $_PACKAGE_COMMAND install -y dialog
+    echo "Installing $1..."
+    $_PACKAGE_COMMAND install -y $1
   fi
 }
 
@@ -49,7 +49,7 @@ message () {
 }
 
 change_file () {
-  _BACKUP=".backup-`date +"%Y%m%d%H%M%S"`"
+  _BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
 
   sed -i$_BACKUP -e "s/$2/$3/g" $1
 }
@@ -186,5 +186,5 @@ main () {
 }
 
 os_check
-dialog_check
+tool_check dialog
 main
