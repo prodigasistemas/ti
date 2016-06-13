@@ -198,6 +198,11 @@ configure_nginx () {
 }
 
 main () {
+  tool_check curl
+  tool_check wget
+  tool_check dialog
+  tool_check unzip
+
   _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
   if [ -z "$_MAIN_OPTION" ]; then
@@ -209,8 +214,4 @@ main () {
 }
 
 os_check
-tool_check curl
-tool_check wget
-tool_check dialog
-tool_check unzip
 main

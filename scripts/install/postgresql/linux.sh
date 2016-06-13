@@ -14,11 +14,13 @@ os_check () {
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
+    _OS_CODENAME=$(lsb_release -cs)
     _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
     _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
+    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
     _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
     _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
   fi
@@ -64,11 +66,28 @@ run_as_root () {
 }
 
 install_postgresql () {
+  if [ $_OS_TYPE = "deb" ]; then
+    dialog --yesno 'Configure PostgreSQL Apt Repository?' 0 0
+    if [ $? = 0 ]; then
+      wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
+      run_as_root "echo \"deb http://apt.postgresql.org/pub/repos/apt/ $_OS_CODENAME-pgdg main\" > /etc/apt/sources.list.d/postgresql.list"
+
+      $_PACKAGE_COMMAND update
+    fi
+
+    _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort)
+    _LAST_VERSION=$(echo $_VERSIONS_LIST | grep -oE "[^ ]+$")
+
+    _POSTGRESQL_VERSION=$(input "Versions available: $_VERSIONS_LIST. Enter a version" "$_LAST_VERSION")
+    [ $? -eq 1 ] && main
+    [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The version can not be blank!"
+  fi
+
   dialog --yesno 'Confirm the installation of PostgreSQL?' 0 0
   [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
-    $_PACKAGE_COMMAND update
     $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
 
   elif [ $_OS_TYPE = "rpm" ]; then
@@ -168,6 +187,9 @@ change_password () {
 }
 
 main () {
+  tool_check wget
+  tool_check dialog
+
   _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
   if [ -z "$_OPTION" ]; then
@@ -179,5 +201,4 @@ main () {
 }
 
 os_check
-tool_check dialog
 main

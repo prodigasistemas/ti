@@ -74,10 +74,11 @@ install_nginx () {
 }
 
 main () {
+  tool_check curl
+  tool_check dialog
+
   install_nginx
 }
 
 os_check
-tool_check curl
-tool_check dialog
 main
