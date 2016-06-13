@@ -142,6 +142,9 @@ install_oracleJava8 () {
 }
 
 main () {
+  tool_check wget
+  tool_check dialog
+  
   _JAVA_VERSION=$(menu "Select the version" "$_VERSION_LIST")
 
   if [ -z "$_JAVA_VERSION" ]; then
@@ -159,6 +162,4 @@ main () {
 }
 
 os_check
-tool_check wget
-tool_check dialog
 main
