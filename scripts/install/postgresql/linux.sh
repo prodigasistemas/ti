@@ -5,10 +5,16 @@
 # https://www.vivaolinux.com.br/dica/Mudando-encoding-do-Postgres-84-para-LATIN1
 # http://serverfault.com/questions/601140/whats-the-difference-between-sudo-su-postgres-and-sudo-u-postgres
 # https://people.debian.org/~schultmc/locales.html
+# http://progblog10.blogspot.com.br/2013/06/enabling-remote-access-to-postgresql.html
+# http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 
 _PACKAGE_COMMAND_DEBIAN="apt-get"
 _PACKAGE_COMMAND_CENTOS="yum"
-_OPTIONS_LIST="install_postgresql 'Install the database server' configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' create_gsan_databases 'Create GSAN databases' change_password 'Change password the user postgres'"
+_OPTIONS_LIST="install_postgresql 'Install the database server' \
+               configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
+               create_gsan_databases 'Create GSAN databases' \
+               change_password 'Change password the user postgres' \
+               remote_access 'Enable remote access'"
 
 os_check () {
   if [ $(which lsb_release 2>/dev/null) ]; then
@@ -52,9 +58,20 @@ message () {
 }
 
 change_file () {
-  _BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_OPERATION=$1
+  _CF_FILE=$2
+  _CF_FROM=$3
+  _CF_TO=$4
 
-  sed -i$_BACKUP -e "s/$2/$3/g" $1
+  case $_CF_OPERATION in
+    replace)
+      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
+      ;;
+    append)
+      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
+      ;;
+  esac
 }
 
 run_as_postgres () {
@@ -63,6 +80,16 @@ run_as_postgres () {
 
 run_as_root () {
   su -c "$1"
+}
+
+config_path () {
+  if [ $_OS_TYPE = "deb" ]; then
+    _PG_CONFIG_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
+    _PG_METHOD_CHANGE="peer"
+  elif [ $_OS_TYPE = "rpm" ]; then
+    _PG_CONFIG_PATH="/var/lib/pgsql/data"
+    _PG_METHOD_CHANGE="ident"
+  fi
 }
 
 install_postgresql () {
@@ -74,6 +101,7 @@ install_postgresql () {
       run_as_root "echo \"deb http://apt.postgresql.org/pub/repos/apt/ $_OS_CODENAME-pgdg main\" > /etc/apt/sources.list.d/postgresql.list"
 
       $_PACKAGE_COMMAND update
+      os_check
     fi
 
     _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort)
@@ -84,7 +112,7 @@ install_postgresql () {
     [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The version can not be blank!"
   fi
 
-  dialog --yesno 'Confirm the installation of PostgreSQL?' 0 0
+  dialog --yesno "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION?" 0 0
   [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
@@ -113,7 +141,7 @@ configure_locale () {
       run_as_root "echo \"pt_BR           pt_BR.ISO-8859-1\" >> /etc/locale.alias"
 
     elif [ $_OS_NAME = "debian" ]; then
-      change_file "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
+      change_file "replace" "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
     fi
 
     locale-gen
@@ -137,7 +165,6 @@ configure_locale () {
     run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
 
     service postgresql restart
-
   fi
 
   message "Notice" "LATIN1 locale configured successfully!"
@@ -165,25 +192,34 @@ create_gsan_databases () {
 }
 
 change_password () {
-  if [ $_OS_TYPE = "deb" ]; then
-    _HBA_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
-    _METHOD_CHANGE="peer"
-  elif [ $_OS_TYPE = "rpm" ]; then
-    _HBA_PATH="/var/lib/pgsql/data"
-    _METHOD_CHANGE="ident"
-  fi
-
   _PASSWORD=$(input "Enter a new password for the user postgres" "postgres")
   [ $? -eq 1 ] && main
   [ -z "$_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
   run_as_postgres "psql -c \"ALTER USER postgres WITH encrypted password '$_PASSWORD';\""
 
-  change_file "$_HBA_PATH/pg_hba.conf" "$_METHOD_CHANGE$" "md5"
+  config_path
+
+  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "$_PG_METHOD_CHANGE$" "md5"
 
   service postgresql restart
 
   message "Notice" "Password changed successfully!"
+}
+
+remote_access () {
+  dialog --yesno 'Do you want to enable remote access?' 0 0
+  [ $? = 1 ] && main
+
+  config_path
+
+  change_file "append" "$_PG_CONFIG_PATH/pg_hba.conf" "^# IPv4 local connections:" "host    all             all             0.0.0.0/0               md5"
+
+  change_file "replace" "$_PG_CONFIG_PATH/postgresql.conf" "^#listen_addresses = 'localhost'" "listen_addresses = '*'"
+
+  service postgresql restart
+
+  message "Notice" "Enabling remote access successfully held!"
 }
 
 main () {

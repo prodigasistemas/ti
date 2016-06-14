@@ -61,7 +61,9 @@ install_ruby () {
 
   echo "gem: --no-rdoc --no-ri" | tee /etc/gemrc
 
-  message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back."
+  gem install bundler
+
+  message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back. After, execute: gem install bundler"
 
   clear
 }
