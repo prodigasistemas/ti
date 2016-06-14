@@ -68,7 +68,7 @@ install_ruby () {
   clear
 }
 
-main() {
+main () {
   tool_check curl
   tool_check dialog
 
