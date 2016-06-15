@@ -3,10 +3,9 @@
 # http://sonar-pkg.sourceforge.net
 # http://stackoverflow.com/questions/407523/escape-a-string-for-a-sed-replace-pattern
 # http://stackoverflow.com/questions/2634590/bash-script-variable-inside-variable
+# http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
 _URL_CENTRAL="http://prodigasistemas.github.io"
-_PACKAGE_COMMAND_DEBIAN="apt-get --force-yes"
-_PACKAGE_COMMAND_CENTOS="yum"
 _SONAR_FOLDER="/opt/sonar"
 _PROPERTIES_FOLDER="$_SONAR_FOLDER/conf"
 _DEFAULT_HOST="http://localhost:9000"
@@ -26,19 +25,23 @@ _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
                configure_nginx 'configure host on NGINX'"
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="apt-get --force-yes"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
     _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Sonar installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"Sonar installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -101,8 +104,7 @@ install_sonar_ggas () {
   mv "sonarqube-$_SONAR_GGAS_VERSION" $_SONAR_FOLDER
   mv "$_SONAR_FOLDER/conf/sonar.properties_old" "$_SONAR_FOLDER/conf/sonar.properties"
 
-  #TODO: get arch of SO Debian/Ubuntu
-  ln -s "$_SONAR_FOLDER/bin/linux-x86-64/sonar.sh" /etc/init.d/sonar
+  ln -s "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
   update-rc.d sonar defaults
   service sonar start

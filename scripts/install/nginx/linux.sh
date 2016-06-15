@@ -1,24 +1,26 @@
 #!/bin/bash
 # http://nginx.org/en/linux_packages.html
 # http://stackoverflow.com/questions/20988371/linux-bash-get-releasever-and-basearch-values
-
-_PACKAGE_COMMAND_DEBIAN="apt-get"
-_PACKAGE_COMMAND_CENTOS="yum"
+# http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
     _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"NGINX installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"NGINX installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -40,7 +42,7 @@ run_as_root () {
 }
 
 install_nginx () {
-  dialog --yesno "Confirm the installation of NGINX in $_OS_NAME?" 0 0
+  dialog --yesno "Confirm the installation of NGINX in $_OS_DESCRIPTION?" 0 0
   [ $? = 1 ] && clear && exit 0
 
   if [ $_OS_TYPE = "deb" ]; then
@@ -52,13 +54,9 @@ install_nginx () {
   elif [ $_OS_TYPE = "rpm" ]; then
     _REPO_FILE="/etc/yum.repos.d/nginx.repo"
 
-    _DISTRO=$(sed -n 's/^distroverpkg=//p' /etc/yum.conf)
-    _RELEASE=$(rpm -q --qf "%{version}" -f /etc/$_DISTRO)
-    _BASE_ARCH=$(rpm -q --qf "%{arch}" -f /etc/$_DISTRO)
-
     run_as_root "echo [nginx] > $_REPO_FILE"
     run_as_root "echo name=nginx repo >> $_REPO_FILE"
-    run_as_root "echo baseurl=http://nginx.org/packages/$_OS_NAME/$_OS_RELEASE/$_BASE_ARCH/ >> $_REPO_FILE"
+    run_as_root "echo baseurl=http://nginx.org/packages/$_OS_NAME/$_OS_RELEASE/$_OS_ARCH/ >> $_REPO_FILE"
     run_as_root "echo gpgcheck=0 >> $_REPO_FILE"
     run_as_root "echo enabled=1 >> $_REPO_FILE"
 
@@ -66,6 +64,8 @@ install_nginx () {
   fi
 
   $_PACKAGE_COMMAND -y install nginx
+
+  chmod 775 /var/log/nginx
 
   [ $_OS_TYPE = "rpm" ] && service nginx start
 

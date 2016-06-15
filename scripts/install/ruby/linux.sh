@@ -4,19 +4,23 @@
 
 _DEFAULT_USER="$USER"
 _DEFAULT_VERSION="2.3.1"
-_PACKAGE_COMMAND_DEBIAN="apt-get"
-_PACKAGE_COMMAND_CENTOS="yum"
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+    _OS_CODENAME=$(lsb_release -cs)
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Ruby installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"Ruby installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -45,7 +49,7 @@ install_ruby () {
   [ -z "$_USER" ] && _USER=$_DEFAULT_USER
 
   dialog --yesno "Do you confirm the installation of Ruby $_VERSION?" 0 0
-  [ $? = 1 ] && exit 0
+  [ $? = 1 ] && clear && exit 0
 
   gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 
@@ -53,6 +57,7 @@ install_ruby () {
 
   source /etc/profile.d/rvm.sh
 
+  #TODO: add others users
   usermod -a -G rvm $_USER
 
   rvmsudo rvm install $_VERSION

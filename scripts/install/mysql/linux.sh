@@ -6,19 +6,25 @@ _OPTIONS_LIST="install_mysql 'Install the database server' \
                grant_privileges 'grant privileges to a database user'"
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
+    _OS_CODENAME=$(lsb_release -cs)
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
     _PACKAGE_COMMAND="apt-get"
     _MYSQL_SERVICE="mysql"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
+    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
     _PACKAGE_COMMAND="yum"
     _MYSQL_SERVICE="mysqld"
   fi
 
-  _TITLE="--backtitle \"MySQL installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"MySQL installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -75,10 +81,10 @@ install_mysql () {
 
   case $_OS_TYPE in
     deb)
-      apt-get -y install mysql-server libmysqlclient-dev
+      $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
       ;;
     rpm)
-      yum -y install mysql-server mysql-devel
+      $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
       service mysqld start
       ;;

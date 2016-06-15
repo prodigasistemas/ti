@@ -8,8 +8,6 @@
 # http://progblog10.blogspot.com.br/2013/06/enabling-remote-access-to-postgresql.html
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 
-_PACKAGE_COMMAND_DEBIAN="apt-get"
-_PACKAGE_COMMAND_CENTOS="yum"
 _OPTIONS_LIST="install_postgresql 'Install the database server' \
                configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
                create_gsan_databases 'Create GSAN databases' \
@@ -17,21 +15,25 @@ _OPTIONS_LIST="install_postgresql 'Install the database server' \
                remote_access 'Enable remote access'"
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="apt-get"
     _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
     _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="yum"
     _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
   fi
 
-  _TITLE="--backtitle \"PostgreSQL $_POSTGRESQL_VERSION installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"PostgreSQL $_POSTGRESQL_VERSION installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {

@@ -1,24 +1,28 @@
 #!/bin/bash
 # http://www.oracle.com/technetwork/java/javase/downloads/index.html
+# http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
-_PACKAGE_COMMAND_DEBIAN="apt-get"
-_PACKAGE_COMMAND_CENTOS="yum"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_ARCH_LIST="i586 '32 bits' x64 '64 bits'"
 _VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
 
 os_check () {
+  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_DEBIAN
+    _OS_CODENAME=$(lsb_release -cs)
+    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _PACKAGE_COMMAND=$_PACKAGE_COMMAND_CENTOS
+    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
+    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
+    _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Java installation - OS: $_OS_NAME\""
+  _TITLE="--backtitle \"Java installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -144,17 +148,20 @@ install_oracleJava8 () {
 main () {
   tool_check wget
   tool_check dialog
-  
+
   _JAVA_VERSION=$(menu "Select the version" "$_VERSION_LIST")
 
   if [ -z "$_JAVA_VERSION" ]; then
     clear
     exit 0
   else
-    _ARCH=$(menu "Select the architecture" "$_ARCH_LIST")
-    [ -z "$_ARCH" ] && main
+    if [ $_OS_ARCH = "32" ]; then
+      _ARCH="i586"
+    elif [ $_OS_ARCH = "64" ]; then
+      _ARCH="x64"
+    fi
 
-    dialog --yesno "Do you confirm the installation of $_JAVA_VERSION ($_ARCH)?" 0 0
+    dialog --yesno "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?" 0 0
     [ $? = 1 ] && main
 
     install_$_JAVA_VERSION
