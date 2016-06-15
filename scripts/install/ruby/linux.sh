@@ -2,8 +2,10 @@
 # https://rvm.io/rvm/install
 # https://www.ruby-lang.org/en/downloads
 
-_DEFAULT_USER="$USER"
 _DEFAULT_VERSION="2.3.1"
+_GROUP="rvm"
+_OPTIONS_LIST="install_ruby 'Install Ruby' \
+               add_to_group 'Add a user to the group $_GROUP'"
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
@@ -33,32 +35,32 @@ tool_check() {
   fi
 }
 
+menu () {
+  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
+}
+
 input () {
   echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
 }
 
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+  main
 }
 
 install_ruby () {
   _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
+  [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && _VERSION=$_DEFAULT_VERSION
 
-  _USER=$(input "User to be added to the group rvm" $_DEFAULT_USER)
-  [ -z "$_USER" ] && _USER=$_DEFAULT_USER
-
   dialog --yesno "Do you confirm the installation of Ruby $_VERSION?" 0 0
-  [ $? = 1 ] && clear && exit 0
+  [ $? -eq 1 ] && main
 
   gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 
   curl -sSL https://get.rvm.io | bash -s stable
 
   source /etc/profile.d/rvm.sh
-
-  #TODO: add others users
-  usermod -a -G rvm $_USER
 
   rvmsudo rvm install $_VERSION
 
@@ -69,15 +71,40 @@ install_ruby () {
   gem install bundler
 
   message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back. After, execute: gem install bundler"
+}
 
-  clear
+add_to_group () {
+  _USER=$(input "Enter the user name to be added to the group $_GROUP")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
+
+  _FIND_USER=$(cat /etc/passwd | grep $_USER)
+  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
+
+  if [ $_OS_NAME = "debian" ]; then
+    gpasswd -a $_USER $_GROUP
+  else
+    usermod -aG $_GROUP $_USER
+  fi
+
+  if [ $? -eq 0 ]; then
+    message "Notice" "$_USER user was added the $_GROUP group successfully!"
+  else
+    message "Error" "A problem has occurred in the operation!"
+  fi
 }
 
 main () {
   tool_check curl
   tool_check dialog
 
-  install_ruby
+  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+
+  if [ -z "$_OPTION" ]; then
+    clear && exit 0
+  else
+    $_OPTION
+  fi
 }
 
 os_check

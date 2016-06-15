@@ -95,7 +95,7 @@ install_mysql () {
 
 remote_access () {
   dialog --yesno 'Do you want to enable remote access?' 0 0
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
     change_file "replace" "/etc/mysql/my.cnf" "bind-address" "#bind-address"

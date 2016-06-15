@@ -3,6 +3,10 @@
 # http://stackoverflow.com/questions/20988371/linux-bash-get-releasever-and-basearch-values
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
+_GROUP="nginx"
+_OPTIONS_LIST="install_nginx 'Install NGINX' \
+               add_to_group 'Add a user to the group $_GROUP'"
+
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
 
@@ -33,8 +37,17 @@ tool_check() {
   fi
 }
 
+menu () {
+  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
+}
+
+input () {
+  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
+}
+
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+  main
 }
 
 run_as_root () {
@@ -43,7 +56,7 @@ run_as_root () {
 
 install_nginx () {
   dialog --yesno "Confirm the installation of NGINX in $_OS_DESCRIPTION?" 0 0
-  [ $? = 1 ] && clear && exit 0
+  [ $? = 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
     curl -L http://nginx.org/keys/nginx_signing.key 2> /dev/null | apt-key add - &>/dev/null
@@ -70,14 +83,40 @@ install_nginx () {
   [ $_OS_TYPE = "rpm" ] && service nginx start
 
   message "Notice" "NGINX successfully installed!"
-  clear
+}
+
+add_to_group () {
+  _USER=$(input "Enter the user name to be added to the group $_GROUP")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
+
+  _FIND_USER=$(cat /etc/passwd | grep $_USER)
+  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
+
+  if [ $_OS_NAME = "debian" ]; then
+    gpasswd -a $_USER $_GROUP
+  else
+    usermod -aG $_GROUP $_USER
+  fi
+
+  if [ $? -eq 0 ]; then
+    message "Notice" "$_USER user was added the $_GROUP group successfully!"
+  else
+    message "Error" "A problem has occurred in the operation!"
+  fi
 }
 
 main () {
   tool_check curl
   tool_check dialog
 
-  install_nginx
+  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+
+  if [ -z "$_OPTION" ]; then
+    clear && exit 0
+  else
+    $_OPTION
+  fi
 }
 
 os_check
