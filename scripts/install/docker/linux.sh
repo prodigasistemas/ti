@@ -62,7 +62,7 @@ install_docker () {
   case $_OS_TYPE in
     deb)
       if [ $_OS_NAME = "debian" ]; then
-        apt-get purge lxc-docker* docker.io*
+        apt-get purge -y lxc-docker* docker.io*
 
         if [ $_OS_CODENAME = "wheezy" ]; then
           run_as_root "echo \"deb http://http.debian.net/debian wheezy-backports main\" > /etc/apt/sources.list.d/backports.list"
@@ -70,7 +70,7 @@ install_docker () {
       fi
 
       apt-get update
-      install apt-transport-https ca-certificates
+      apt-get install -y apt-transport-https ca-certificates
 
       apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 
@@ -79,8 +79,8 @@ install_docker () {
       apt-get update
 
       if [ $_OS_NAME = "ubuntu" ]; then
-        apt-get purge lxc-docker
-        apt-get install linux-image-extra-$(uname -r)
+        apt-get purge -y lxc-docker
+        apt-get install -y linux-image-extra-$(uname -r)
       fi
 
       apt-cache policy docker-engine
