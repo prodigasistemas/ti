@@ -25,7 +25,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Oracle Database installation (https://hub.docker.com/r/wnameless/oracle-xe-11g) - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Oracle Database installation - OS: $_OS_DESCRIPTION\""
 }
 
 tool_check() {
@@ -49,6 +49,23 @@ input () {
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
   main
+}
+
+change_file () {
+  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_OPERATION=$1
+  _CF_FILE=$2
+  _CF_FROM=$3
+  _CF_TO=$4
+
+  case $_CF_OPERATION in
+    replace)
+      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
+      ;;
+    append)
+      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
+      ;;
+  esac
 }
 
 run_as_root () {
@@ -80,7 +97,54 @@ import_ggas_database () {
   dialog --yesno "Confirms the import of GGAS database?" 0 0
   [ $? -eq 1 ] && main
 
+  [ -e "ggas" ] && rm -rf ggas
+
+  echo
+  echo "=================================================="
+  echo "Cloning repo from http://ggas.com.br/root/ggas.git"
+  echo "=================================================="
   git clone http://ggas.com.br/root/ggas.git
+
+  _SEARCH_STRING="CREATE OR REPLACE FUNCTION \"GGAS_ADMIN\".\"SQUIRREL_GET_ERROR_OFFSET\""
+  change_file replace ggas/sql/GGAS_SCRIPT_INICIAL_ORACLE_02_ESTRUTURA_CONSTRAINTS_CARGA_INICIAL.sql "$_SEARCH_STRING" "-- $_SEARCH_STRING"
+
+  for i in ggas/sql/*.sql ; do echo " " >> $i ; done
+  for i in ggas/sql/*.sql ; do echo "exit;" >> $i ; done
+
+  mkdir ggas/sql/01 ggas/sql/02
+
+  mv ggas/sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql ggas/sql/01/
+  mv ggas/sql/*.sql ggas/sql/02/
+
+  _IMPORT_SCRIPT="ggas/sql/import_db.sh"
+  echo '#!/bin/bash' > $_IMPORT_SCRIPT
+  echo 'export NLS_LANG=AMERICAN_AMERICA.AL32UTF8' >> $_IMPORT_SCRIPT
+  echo 'export PATH=$PATH:/u01/app/oracle/product/11.2.0/xe/bin' >> $_IMPORT_SCRIPT
+  echo 'export ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe' >> $_IMPORT_SCRIPT
+  echo 'export ORACLE_SID=XE' >> $_IMPORT_SCRIPT
+  echo 'for i in /tmp/sql/01/*.sql ; do echo "> Importando o arquivo $i ..." ; sqlplus system/oracle @$i ; done' >> $_IMPORT_SCRIPT
+  echo 'for i in /tmp/sql/02/*.sql ; do echo "> Importando o arquivo $i ..." ; sqlplus GGAS_ADMIN/GGAS_ADMIN @$i ; done' >> $_IMPORT_SCRIPT
+  chmod +x $_IMPORT_SCRIPT
+
+  echo
+  echo "===================================================="
+  echo "you must run the commands in the container oracle db"
+  echo "The root password is 'admin'"
+  echo "===================================================="
+
+  echo
+  echo "====================================="
+  echo "Copy sql files to container oracle db"
+  echo "====================================="
+  scp -P 2222 -r ggas/sql root@localhost:/tmp
+
+  echo
+  echo "======================================="
+  echo "Import sql files to container oracle db"
+  echo "======================================="
+  ssh -p 2222 root@localhost "/tmp/sql/import_db.sh"
+
+  message "Notice" "Import GGAS database was successful!"
 }
 
 main () {

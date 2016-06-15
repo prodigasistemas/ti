@@ -88,7 +88,7 @@ add_to_group () {
   fi
 
   if [ $? -eq 0 ]; then
-    message "Notice" "$_USER user was added the $_GROUP group successfully!"
+    message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
   else
     message "Error" "A problem has occurred in the operation!"
   fi

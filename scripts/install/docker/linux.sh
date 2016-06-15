@@ -10,6 +10,7 @@ _OPTIONS_LIST="install_docker 'Install Docker' \
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
@@ -100,8 +101,6 @@ install_docker () {
 
   $_PACKAGE_COMMAND install -y docker-engine
 
-  groupadd docker
-
   service docker start
 
   docker run hello-world
@@ -124,7 +123,7 @@ add_to_group () {
   fi
 
   if [ $? -eq 0 ]; then
-    message "Notice" "$_USER user was added the $_GROUP group successfully!"
+    message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
   else
     message "Error" "A problem has occurred in the operation!"
   fi
@@ -133,9 +132,24 @@ add_to_group () {
 main () {
   tool_check dialog
 
+  _MAJOR_VERION=$(uname -r | cut -d. -f1)
+  _MINOR_VERION=$(uname -r | cut -d. -f2)
+
   if [ $_OS_ARCH = "32" ]; then
     dialog --title "Alert" --msgbox "Docker requires a 64-bit installation regardless of your distribution version!" 0 0
     clear && exit 0
+  fi
+
+  if [ $_OS_NAME = "debian" ]; then
+    if [ $_MAJOR_VERION -lt 3 ]; then
+      dialog --title "Alert" --msgbox "Prerequisites Docker: the major version of Kernel ($_OS_KERNEL) is less than 3!" 0 0
+      clear && exit 0
+    fi
+
+    if [ $_MINOR_VERION -lt 10 ]; then
+      dialog --title "Alert" --msgbox "Prerequisites Docker: the minor version of Kernel ($_OS_KERNEL) is less than 10!" 0 0
+      clear && exit 0
+    fi
   fi
 
   _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
