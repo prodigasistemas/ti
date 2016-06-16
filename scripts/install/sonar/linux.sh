@@ -13,10 +13,11 @@ _CONNECTION_ADDRESS_MYSQL="localhost:3306"
 _RUNNER_VERSION_DEFAULT="2.4"
 
 _SONAR_GGAS_VERSION="5.0"
+_SONAR_GGAS_DOWNLOAD_URL="http://sonar.ggas.com.br/download"
 _SONAR_GGAS_FILE="sonarqube-$_SONAR_GGAS_VERSION.tar.gz"
 
 _SONAR_SOURCE_QUBE="Install and configure SonarQube from www.sonarqube.org"
-_SONAR_SOURCE_GGAS="Install and configure SonarQube $_SONAR_GGAS_VERSION from sonar.ggas.com.br"
+_SONAR_SOURCE_GGAS="Install and configure SonarQube $_SONAR_GGAS_VERSION from other sources"
 _SONAR_SOURCE_LIST="QUBE '$_SONAR_SOURCE_QUBE' GGAS '$_SONAR_SOURCE_GGAS'"
 
 _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
@@ -85,6 +86,10 @@ mysql_as_root () {
   mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
 }
 
+backup_sonar_folder () {
+  mv $_SONAR_FOLDER "$_SONAR_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
+}
+
 install_sonar_qube () {
   case $_OS_TYPE in
     deb)
@@ -101,7 +106,24 @@ install_sonar_qube () {
 }
 
 install_sonar_ggas () {
-  wget "http://sonar.ggas.com.br/download/$_SONAR_GGAS_FILE"
+  _SONAR_GGAS_VERSION=$(input "Enter the sonar ggas version" "$_SONAR_GGAS_VERSION")
+  [ $? -eq 1 ] && main
+  [ -z "$_SONAR_GGAS_VERSION" ] && message "Alert" "The sonar ggas version can not be blank!"
+
+  _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar ggas download url" "$_SONAR_GGAS_DOWNLOAD_URL")
+  [ $? -eq 1 ] && main
+  [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar ggas download url can not be blank!"
+
+  _SONAR_GGAS_FILE="sonarqube-$_SONAR_GGAS_VERSION.tar.gz"
+
+  _SONAR_GGAS_FILE=$(input "Enter the sonar ggas download url" "$_SONAR_GGAS_FILE")
+  [ $? -eq 1 ] && main
+  [ -z "$_SONAR_GGAS_FILE" ] && message "Alert" "The sonar ggas file can not be blank!"
+
+  dialog --yesno "File download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_FILE. Confirm?" 0 0
+  [ $? -eq 1 ] && main
+
+  wget "$_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_FILE"
   tar -xvzf "$_SONAR_GGAS_FILE"
   rm "$_SONAR_GGAS_FILE"
 
@@ -111,20 +133,18 @@ install_sonar_ggas () {
   ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
   update-rc.d sonar defaults
-  service sonar start
+  service sonar restart
 }
 
 install_sonar () {
-  _JAVA_PATH=$(input "Enter the path of Java 8" "/opt/java-oracle-8/bin/java")
+  _JAVA_PATH=$(input "Enter the path of command java 8" "java")
   [ $? -eq 1 ] && main
-  [ -z "$_JAVA_PATH" ] && message "Alert" "The Java 8 path can not be blank!"
+  [ -z "$_JAVA_PATH" ] && message "Alert" "The command can not be blank!"
 
-  if [ -e "$_SONAR_FOLDER" ] && [ -d "$_SONAR_FOLDER" ]; then
-    dialog --yesno "The $_SONAR_FOLDER already exists. To proceed, it will be deleted, right?" 0 0
-    [ $? -eq 1 ] && main
+  [ -e "$_SONAR_FOLDER" ] && backup_sonar_folder
 
-    rm -rf $_SONAR_FOLDER
-  fi
+  service sonar stop
+  killall -r sonar
 
   case $_SONAR_OPTION in
     QUBE)
@@ -138,7 +158,7 @@ install_sonar () {
   change_file "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_PATH"
 
   if [ $_SONAR_OPTION = "QUBE" ] && [ $_OS_TYPE = "rpm" ]; then
-    service sonar start
+    service sonar restart
   fi
 
   message "Notice" "Sonar successfully installed!"
@@ -173,12 +193,23 @@ configure_database () {
       mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_HOST_CONNECTION WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
       if [ $_SONAR_OPTION = "GGAS" ]; then
-        wget http://sonar.ggas.com.br/download/sonar.sql
+        _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar ggas download URL" "$_SONAR_GGAS_DOWNLOAD_URL")
+        [ $? -eq 1 ] && main
+        [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar ggas download URL can not be blank!"
 
-        if [ -e "sonar.sql" ]; then
-          mysql -h $_HOST_CONNECTION -u sonar -p$_MYSQL_SONAR_PASSWORD < sonar.sql
+        _SONAR_GGAS_SQL_FILE=$(input "Enter the sonar SQL file to import" "sonar.sql")
+        [ $? -eq 1 ] && main
+        [ -z "$_SONAR_GGAS_SQL_FILE" ] && message "Alert" "The sonar ggas SQL file can not be blank!"
+
+        dialog --yesno "SQL file download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_SQL_FILE. Confirm?" 0 0
+        [ $? -eq 1 ] && main
+
+        wget $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_SQL_FILE
+
+        if [ -e "$_SONAR_GGAS_SQL_FILE" ]; then
+          mysql -h $_HOST_CONNECTION -u sonar -p$_MYSQL_SONAR_PASSWORD < $_SONAR_GGAS_SQL_FILE
         else
-          message "Alert" "sonar.sql file was not found. Import unrealized!"
+          message "Alert" "$_SONAR_GGAS_SQL_FILE file was not found. Import unrealized!"
         fi
       fi
 
