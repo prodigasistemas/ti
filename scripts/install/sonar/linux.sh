@@ -22,10 +22,14 @@ _SONAR_SOURCE_LIST="QUBE '$_SONAR_SOURCE_QUBE' GGAS '$_SONAR_SOURCE_GGAS'"
 _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
                configure_database 'Configure connection to MySQL database' \
                install_sonar_runner 'Install the Sonar Runner' \
-               configure_nginx 'configure host on NGINX'"
+               configure_nginx 'Configure host on NGINX'"
+
+_OPTIONS_DATABASE="database 'Create the user and sonar database' \
+                   sonar.properties 'Configure the connection to the database'"
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
@@ -41,7 +45,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Sonar installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Sonar installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {
@@ -104,7 +108,7 @@ install_sonar_ggas () {
   mv "sonarqube-$_SONAR_GGAS_VERSION" $_SONAR_FOLDER
   mv "$_SONAR_FOLDER/conf/sonar.properties_old" "$_SONAR_FOLDER/conf/sonar.properties"
 
-  ln -s "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
+  ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
   update-rc.d sonar defaults
   service sonar start
@@ -141,7 +145,7 @@ install_sonar () {
 }
 
 configure_database () {
-  _OPTION=$(menu "Select which configuration" " database 'Create the user and sonar database' sonar.properties 'Configure the connection to the database'")
+  _OPTION=$(menu "Select which configuration" "$_OPTIONS_DATABASE")
   [ -z "$_OPTION" ] && main
 
   case $_OPTION in
@@ -153,7 +157,6 @@ configure_database () {
 
         _HOST_CONNECTION=$(echo $_SERVER_ADDRESS | cut -d: -f1)
       else
-        #TODO: suggest installation
         message "Alert" "MySQL Client is not installed!"
       fi
 
@@ -263,7 +266,7 @@ install_sonar_runner () {
 
 configure_nginx () {
   if command -v nginx > /dev/null; then
-    _DOMAIN=$(input "Enter the domain of sonar" "sonar.company.gov")
+    _DOMAIN=$(input "Enter the domain of Sonar" "sonar.company.gov")
     [ $? -eq 1 ] && main
     [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
@@ -271,7 +274,7 @@ configure_nginx () {
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
-    curl -sS "$_URL_CENTRAL/scripts/templates/nginx/app.redirect.conf" > sonar.conf
+    curl -sS "$_URL_CENTRAL/scripts/templates/nginx/redirect.conf" > sonar.conf
 
     change_file "sonar.conf" "APP" "sonar"
     change_file "sonar.conf" "DOMAIN" "$_DOMAIN"
@@ -308,8 +311,7 @@ type_menu () {
   _SONAR_OPTION=$(menu "Select the sonar source" "$_SONAR_SOURCE_LIST")
 
   if [ -z "$_SONAR_OPTION" ]; then
-    clear
-    exit 0
+    clear && exit 0
   else
     _TEXT="_SONAR_SOURCE_$_SONAR_OPTION"
     _TEXT=$(echo "${!_TEXT}")
