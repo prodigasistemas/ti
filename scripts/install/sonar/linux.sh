@@ -87,7 +87,7 @@ mysql_as_root () {
 }
 
 backup_sonar_folder () {
-  mv $_SONAR_FOLDER "$_SONAR_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
+  [ -e "$_SONAR_FOLDER" ] && mv $_SONAR_FOLDER "$_SONAR_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
 }
 
 install_sonar_qube () {
@@ -141,7 +141,7 @@ install_sonar () {
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_PATH" ] && message "Alert" "The command can not be blank!"
 
-  [ -e "$_SONAR_FOLDER" ] && backup_sonar_folder
+  backup_sonar_folder
 
   service sonar stop
   killall -r sonar

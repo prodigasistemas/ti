@@ -109,7 +109,9 @@ install_docker () {
 }
 
 add_to_group () {
-  _USER=$(input "Enter the user name to be added to the group $_GROUP")
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+
+  _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
   [ $? -eq 1 ] && main
   [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
 
