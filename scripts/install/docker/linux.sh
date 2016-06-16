@@ -26,7 +26,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Docker installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Docker installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {

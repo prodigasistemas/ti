@@ -9,6 +9,7 @@ _OPTIONS_LIST="install_ruby 'Install Ruby' \
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
@@ -22,7 +23,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Ruby installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Ruby installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {

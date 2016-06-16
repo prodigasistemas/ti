@@ -10,6 +10,7 @@ _OPTIONS_LIST="install_oracleb 'Install Oracle Database 11g Express Edition with
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
@@ -25,7 +26,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Oracle Database installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Oracle Database installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {

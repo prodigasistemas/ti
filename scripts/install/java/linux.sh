@@ -7,6 +7,7 @@ _VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' oracleJava6 'Oracle Jav
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
@@ -22,7 +23,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Java installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"Java installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {

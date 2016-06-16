@@ -16,6 +16,7 @@ _OPTIONS_LIST="install_postgresql 'Install the database server' \
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+  _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
     _OS_TYPE="deb"
@@ -33,7 +34,7 @@ os_check () {
     _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
   fi
 
-  _TITLE="--backtitle \"PostgreSQL $_POSTGRESQL_VERSION installation - OS: $_OS_DESCRIPTION\""
+  _TITLE="--backtitle \"PostgreSQL installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {
