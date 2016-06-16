@@ -22,7 +22,7 @@ worker_processes 4
 # Help ensure your application will always spawn in the symlinked
 # "current" directory that Capistrano sets up.
 APP_NAME="__APP__"
-APP_PATH="__PATH__/#{APP_NAME}/current"
+APP_PATH="__PATH__/#{APP_NAME}"
 working_directory APP_PATH # available in 0.94.0+
 
 # listen on both a Unix domain socket and a TCP port,

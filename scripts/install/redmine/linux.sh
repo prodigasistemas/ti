@@ -2,6 +2,7 @@
 # http://www.redmine.org/projects/redmine/wiki/RedmineInstall
 # http://www.redmine.org/projects/redmine/wiki/EmailConfiguration
 # http://www.redmine.org/projects/redmine/wiki/Install_Redmine_25x_on_Centos_65_complete
+# http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
 _URL_CENTRAL="http://prodigasistemas.github.io"
 _REDMINE_VERSION="3.2.3"
@@ -9,13 +10,9 @@ _DEFAULT_PATH="/opt"
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
 
 _OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_VERSION in $_DEFAULT_PATH' \
-               configure_database 'Configure connection to MySQL database' \
                configure_nginx 'Configure host on NGINX' \
                configure_email 'Configure sending email' \
                issue_reports_plugin 'Install Redmine issue reports plugin'"
-
-_OPTIONS_DATABASE="database 'Create the user and redmine database' \
-                   database.yml 'Configure the connection to the database'"
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
@@ -70,7 +67,7 @@ change_file () {
 
   case $_CF_OPERATION in
     replace)
-      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
+      sed -i$_CF_BACKUP -e "s|$_CF_FROM|$_CF_TO|g" $_CF_FILE
       ;;
     append)
       sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
@@ -82,18 +79,25 @@ run_as_root () {
   su -c "$1"
 }
 
+run_as_user () {
+  su - $1 -c "$2"
+}
+
 mysql_as_root () {
   mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
+}
+
+backup_redmine_folder () {
+  [ -e "$_REDMINE_FOLDER" ] && mv $_REDMINE_FOLDER "$_REDMINE_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
 }
 
 install_dependencies () {
   case $_OS_TYPE in
     deb)
-      $_PACKAGES="libmagickwand-dev libgmp3-dev"
+      _PACKAGES="libmagickwand-dev libgmp3-dev"
       ;;
     rpm)
-      $_PACKAGES="ImageMagick-devel"
-
+      _PACKAGES="ImageMagick-devel"
       #change_file replace /etc/selinux/config SELINUX=enforcing SELINUX=disabled
       ;;
   esac
@@ -102,7 +106,16 @@ install_dependencies () {
 }
 
 install_redmine () {
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+  _USER_GROUP=$(echo $(groups $_USER_LOGGED | cut -d: -f2) | cut -d' ' -f1)
+  _USER_GROUPS=$(echo $(groups $_USER_LOGGED | cut -d: -f2))
+
   if command -v ruby > /dev/null; then
+    #TODO:
+    #if command -v rvm > /dev/null; then
+    #  echo search user group rvm
+    #fi
+
     dialog --title 'Redmine install' --yesno "Confirm installation Redmine $_REDMINE_VERSION?" 0 0
     [ $? -eq 1 ] && main
 
@@ -114,38 +127,55 @@ install_redmine () {
 
     rm redmine-$_REDMINE_VERSION.tar.gz
 
-    mv redmine-$_REDMINE_VERSION $_DEFAULT_PATH
+    backup_redmine_folder
 
-    ln -sf $_DEFAULT_PATH/redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
+    mv redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
 
-    echo "gem 'unicorn'" > $_REDMINE_FOLDER/Gemfile.local
-    echo "gem 'holidays'" >> $_REDMINE_FOLDER/Gemfile.local
+    run_as_user $_USER_LOGGED "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
+    run_as_user $_USER_LOGGED "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
+    run_as_user $_USER_LOGGED "gem install bundler"
 
-    cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle
+    configure_database
 
-    export RAILS_ENV=production
+    chown $_USER_LOGGED:$_USER_GROUP -R $_REDMINE_FOLDER
 
-    cd $_REDMINE_FOLDER && REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data
+    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
 
-    cd $_REDMINE_FOLDER && bundle exec rake generate_secret_token
+    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
 
-    _UNICORN_RB_FILE=unicorn.rb
+    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
+
+    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
+
+    _UNICORN_RB_FILE="unicorn.rb"
     curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
-    change_file replace $_UNICORN_RB_FILE __APP__ redmine
-    change_file replace $_UNICORN_RB_FILE __PATH__ $_DEFAULT_PATH
+    change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
+    change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
+    chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
     mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
     rm $_UNICORN_RB_FILE*
 
-    $_UNICORN_INIT_FILE=unicorn_init.sh
+    _UNICORN_INIT_FILE="unicorn_init.sh"
     curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
-    change_file replace $_UNICORN_INIT_FILE __APP__ redmine
-    change_file replace $_UNICORN_INIT_FILE __PATH__ $_DEFAULT_PATH
+    change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
+    change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
+    change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
+    chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_INIT_FILE
     chmod +x $_UNICORN_INIT_FILE
     mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
     rm $_UNICORN_INIT_FILE*
     ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
-    update-rc.d unicorn_redmine defaults
-    /etc/init.d/unicorn_redmine start
+
+    case $_OS_TYPE in
+      deb)
+        update-rc.d unicorn_redmine defaults
+        ;;
+      rpm)
+        chkconfig --add unicorn_redmine
+        ;;
+    esac
+
+    service unicorn_redmine start
 
     message "Notice" "Redmine successfully installed!"
   else
@@ -154,58 +184,35 @@ install_redmine () {
 }
 
 configure_database () {
-  _OPTION=$(menu "Select which configuration" "$_OPTIONS_DATABASE")
-  [ -z "$_OPTION" ] && main
+  _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
 
-  case $_OPTION in
-    database)
-      if command -v mysql > /dev/null; then
-        _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
-        [ $? -eq 1 ] && main
-        [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
-      else
-        message "Alert" "MySQL Client is not installed!"
-      fi
+  if command -v mysql > /dev/null; then
+    _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
+    [ $? -eq 1 ] && main
+    [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
+  else
+    message "Alert" "MySQL Client is not installed!"
+  fi
 
-      _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
-      [ $? -eq 1 ] && main
-      [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+  _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
 
-      _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
-      [ $? -eq 1 ] && main
-      [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+  _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
-      mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8;"
-      mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_HOST_CONNECTION IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-      mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_HOST_CONNECTION WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8;"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_HOST_ADDRESS IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_HOST_ADDRESS WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
-      message "Notice" "User and database redmine successfully created!"
-      ;;
-
-    database.yml)
-      _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
-
-      _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
-      [ $? -eq 1 ] && main
-      [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
-
-      _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
-      [ $? -eq 1 ] && main
-      [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
-
-      echo "production:" > $_YAML_FILE
-      echo "  adapter: mysql2" >> $_YAML_FILE
-      echo "  database: redmine" >> $_YAML_FILE
-      echo "  host: $_HOST_ADDRESS" >> $_YAML_FILE
-      echo "  username: redmine" >> $_YAML_FILE
-      echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
-      echo "  encoding: utf8" >> $_YAML_FILE
-
-      cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate
-
-      message "Notice" "Connection to the database configured!"
-      ;;
-  esac
+  echo "production:" > $_YAML_FILE
+  echo "  adapter: mysql2" >> $_YAML_FILE
+  echo "  database: redmine" >> $_YAML_FILE
+  echo "  host: $_HOST_ADDRESS" >> $_YAML_FILE
+  echo "  username: redmine" >> $_YAML_FILE
+  echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
+  echo "  encoding: utf8" >> $_YAML_FILE
 }
 
 configure_nginx () {
@@ -251,7 +258,7 @@ configure_email () {
   dialog --title 'Configure sending email' --yesno "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" 0 0
   [ $? -eq 1 ] && main
 
-  $_CONFIG_FILE=$_REDMINE_FOLDER/config/configuration.yml
+  _CONFIG_FILE=$_REDMINE_FOLDER/config/configuration.yml
 
   echo "production:" > $_CONFIG_FILE
   echo "email_delivery:" >> $_CONFIG_FILE

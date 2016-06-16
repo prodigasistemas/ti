@@ -105,10 +105,13 @@ install_docker () {
 
   docker run hello-world
 
+  add_to_group no
+
   message "Notice" "Docker successfully installed!"
 }
 
 add_to_group () {
+  _SHOW_ALERT=$1
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
@@ -124,10 +127,12 @@ add_to_group () {
     usermod -aG $_GROUP $_USER
   fi
 
-  if [ $? -eq 0 ]; then
-    message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
-  else
-    message "Error" "A problem has occurred in the operation!"
+  if [ "$_SHOW_ALERT" != "no" ]; then
+    if [ $? -eq 0 ]; then
+      message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
+    else
+      message "Error" "A problem has occurred in the operation!"
+    fi
   fi
 }
 

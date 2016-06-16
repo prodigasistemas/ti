@@ -132,7 +132,15 @@ install_sonar_ggas () {
 
   ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
-  update-rc.d sonar defaults
+  case $_OS_TYPE in
+    deb)
+      update-rc.d sonar defaults
+      ;;
+    rpm)
+      chkconfig --add sonar
+      ;;
+  esac
+
   service sonar restart
 }
 

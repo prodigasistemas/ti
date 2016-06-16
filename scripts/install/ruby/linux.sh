@@ -53,7 +53,13 @@ run_as_root () {
   su -c "$1"
 }
 
+run_as_user () {
+  su - $1 -c "$2"
+}
+
 install_ruby () {
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+
   _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && _VERSION=$_DEFAULT_VERSION
@@ -67,18 +73,28 @@ install_ruby () {
 
   source /etc/profile.d/rvm.sh
 
-  rvmsudo rvm install $_VERSION
+  case $_OS_TYPE in
+    deb)
+      rvmsudo rvm install $_VERSION
+      rvmsudo rvm alias create default $_VERSION
+      ;;
+    rpm)
+      run_as_user $_USER_LOGGED "rvmsudo rvm install $_VERSION"
+      run_as_user $_USER_LOGGED "rvmsudo rvm alias create default $_VERSION"
+      ;;
+  esac
 
-  rvmsudo rvm alias create default $_VERSION
-
-  echo "gem: --no-rdoc --no-ri" | tee /etc/gemrc
+  run_as_root "echo \"gem: --no-rdoc --no-ri\" > /etc/gemrc"
 
   gem install bundler
+
+  add_to_group no
 
   message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back. After, execute: gem install bundler"
 }
 
 add_to_group () {
+  _SHOW_ALERT=$1
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
@@ -94,10 +110,12 @@ add_to_group () {
     usermod -aG $_GROUP $_USER
   fi
 
-  if [ $? -eq 0 ]; then
-    message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
-  else
-    message "Error" "A problem has occurred in the operation!"
+  if [ "$_SHOW_ALERT" != "no" ]; then
+    if [ $? -eq 0 ]; then
+      message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
+    else
+      message "Error" "A problem has occurred in the operation!"
+    fi
   fi
 }
 

@@ -16,7 +16,7 @@ APP_NAME="__APP__"
 APP_ROOT="__PATH__/$APP_NAME"
 PID="/tmp/.unicorn.$APP_NAME.pid"
 CMD="cd $APP_ROOT; bundle exec unicorn_rails -D -c $APP_ROOT/config/unicorn.rb -E production"
-AS_USER=jenkins
+AS_USER="__USER__"
 set -u
 
 OLD_PIN="$PID.oldbin"
