@@ -88,11 +88,13 @@ install_mysql_server () {
     rpm)
       $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
+      chkconfig mysqld on
+
       service mysqld start
       ;;
   esac
 
-  message "Notice" "MySQL successfully installed!"
+  message "Notice" "MySQL Server successfully installed!"
 }
 
 install_mysql_client () {
@@ -104,7 +106,7 @@ install_mysql_client () {
 
   $_PACKAGE_COMMAND -y install $_PACKAGE
 
-  message "Notice" "MySQL successfully installed!"
+  message "Notice" "MySQL Client successfully installed!"
 }
 
 remote_access () {

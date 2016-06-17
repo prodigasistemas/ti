@@ -68,20 +68,23 @@ install_nginx () {
   elif [ $_OS_TYPE = "rpm" ]; then
     _REPO_FILE="/etc/yum.repos.d/nginx.repo"
 
+    [ "$_OS_ARCH" = "32" ] && _NGINX_ARCH="i386"
+    [ "$_OS_ARCH" = "64" ] && _NGINX_ARCH="x86_64"
+
     run_as_root "echo [nginx] > $_REPO_FILE"
     run_as_root "echo name=nginx repo >> $_REPO_FILE"
-    run_as_root "echo baseurl=http://nginx.org/packages/$_OS_NAME/$_OS_RELEASE/$_OS_ARCH/ >> $_REPO_FILE"
+    run_as_root "echo baseurl=http://nginx.org/packages/$_OS_NAME/$_OS_RELEASE/$_NGINX_ARCH/ >> $_REPO_FILE"
     run_as_root "echo gpgcheck=0 >> $_REPO_FILE"
     run_as_root "echo enabled=1 >> $_REPO_FILE"
 
-    curl -L http://nginx.org/keys/nginx_signing.key 2> /dev/null | rpm --import - &>/dev/null
+    rpm --import http://nginx.org/keys/nginx_signing.key
   fi
 
   $_PACKAGE_COMMAND -y install nginx
 
   chmod 775 /var/log/nginx
 
-  [ $_OS_TYPE = "rpm" ] && service nginx start
+  [ "$_OS_TYPE" = "rpm" ] && service nginx start
 
   add_to_group no
 

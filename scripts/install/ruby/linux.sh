@@ -1,6 +1,7 @@
 #!/bin/bash
 # https://rvm.io/rvm/install
 # https://www.ruby-lang.org/en/downloads
+# http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
 _DEFAULT_VERSION="2.3.1"
 _GROUP="rvm"
@@ -12,11 +13,13 @@ os_check () {
   _OS_KERNEL=$(uname -r)
 
   if [ $(which lsb_release 2>/dev/null) ]; then
+    _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
     _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
     _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
+    _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
     _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
     _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
@@ -46,7 +49,12 @@ input () {
 
 message () {
   eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
+
+  if [ -z "$3" ]; then
+    main
+  else
+    $3
+  fi
 }
 
 run_as_root () {
@@ -57,8 +65,20 @@ run_as_user () {
   su - $1 -c "$2"
 }
 
+disable_selinux () {
+  _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")
+
+  if [ ! -z "$_SELINUX_ENABLED" ]; then
+    dialog --title "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive" --msgbox "" 0 0
+
+    change_file "replace" "/etc/selinux/config" "^$_SELINUX_ENABLED" "SELINUX=permissive"
+  fi
+}
+
 install_ruby () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+
+  [ "$_OS_TYPE" = "rpm" ] && disable_selinux
 
   _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
   [ $? -eq 1 ] && main
@@ -73,6 +93,8 @@ install_ruby () {
 
   source /etc/profile.d/rvm.sh
 
+  add_to_group no
+
   case $_OS_TYPE in
     deb)
       rvmsudo rvm install $_VERSION
@@ -86,11 +108,9 @@ install_ruby () {
 
   run_as_root "echo \"gem: --no-rdoc --no-ri\" > /etc/gemrc"
 
-  gem install bundler
+  run_as_user $_USER_LOGGED "gem install bundler"
 
-  add_to_group no
-
-  message "Notice" "Success! Enter the command: rvm -v. If not found, log out and log back. After, execute: gem install bundler"
+  message "Notice" "Success! Will be you logout. After, enter the command: ruby -v" "pkill -KILL -u $_USER_LOGGED"
 }
 
 add_to_group () {

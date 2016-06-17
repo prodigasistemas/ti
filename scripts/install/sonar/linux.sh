@@ -9,6 +9,7 @@ _URL_CENTRAL="http://prodigasistemas.github.io"
 _SONAR_FOLDER="/opt/sonar"
 _PROPERTIES_FOLDER="$_SONAR_FOLDER/conf"
 _DEFAULT_HOST="http://localhost:9000"
+_NGINX_DEFAULT_HOST="localhost:9000"
 _CONNECTION_ADDRESS_MYSQL="localhost:3306"
 _RUNNER_VERSION_DEFAULT="2.4"
 
@@ -73,9 +74,20 @@ message () {
 }
 
 change_file () {
-  _BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_OPERATION=$1
+  _CF_FILE=$2
+  _CF_FROM=$3
+  _CF_TO=$4
 
-  sed -i$_BACKUP -e "s|$2|$3|g" $1
+  case $_CF_OPERATION in
+    replace)
+      sed -i$_CF_BACKUP -e "s|$_CF_FROM|$_CF_TO|g" $_CF_FILE
+      ;;
+    append)
+      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
+      ;;
+  esac
 }
 
 run_as_root () {
@@ -103,6 +115,8 @@ install_sonar_qube () {
   esac
 
   $_PACKAGE_COMMAND -y install sonar
+
+  [ "$_OS_TYPE" = "rpm" ] chkconfig sonar on
 }
 
 install_sonar_ggas () {
@@ -137,7 +151,7 @@ install_sonar_ggas () {
       update-rc.d sonar defaults
       ;;
     rpm)
-      chkconfig --add sonar
+      chkconfig sonar on
       ;;
   esac
 
@@ -149,10 +163,9 @@ install_sonar () {
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_PATH" ] && message "Alert" "The command can not be blank!"
 
-  backup_sonar_folder
-
   service sonar stop
-  killall -r sonar
+
+  backup_sonar_folder
 
   case $_SONAR_OPTION in
     QUBE)
@@ -163,7 +176,7 @@ install_sonar () {
       ;;
   esac
 
-  change_file "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_PATH"
+  change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_PATH"
 
   if [ $_SONAR_OPTION = "QUBE" ] && [ $_OS_TYPE = "rpm" ]; then
     service sonar restart
@@ -239,10 +252,10 @@ configure_database () {
 
       [ $_SONAR_OPTION = "GGAS" ] && _GGAS_USER="sonar"
 
-      change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.username=$_GGAS_USER" "sonar.jdbc.username=sonar"
-      change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.password=$_GGAS_USER" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
-      change_file "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
-      change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
+      change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.username=$_GGAS_USER" "sonar.jdbc.username=sonar"
+      change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.password=$_GGAS_USER" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
+      change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
+      change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
 
       service sonar restart
 
@@ -287,16 +300,16 @@ install_sonar_runner () {
 
   _PROPERTIES_FILE="/opt/sonar-runner/conf/sonar-runner.properties"
 
-  change_file "$_PROPERTIES_FILE" "^#sonar.host.url=$_DEFAULT_HOST" "sonar.host.url=$_HOST_ADDRESS"
+  change_file "replace" "$_PROPERTIES_FILE" "^#sonar.host.url=$_DEFAULT_HOST" "sonar.host.url=$_HOST_ADDRESS"
 
   if [ $_SONAR_OPTION = "QUBE" ]; then
-    change_file "$_PROPERTIES_FILE" "^#sonar.login=admin" "sonar.login=$_USER_TOKEN"
+    change_file "replace" "$_PROPERTIES_FILE" "^#sonar.login=admin" "sonar.login=$_USER_TOKEN"
 
   elif [ $_SONAR_OPTION = "GGAS" ]; then
-    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.username=sonar" "sonar.jdbc.username=sonar"
-    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.password=sonar" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
-    change_file "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
-    change_file "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
+    change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.username=sonar" "sonar.jdbc.username=sonar"
+    change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.password=sonar" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
+    change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
+    change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
 
   fi
 
@@ -309,15 +322,15 @@ configure_nginx () {
     [ $? -eq 1 ] && main
     [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
-    _HOST=$(input "Enter the host of Sonar server" "$_DEFAULT_HOST")
+    _HOST=$(input "Enter the host of Sonar server" "$_NGINX_DEFAULT_HOST")
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
     curl -sS "$_URL_CENTRAL/scripts/templates/nginx/redirect.conf" > sonar.conf
 
-    change_file "sonar.conf" "APP" "sonar"
-    change_file "sonar.conf" "DOMAIN" "$_DOMAIN"
-    change_file "sonar.conf" "HOST" "$_HOST"
+    change_file "replace" "sonar.conf" "APP" "sonar"
+    change_file "replace" "sonar.conf" "DOMAIN" "$_DOMAIN"
+    change_file "replace" "sonar.conf" "HOST" "$_HOST"
 
     mv sonar.conf /etc/nginx/conf.d/
     rm sonar.conf*

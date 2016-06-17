@@ -3,7 +3,7 @@
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
+_VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
@@ -72,6 +72,16 @@ install_openJDK7 () {
     _PACKAGE_NAME="openjdk-7-jdk"
   elif [ $_OS_TYPE = "rpm" ]; then
     _PACKAGE_NAME="java-1.7.0-openjdk-devel"
+  fi
+
+  $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
+}
+
+install_openJDK8 () {
+  if [ $_OS_TYPE = "deb" ]; then
+    _PACKAGE_NAME="openjdk-8-jdk"
+  elif [ $_OS_TYPE = "rpm" ]; then
+    _PACKAGE_NAME="java-1.8.0-openjdk-devel"
   fi
 
   $_PACKAGE_COMMAND install -y $_PACKAGE_NAME

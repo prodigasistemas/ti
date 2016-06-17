@@ -84,7 +84,11 @@ run_as_user () {
 }
 
 mysql_as_root () {
-  mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
+  if [ "$2" = "no_password" ]; then
+    mysql -h $1 -u root -e "$3" 2> /dev/null
+  else
+    mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
+  fi
 }
 
 backup_redmine_folder () {
@@ -98,7 +102,6 @@ install_dependencies () {
       ;;
     rpm)
       _PACKAGES="ImageMagick-devel"
-      #change_file replace /etc/selinux/config SELINUX=enforcing SELINUX=disabled
       ;;
   esac
 
@@ -110,93 +113,84 @@ install_redmine () {
   _USER_GROUP=$(echo $(groups $_USER_LOGGED | cut -d: -f2) | cut -d' ' -f1)
   _USER_GROUPS=$(echo $(groups $_USER_LOGGED | cut -d: -f2))
 
-  if command -v ruby > /dev/null; then
-    #TODO:
-    #if command -v rvm > /dev/null; then
-    #  echo search user group rvm
-    #fi
+  _RUBY_INSTALLED=$(run_as_user $_USER_LOGGED "command -v ruby")
+  [ -z "$_RUBY_INSTALLED" ] && message "Alert" "Ruby language is not installed!"
 
-    dialog --title 'Redmine install' --yesno "Confirm installation Redmine $_REDMINE_VERSION?" 0 0
-    [ $? -eq 1 ] && main
+  _RVM_INSTALLED=$(run_as_user $_USER_LOGGED "command -v rvm")
+  [ -z "$_RVM_INSTALLED" ] && message "Alert" "Ruby Version Manager (RVM) is not installed!"
 
-    install_dependencies
+  _MYSQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v mysql")
+  [ -z "$_MYSQL_INSTALLED" ] && message "Alert" "MySQL Client or Server is not installed!"
 
-    wget http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz
+  dialog --title 'Redmine install' --yesno "Confirm installation Redmine $_REDMINE_VERSION?" 0 0
+  [ $? -eq 1 ] && main
 
-    tar -xvzf redmine-$_REDMINE_VERSION.tar.gz
+  install_dependencies
 
-    rm redmine-$_REDMINE_VERSION.tar.gz
+  wget http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz
 
-    backup_redmine_folder
+  tar -xvzf redmine-$_REDMINE_VERSION.tar.gz
 
-    mv redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
+  rm redmine-$_REDMINE_VERSION.tar.gz
 
-    run_as_user $_USER_LOGGED "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
-    run_as_user $_USER_LOGGED "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
-    run_as_user $_USER_LOGGED "gem install bundler"
+  backup_redmine_folder
 
-    configure_database
+  mv redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
 
-    chown $_USER_LOGGED:$_USER_GROUP -R $_REDMINE_FOLDER
+  configure_database
 
-    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
+  chown $_USER_LOGGED:$_USER_GROUP -R $_REDMINE_FOLDER
 
-    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
+  run_as_user $_USER_LOGGED "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
+  run_as_user $_USER_LOGGED "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
+  run_as_user $_USER_LOGGED "gem install bundler"
 
-    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
+  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
 
-    run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
+  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
 
-    _UNICORN_RB_FILE="unicorn.rb"
-    curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
-    change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
-    change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
-    chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
-    mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
-    rm $_UNICORN_RB_FILE*
+  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
 
-    _UNICORN_INIT_FILE="unicorn_init.sh"
-    curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
-    change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
-    change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
-    change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
-    chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_INIT_FILE
-    chmod +x $_UNICORN_INIT_FILE
-    mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
-    rm $_UNICORN_INIT_FILE*
-    ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
+  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
-    case $_OS_TYPE in
-      deb)
-        update-rc.d unicorn_redmine defaults
-        ;;
-      rpm)
-        chkconfig --add unicorn_redmine
-        ;;
-    esac
+  _UNICORN_RB_FILE="unicorn.rb"
+  curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
+  change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
+  change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
+  chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
+  mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
+  rm $_UNICORN_RB_FILE*
 
-    service unicorn_redmine start
+  _UNICORN_INIT_FILE="unicorn_init.sh"
+  curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
+  change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
+  change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
+  change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
+  chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_INIT_FILE
+  chmod +x $_UNICORN_INIT_FILE
+  mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
+  rm $_UNICORN_INIT_FILE*
+  ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
 
-    message "Notice" "Redmine successfully installed!"
-  else
-    message "Alert" "Ruby language is not installed!"
-  fi
+  [ "$_OS_TYPE in" = "deb" ] && update-rc.d unicorn_redmine defaults
+  [ "$_OS_TYPE in" = "rpm" ] && chkconfig unicorn_redmine on
+
+  service unicorn_redmine start
+
+  message "Notice" "Redmine successfully installed! For test: cd $_REDMINE_FOLDER; RAILS_ENV=production bundle exec rails server --binding=[YOUR-IP]"
 }
 
 configure_database () {
   _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
 
-  if command -v mysql > /dev/null; then
-    _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
-    [ $? -eq 1 ] && main
-    [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
-  else
-    message "Alert" "MySQL Client is not installed!"
-  fi
+  _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
 
   _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+  [ "$_OS_TYPE" != "rpm" ] && [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+  [ "$_OS_TYPE" = "rpm" ] && [ -z "$_MYSQL_ROOT_PASSWORD" ] && _MYSQL_ROOT_PASSWORD="no_password"
 
   _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
   [ $? -eq 1 ] && main
