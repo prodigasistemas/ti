@@ -32,7 +32,7 @@ os_check () {
     _PACKAGE_COMMAND="yum"
   fi
 
-  _TITLE="--backtitle \"Main menu | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
+  _TITLE="--backtitle \"Pródiga Sistemas - Tools Installer | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 }
 
 tool_check() {
