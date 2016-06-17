@@ -1,7 +1,8 @@
 #!/bin/bash
 # https://easyengine.io/tutorials/mysql/remote-access
 
-_OPTIONS_LIST="install_mysql 'Install the database server' \
+_OPTIONS_LIST="install_mysql_server 'Install the database server' \
+               install_mysql_client 'Install the database client' \
                remote_access 'Enable remote access' \
                grant_privileges 'grant privileges to a database user'"
 
@@ -76,7 +77,7 @@ mysql_as_root () {
   fi
 }
 
-install_mysql () {
+install_mysql_server () {
   dialog --yesno "Confirm the installation of MySQL Server?" 0 0
   [ $? -eq 1 ] && main
 
@@ -90,6 +91,18 @@ install_mysql () {
       service mysqld start
       ;;
   esac
+
+  message "Notice" "MySQL successfully installed!"
+}
+
+install_mysql_client () {
+  dialog --yesno "Confirm the installation of MySQL Client?" 0 0
+  [ $? -eq 1 ] && main
+
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGE="mysql-client"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE="mysql"
+
+  $_PACKAGE_COMMAND -y install $_PACKAGE
 
   message "Notice" "MySQL successfully installed!"
 }
