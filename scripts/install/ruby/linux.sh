@@ -3,88 +3,38 @@
 # https://www.ruby-lang.org/en/downloads
 # http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
+_APP_NAME="Ruby"
 _DEFAULT_VERSION="2.3.1"
 _GROUP="rvm"
 _OPTIONS_LIST="install_ruby 'Install Ruby' \
                add_to_group 'Add a user to the group $_GROUP'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Ruby installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-
-  if [ -z "$3" ]; then
-    main
-  else
-    $3
-  fi
-}
-
-run_as_root () {
-  su -c "$1"
-}
-
-run_as_user () {
-  su - $1 -c "$2"
-}
-
-disable_selinux () {
-  _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")
-
-  if [ ! -z "$_SELINUX_ENABLED" ]; then
-    dialog --title "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive" --msgbox "" 0 0
-
-    change_file "replace" "/etc/selinux/config" "^$_SELINUX_ENABLED" "SELINUX=permissive"
-  fi
+  os_check
 }
 
 install_ruby () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
-  [ "$_OS_TYPE" = "rpm" ] && disable_selinux
+  disable_selinux
 
   _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && _VERSION=$_DEFAULT_VERSION
 
-  dialog --yesno "Do you confirm the installation of Ruby $_VERSION?" 0 0
+  confirm "Do you confirm the installation of Ruby $_VERSION?"
   [ $? -eq 1 ] && main
 
   gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
@@ -152,5 +102,5 @@ main () {
   fi
 }
 
-os_check
+setup
 main

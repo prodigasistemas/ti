@@ -8,96 +8,46 @@
 # http://progblog10.blogspot.com.br/2013/06/enabling-remote-access-to-postgresql.html
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 
+_APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql 'Install the database server' \
                configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
                create_gsan_databases 'Create GSAN databases' \
                change_password 'Change password the user postgres' \
                remote_access 'Enable remote access'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-    _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"PostgreSQL installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
-  _CF_OPERATION=$1
-  _CF_FILE=$2
-  _CF_FROM=$3
-  _CF_TO=$4
-
-  case $_CF_OPERATION in
-    replace)
-      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
-      ;;
-    append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
-      ;;
-  esac
+  os_check
 }
 
 run_as_postgres () {
   su - postgres -c "$1"
 }
 
-run_as_root () {
-  su -c "$1"
-}
-
 config_path () {
-  if [ $_OS_TYPE = "deb" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
     _PG_CONFIG_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
     _PG_METHOD_CHANGE="peer"
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     _PG_CONFIG_PATH="/var/lib/pgsql/data"
     _PG_METHOD_CHANGE="ident"
   fi
 }
 
 install_postgresql () {
-  if [ $_OS_TYPE = "deb" ]; then
-    dialog --yesno 'Configure PostgreSQL Apt Repository?' 0 0
+  if [ "$_OS_TYPE" = "deb" ]; then
+    confirm "Configure PostgreSQL Apt Repository?"
     if [ $? = 0 ]; then
       wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
@@ -115,13 +65,13 @@ install_postgresql () {
     [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The version can not be blank!"
   fi
 
-  dialog --yesno "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION?" 0 0
+  confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION?"
   [ $? = 1 ] && main
 
-  if [ $_OS_TYPE = "deb" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
     $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
 
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     $_PACKAGE_COMMAND install -y postgresql-server postgresql-contrib postgresql-devel
     service postgresql initdb
     service postgresql start
@@ -131,11 +81,11 @@ install_postgresql () {
 }
 
 configure_locale () {
-  dialog --yesno 'Do you want to configure for LATIN1?' 0 0
+  confirm "Do you want to configure for LATIN1?"
   [ $? = 1 ] && main
 
-  if [ $_OS_TYPE = "deb" ]; then
-    if [ $_OS_NAME = "ubuntu" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
+    if [ "$_OS_NAME" = "ubuntu" ]; then
       run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local"
       run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
       run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
@@ -143,7 +93,7 @@ configure_locale () {
       run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/default/locale"
       run_as_root "echo \"pt_BR           pt_BR.ISO-8859-1\" >> /etc/locale.alias"
 
-    elif [ $_OS_NAME = "debian" ]; then
+    elif [ "$_OS_NAME" = "debian" ]; then
       change_file "replace" "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
     fi
 
@@ -152,7 +102,7 @@ configure_locale () {
     run_as_postgres "pg_dropcluster --stop $_POSTGRESQL_VERSION main"
     run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
 
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     service postgresql stop
 
     _PGSQL_FOLDER="/var/lib/pgsql"
@@ -174,12 +124,12 @@ configure_locale () {
 }
 
 create_gsan_databases () {
-  dialog --yesno 'Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?' 0 0
+  confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
   [ $? = 1 ] && main
 
-  if [ $_OS_TYPE = "deb" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
     _POSTGRESQL_FOLDER="/var/lib/postgresql/$_POSTGRESQL_VERSION"
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     _POSTGRESQL_FOLDER="/var/lib/pgsql"
   fi
 
@@ -211,8 +161,8 @@ change_password () {
 }
 
 remote_access () {
-  dialog --yesno 'Do you want to enable remote access?' 0 0
-  [ $? = 1 ] && main
+  confirm "Do you want to enable remote access?"
+  [ $? -eq 1 ] && main
 
   config_path
 
@@ -229,15 +179,17 @@ main () {
   tool_check wget
   tool_check dialog
 
+  [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+  [ "$_OS_TYPE" = "rpm" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
+
   _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
   if [ -z "$_OPTION" ]; then
-    clear
-    exit 0
+    clear && exit 0
   else
     $_OPTION
   fi
 }
 
-os_check
+setup
 main

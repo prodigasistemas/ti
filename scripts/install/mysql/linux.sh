@@ -1,84 +1,30 @@
 #!/bin/bash
 # https://easyengine.io/tutorials/mysql/remote-access
 
+_APP_NAME="MySQL"
 _OPTIONS_LIST="install_mysql_server 'Install the database server' \
                install_mysql_client 'Install the database client' \
                remote_access 'Enable remote access' \
                grant_privileges 'grant privileges to a database user'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-    _MYSQL_SERVICE="mysql"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-    _MYSQL_SERVICE="mysqld"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"MySQL installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
-  _CF_OPERATION=$1
-  _CF_FILE=$2
-  _CF_FROM=$3
-  _CF_TO=$4
-
-  case $_CF_OPERATION in
-    replace)
-      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
-      ;;
-    append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
-      ;;
-  esac
-}
-
-mysql_as_root () {
-  if [ "$1" = "." ]; then
-    mysql -u root -e "$2" 2> /dev/null
-  else
-    mysql -u root -p$1 -e "$2" 2> /dev/null
-  fi
+  os_check
 }
 
 install_mysql_server () {
-  dialog --yesno "Confirm the installation of MySQL Server?" 0 0
+  confirm "Confirm the installation of MySQL Server?"
   [ $? -eq 1 ] && main
 
   case $_OS_TYPE in
@@ -88,7 +34,7 @@ install_mysql_server () {
     rpm)
       $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
-      chkconfig mysqld on
+      register_service mysqld
 
       service mysqld start
       ;;
@@ -98,7 +44,7 @@ install_mysql_server () {
 }
 
 install_mysql_client () {
-  dialog --yesno "Confirm the installation of MySQL Client?" 0 0
+  confirm "Confirm the installation of MySQL Client?"
   [ $? -eq 1 ] && main
 
   [ "$_OS_TYPE" = "deb" ] && _PACKAGE="mysql-client"
@@ -110,12 +56,14 @@ install_mysql_client () {
 }
 
 remote_access () {
-  dialog --yesno 'Do you want to enable remote access?' 0 0
+  confirm "Do you want to enable remote access?"
   [ $? -eq 1 ] && main
 
   if [ $_OS_TYPE = "deb" ]; then
+    _MYSQL_SERVICE="mysql"
     change_file "replace" "/etc/mysql/my.cnf" "bind-address" "#bind-address"
   elif [ $_OS_TYPE = "rpm" ]; then
+    _MYSQL_SERVICE="mysqld"
     change_file "append" "/etc/my.cnf" "symbolic-links=0" "bind-address = 0.0.0.0"
   fi
 
@@ -125,9 +73,19 @@ remote_access () {
 }
 
 grant_privileges () {
+  _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
+
   _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_ROOT_PASSWORD" ] && _MYSQL_ROOT_PASSWORD="."
+  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+    if [ "$_OS_TYPE" = "rpm" ]; then
+      _MYSQL_ROOT_PASSWORD="[no_password]"
+    else
+       message "Alert" "The root password can not be blank!"
+    fi
+  fi
 
   _GRANT_DATABASE=$(input "Enter the database name")
   [ $? -eq 1 ] && main
@@ -141,7 +99,7 @@ grant_privileges () {
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_GRANT_DATABASE.* TO '$_GRANT_USER'@'%' IDENTIFIED BY '$_GRANT_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_GRANT_DATABASE.* TO '$_GRANT_USER'@'%' IDENTIFIED BY '$_GRANT_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
   message "Notice" "Grant privileges successfully held!"
 }
@@ -158,5 +116,5 @@ main () {
   fi
 }
 
-os_check
+setup
 main

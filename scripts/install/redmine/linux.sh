@@ -4,7 +4,7 @@
 # http://www.redmine.org/projects/redmine/wiki/Install_Redmine_25x_on_Centos_65_complete
 # http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
-_URL_CENTRAL="http://prodigasistemas.github.io"
+_APP_NAME="Redmine"
 _REDMINE_VERSION="3.2.3"
 _DEFAULT_PATH="/opt"
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
@@ -14,96 +14,25 @@ _OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_VERSION in $_DEFAU
                configure_email 'Configure sending email' \
                issue_reports_plugin 'Install Redmine issue reports plugin'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Redmine installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
-  _CF_OPERATION=$1
-  _CF_FILE=$2
-  _CF_FROM=$3
-  _CF_TO=$4
-
-  case $_CF_OPERATION in
-    replace)
-      sed -i$_CF_BACKUP -e "s|$_CF_FROM|$_CF_TO|g" $_CF_FILE
-      ;;
-    append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
-      ;;
-  esac
-}
-
-run_as_root () {
-  su -c "$1"
-}
-
-run_as_user () {
-  su - $1 -c "$2"
-}
-
-mysql_as_root () {
-  if [ "$2" = "no_password" ]; then
-    mysql -h $1 -u root -e "$3" 2> /dev/null
-  else
-    mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
-  fi
-}
-
-backup_redmine_folder () {
-  [ -e "$_REDMINE_FOLDER" ] && mv $_REDMINE_FOLDER "$_REDMINE_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
+  os_check
 }
 
 install_dependencies () {
-  case $_OS_TYPE in
-    deb)
-      _PACKAGES="libmagickwand-dev libgmp3-dev"
-      ;;
-    rpm)
-      _PACKAGES="ImageMagick-devel"
-      ;;
-  esac
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGES="libmagickwand-dev libgmp3-dev"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGES="ImageMagick-devel"
 
   $_PACKAGE_COMMAND -y install $_PACKAGES
 }
@@ -122,7 +51,7 @@ install_redmine () {
   _MYSQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v mysql")
   [ -z "$_MYSQL_INSTALLED" ] && message "Alert" "MySQL Client or Server is not installed!"
 
-  dialog --title 'Redmine install' --yesno "Confirm installation Redmine $_REDMINE_VERSION?" 0 0
+  confirm "Confirm installation Redmine $_REDMINE_VERSION?" "Redmine installer"
   [ $? -eq 1 ] && main
 
   install_dependencies
@@ -133,7 +62,7 @@ install_redmine () {
 
   rm redmine-$_REDMINE_VERSION.tar.gz
 
-  backup_redmine_folder
+  backup_folder $_REDMINE_FOLDER
 
   mv redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
 
@@ -154,7 +83,7 @@ install_redmine () {
   run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
   _UNICORN_RB_FILE="unicorn.rb"
-  curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
   change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
   chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
@@ -162,7 +91,7 @@ install_redmine () {
   rm $_UNICORN_RB_FILE*
 
   _UNICORN_INIT_FILE="unicorn_init.sh"
-  curl -sS "$_URL_CENTRAL/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
   change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
   change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
@@ -172,8 +101,7 @@ install_redmine () {
   rm $_UNICORN_INIT_FILE*
   ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
 
-  [ "$_OS_TYPE in" = "deb" ] && update-rc.d unicorn_redmine defaults
-  [ "$_OS_TYPE in" = "rpm" ] && chkconfig unicorn_redmine on
+  register_service unicorn_redmine
 
   service unicorn_redmine start
 
@@ -189,8 +117,13 @@ configure_database () {
 
   _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  [ "$_OS_TYPE" != "rpm" ] && [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
-  [ "$_OS_TYPE" = "rpm" ] && [ -z "$_MYSQL_ROOT_PASSWORD" ] && _MYSQL_ROOT_PASSWORD="no_password"
+  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+    if [ "$_OS_TYPE" = "rpm" ]; then
+      _MYSQL_ROOT_PASSWORD="[no_password]"
+    else
+       message "Alert" "The root password can not be blank!"
+    fi
+  fi
 
   _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
   [ $? -eq 1 ] && main
@@ -215,7 +148,7 @@ configure_nginx () {
     [ $? -eq 1 ] && main
     [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
-    curl -sS "$_URL_CENTRAL/scripts/templates/nginx/ruby_on_rails.conf" > redmine.conf
+    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/ruby_on_rails.conf" > redmine.conf
 
     change_file replace redmine.conf APP "redmine"
     change_file replace redmine.conf DOMAIN "$_DOMAIN"
@@ -249,7 +182,7 @@ configure_email () {
   [ $? -eq 1 ] && main
   [ -z "$_USER_PASSWORD" ] && message "Alert" "The user password can not be blank!"
 
-  dialog --title 'Configure sending email' --yesno "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" 0 0
+  confirm "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" "Configure sending email"
   [ $? -eq 1 ] && main
 
   _CONFIG_FILE=$_REDMINE_FOLDER/config/configuration.yml
@@ -319,5 +252,5 @@ main () {
   fi
 }
 
-os_check
+setup
 main

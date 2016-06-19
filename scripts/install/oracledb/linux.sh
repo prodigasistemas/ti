@@ -5,72 +5,24 @@
 # http://www.orafaq.com/wiki/NLS_LANG
 # http://stackoverflow.com/questions/19335444/how-to-assign-a-port-mapping-to-an-existing-docker-container
 
+_APP_NAME="Oracle Database XE"
 _OPTIONS_LIST="install_oracleb 'Install Oracle Database 11g Express Edition with Docker' \
                import_ggas_database 'Import GGAS Database'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Oracle Database installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
-  _CF_OPERATION=$1
-  _CF_FILE=$2
-  _CF_FROM=$3
-  _CF_TO=$4
-
-  case $_CF_OPERATION in
-    replace)
-      sed -i$_CF_BACKUP -e "s/$_CF_FROM/$_CF_TO/g" $_CF_FILE
-      ;;
-    append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
-      ;;
-  esac
-}
-
-run_as_root () {
-  su -c "$1"
+  os_check
 }
 
 install_oracleb () {
@@ -86,7 +38,7 @@ install_oracleb () {
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
 
-  dialog --yesno "Confirm the installation of Oracle Database in $_OS_DESCRIPTION?" 0 0
+  confirm "Confirm the installation of Oracle Database in $_OS_DESCRIPTION?"
   [ $? -eq 1 ] && main
 
   docker run --name oracle-xe-11g -d -p $_SSH_PORT:22 -p $_CONECTION_PORT:1521 -p $_HTTP_PORT:8080 --restart="always" wnameless/oracle-xe-11g
@@ -95,7 +47,7 @@ install_oracleb () {
 }
 
 import_ggas_database () {
-  dialog --yesno "Confirms the import of GGAS database?" 0 0
+  confirm "Confirms the import of GGAS database?"
   [ $? -eq 1 ] && main
 
   [ -e "ggas" ] && rm -rf ggas
@@ -152,24 +104,22 @@ main () {
   tool_check dialog
   tool_check git
 
-  if [ $_OS_ARCH = "32" ]; then
-    dialog --title "Alert" --msgbox "Oracle Database requires a 64-bit installation regardless of your distribution version!" 0 0
-    clear && exit 0
-  fi
-
-  if command -v docker > /dev/null; then
-    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
-
-    if [ -z "$_OPTION" ]; then
-      clear && exit 0
-    else
-      $_OPTION
-    fi
+  if [ "$_OS_ARCH" = "32" ]; then
+    message "Alert" "Oracle Database requires a 64-bit installation regardless of your distribution version!" "clear && exit 1"
   else
-    dialog --title "Alert" --msgbox "Docker is not installed" 0 0
-    clear && exit 0
+    if command -v docker > /dev/null; then
+      _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+
+      if [ -z "$_OPTION" ]; then
+        clear && exit 0
+      else
+        $_OPTION
+      fi
+    else
+      message "Alert" "Docker is not installed" "clear && exit 1"
+    fi
   fi
 }
 
-os_check
+setup
 main

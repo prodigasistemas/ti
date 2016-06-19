@@ -4,84 +4,53 @@
 # https://docs.docker.com/engine/installation/linux/debian/
 # https://docs.docker.com/engine/installation/linux/centos/
 
+_APP_NAME="Docker"
 _GROUP="docker"
 _OPTIONS_LIST="install_docker 'Install Docker' \
                add_to_group 'Add a user to the group $_GROUP'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Docker installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-run_as_root () {
-  su -c "$1"
+  os_check
 }
 
 install_docker () {
-  dialog --yesno "Confirm the installation of Docker in $_OS_DESCRIPTION?" 0 0
+  confirm "Confirm the installation of Docker in $_OS_DESCRIPTION?"
   [ $? -eq 1 ] && main
 
   case $_OS_TYPE in
     deb)
       if [ $_OS_NAME = "debian" ]; then
-        apt-get purge -y lxc-docker* docker.io*
+        $_PACKAGE_COMMAND purge -y lxc-docker* docker.io*
 
         if [ $_OS_CODENAME = "wheezy" ]; then
           run_as_root "echo \"deb http://http.debian.net/debian wheezy-backports main\" > /etc/apt/sources.list.d/backports.list"
         fi
       fi
 
-      apt-get update
-      apt-get install -y apt-transport-https ca-certificates
+      $_PACKAGE_COMMAND update
+      $_PACKAGE_COMMAND install -y apt-transport-https ca-certificates
 
       apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
 
       run_as_root "echo \"deb https://apt.dockerproject.org/repo $_OS_NAME-$_OS_CODENAME main\" > /etc/apt/sources.list.d/docker.list"
 
-      apt-get update
+      $_PACKAGE_COMMAND update
 
       if [ $_OS_NAME = "ubuntu" ]; then
-        apt-get purge -y lxc-docker
-        apt-get install -y linux-image-extra-$(uname -r)
+        $_PACKAGE_COMMAND purge -y lxc-docker
+        $_PACKAGE_COMMAND install -y linux-image-extra-$_OS_KERNEL
       fi
 
       apt-cache policy docker-engine
@@ -168,5 +137,5 @@ main () {
   fi
 }
 
-os_check
+setup
 main

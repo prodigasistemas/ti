@@ -2,89 +2,51 @@
 # http://www.oracle.com/technetwork/java/javase/downloads/index.html
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
+_APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_VERSION_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
+_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Java installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
+  os_check
 }
 
 download_java () {
   wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/jdk-$1-linux-$3"
 }
 
-delete_file () {
-  [ -e "$1" ] && rm $1
-}
-
-run_as_root () {
-  su -c "$1"
-}
-
-install_openJDK6 () {
-  if [ $_OS_TYPE = "deb" ]; then
-    _PACKAGE_NAME="openjdk-6-jdk"
-  elif [ $_OS_TYPE = "rpm" ]; then
-    _PACKAGE_NAME="java-1.6.0-openjdk-devel"
-  fi
+install_openJDK () {
+  _OPENJDK_VERSION=$1
+  [ $_OS_TYPE = "deb" ] && _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
+  [ $_OS_TYPE = "rpm" ] && _PACKAGE_NAME="java-1._OPENJDK_VERSION.0-openjdk-devel"
 
   $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
+
+  message "Notice" "Java $_OPENJDK_VERSION successfully installed!"
+}
+
+
+install_openJDK6 () {
+  install_openJDK 6
 }
 
 install_openJDK7 () {
-  if [ $_OS_TYPE = "deb" ]; then
-    _PACKAGE_NAME="openjdk-7-jdk"
-  elif [ $_OS_TYPE = "rpm" ]; then
-    _PACKAGE_NAME="java-1.7.0-openjdk-devel"
-  fi
-
-  $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
+  install_openJDK 7
 }
 
 install_openJDK8 () {
-  if [ $_OS_TYPE = "deb" ]; then
-    _PACKAGE_NAME="openjdk-8-jdk"
-  elif [ $_OS_TYPE = "rpm" ]; then
-    _PACKAGE_NAME="java-1.8.0-openjdk-devel"
-  fi
-
-  $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
+  install_openJDK 8
 }
 
 install_oracleJava6 () {
@@ -160,24 +122,20 @@ main () {
   tool_check wget
   tool_check dialog
 
-  _JAVA_VERSION=$(menu "Select the version" "$_VERSION_LIST")
+  _JAVA_VERSION=$(menu "Select the option" "$_OPTIONS_LIST")
 
   if [ -z "$_JAVA_VERSION" ]; then
-    clear
-    exit 0
+    clear && exit 0
   else
-    if [ $_OS_ARCH = "32" ]; then
-      _ARCH="i586"
-    elif [ $_OS_ARCH = "64" ]; then
-      _ARCH="x64"
-    fi
+    [ $_OS_ARCH = "32" ] && _ARCH="i586"
+    [ $_OS_ARCH = "64" ] && _ARCH="x64"
 
-    dialog --yesno "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?" 0 0
+    confirm "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?"
     [ $? = 1 ] && main
 
     install_$_JAVA_VERSION
   fi
 }
 
-os_check
+setup
 main

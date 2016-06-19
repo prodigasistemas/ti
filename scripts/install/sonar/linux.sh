@@ -5,136 +5,77 @@
 # http://stackoverflow.com/questions/2634590/bash-script-variable-inside-variable
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
-_URL_CENTRAL="http://prodigasistemas.github.io"
+_APP_NAME="SonarQube"
 _SONAR_FOLDER="/opt/sonar"
 _PROPERTIES_FOLDER="$_SONAR_FOLDER/conf"
-_DEFAULT_HOST="http://localhost:9000"
 _NGINX_DEFAULT_HOST="localhost:9000"
+_DEFAULT_HOST="http://$_NGINX_DEFAULT_HOST"
 _CONNECTION_ADDRESS_MYSQL="localhost:3306"
-_RUNNER_VERSION_DEFAULT="2.4"
+_SCANNER_VERSION_DEFAULT="2.6.1"
 
 _SONAR_GGAS_VERSION="5.0"
 _SONAR_GGAS_DOWNLOAD_URL="http://sonar.ggas.com.br/download"
 _SONAR_GGAS_FILE="sonarqube-$_SONAR_GGAS_VERSION.tar.gz"
 
-_SONAR_SOURCE_QUBE="Install and configure SonarQube from www.sonarqube.org"
-_SONAR_SOURCE_GGAS="Install and configure SonarQube $_SONAR_GGAS_VERSION from other sources"
-_SONAR_SOURCE_LIST="QUBE '$_SONAR_SOURCE_QUBE' GGAS '$_SONAR_SOURCE_GGAS'"
+_SONAR_SOURCE_QUBE="From www.sonarqube.org"
+_SONAR_SOURCE_OTHER="From other sources"
+_SONAR_SOURCE_LIST="QUBE '$_SONAR_SOURCE_QUBE' OTHER '$_SONAR_SOURCE_OTHER'"
 
 _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
                configure_database 'Configure connection to MySQL database' \
-               install_sonar_runner 'Install the Sonar Runner' \
+               install_sonar_scanner 'Install the Sonar Scanner' \
                configure_nginx 'Configure host on NGINX'"
 
 _OPTIONS_DATABASE="database 'Create the user and sonar database' \
                    sonar.properties 'Configure the connection to the database'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get --force-yes"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Sonar installation | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
-}
-
-change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
-  _CF_OPERATION=$1
-  _CF_FILE=$2
-  _CF_FROM=$3
-  _CF_TO=$4
-
-  case $_CF_OPERATION in
-    replace)
-      sed -i$_CF_BACKUP -e "s|$_CF_FROM|$_CF_TO|g" $_CF_FILE
-      ;;
-    append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
-      ;;
-  esac
-}
-
-run_as_root () {
-  su -c "$1"
-}
-
-mysql_as_root () {
-  mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
-}
-
-backup_sonar_folder () {
-  [ -e "$_SONAR_FOLDER" ] && mv $_SONAR_FOLDER "$_SONAR_FOLDER-backup-`date +"%Y%m%d%H%M%S%N"`"
+  os_check
 }
 
 install_sonar_qube () {
-  case $_OS_TYPE in
+  case "$_OS_TYPE" in
     deb)
       run_as_root "echo deb http://downloads.sourceforge.net/project/sonar-pkg/deb binary/ > /etc/apt/sources.list.d/sonar.list"
-
       $_PACKAGE_COMMAND update
+      $_PACKAGE_COMMAND --force-yes -y install sonar
       ;;
     rpm)
       wget -O /etc/yum.repos.d/sonar.repo http://downloads.sourceforge.net/project/sonar-pkg/rpm/sonar.repo
+      $_PACKAGE_COMMAND -y install sonar
+      register_service sonar
       ;;
   esac
-
-  $_PACKAGE_COMMAND -y install sonar
-
-  [ "$_OS_TYPE" = "rpm" ] chkconfig sonar on
 }
 
-install_sonar_ggas () {
-  _SONAR_GGAS_VERSION=$(input "Enter the sonar ggas version" "$_SONAR_GGAS_VERSION")
+install_sonar_other () {
+  _SONAR_GGAS_VERSION=$(input "Enter the sonar version" "$_SONAR_GGAS_VERSION")
   [ $? -eq 1 ] && main
-  [ -z "$_SONAR_GGAS_VERSION" ] && message "Alert" "The sonar ggas version can not be blank!"
+  [ -z "$_SONAR_GGAS_VERSION" ] && message "Alert" "The sonar version can not be blank!"
 
-  _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar ggas download url" "$_SONAR_GGAS_DOWNLOAD_URL")
+  _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar download url" "$_SONAR_GGAS_DOWNLOAD_URL")
   [ $? -eq 1 ] && main
-  [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar ggas download url can not be blank!"
+  [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar download url can not be blank!"
 
   _SONAR_GGAS_FILE="sonarqube-$_SONAR_GGAS_VERSION.tar.gz"
 
-  _SONAR_GGAS_FILE=$(input "Enter the sonar ggas download url" "$_SONAR_GGAS_FILE")
+  _SONAR_GGAS_FILE=$(input "Enter the sonar download url" "$_SONAR_GGAS_FILE")
   [ $? -eq 1 ] && main
-  [ -z "$_SONAR_GGAS_FILE" ] && message "Alert" "The sonar ggas file can not be blank!"
+  [ -z "$_SONAR_GGAS_FILE" ] && message "Alert" "The sonar file can not be blank!"
 
-  dialog --yesno "File download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_FILE. Confirm?" 0 0
+  confirm "File download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_FILE. Confirm?"
   [ $? -eq 1 ] && main
 
   wget "$_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_FILE"
@@ -146,14 +87,7 @@ install_sonar_ggas () {
 
   ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
-  case $_OS_TYPE in
-    deb)
-      update-rc.d sonar defaults
-      ;;
-    rpm)
-      chkconfig sonar on
-      ;;
-  esac
+  register_service sonar
 
   service sonar restart
 }
@@ -165,20 +99,20 @@ install_sonar () {
 
   service sonar stop
 
-  backup_sonar_folder
+  backup_folder $_SONAR_FOLDER
 
   case $_SONAR_OPTION in
     QUBE)
       install_sonar_qube
       ;;
-    GGAS)
-      install_sonar_ggas
+    OTHER)
+      install_sonar_other
       ;;
   esac
 
   change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_PATH"
 
-  if [ $_SONAR_OPTION = "QUBE" ] && [ $_OS_TYPE = "rpm" ]; then
+  if [ "$_SONAR_OPTION" = "QUBE" ] && [ "$_OS_TYPE" = "rpm" ]; then
     service sonar restart
   fi
 
@@ -203,7 +137,13 @@ configure_database () {
 
       _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
       [ $? -eq 1 ] && main
-      [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+      if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+        if [ "$_OS_TYPE" = "rpm" ]; then
+          _MYSQL_ROOT_PASSWORD="[no_password]"
+        else
+           message "Alert" "The root password can not be blank!"
+        fi
+      fi
 
       _MYSQL_SONAR_PASSWORD=$(input "Enter the password of the sonar user in MySQL")
       [ $? -eq 1 ] && main
@@ -213,16 +153,16 @@ configure_database () {
       mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_HOST_CONNECTION IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
       mysql_as_root $_HOST_CONNECTION $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_HOST_CONNECTION WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
-      if [ $_SONAR_OPTION = "GGAS" ]; then
-        _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar ggas download URL" "$_SONAR_GGAS_DOWNLOAD_URL")
+      if [ "$_SONAR_OPTION" = "OTHER" ]; then
+        _SONAR_GGAS_DOWNLOAD_URL=$(input "Enter the sonar download URL" "$_SONAR_GGAS_DOWNLOAD_URL")
         [ $? -eq 1 ] && main
-        [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar ggas download URL can not be blank!"
+        [ -z "$_SONAR_GGAS_DOWNLOAD_URL" ] && message "Alert" "The sonar download URL can not be blank!"
 
         _SONAR_GGAS_SQL_FILE=$(input "Enter the sonar SQL file to import" "sonar.sql")
         [ $? -eq 1 ] && main
-        [ -z "$_SONAR_GGAS_SQL_FILE" ] && message "Alert" "The sonar ggas SQL file can not be blank!"
+        [ -z "$_SONAR_GGAS_SQL_FILE" ] && message "Alert" "The sonar SQL file can not be blank!"
 
-        dialog --yesno "SQL file download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_SQL_FILE. Confirm?" 0 0
+        confirm "SQL file download URL: $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_SQL_FILE. Confirm?"
         [ $? -eq 1 ] && main
 
         wget $_SONAR_GGAS_DOWNLOAD_URL/$_SONAR_GGAS_SQL_FILE
@@ -250,7 +190,7 @@ configure_database () {
       [ $? -eq 1 ] && main
       [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
 
-      [ $_SONAR_OPTION = "GGAS" ] && _GGAS_USER="sonar"
+      [ "$_SONAR_OPTION" = "OTHER" ] && _GGAS_USER="sonar"
 
       change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.username=$_GGAS_USER" "sonar.jdbc.username=sonar"
       change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.password=$_GGAS_USER" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
@@ -264,21 +204,21 @@ configure_database () {
   esac
 }
 
-install_sonar_runner () {
-  _RUNNER_VERSION=$(input "Enter the version of the Sonar Runner" "$_RUNNER_VERSION_DEFAULT")
+install_sonar_scanner () {
+  _SCANNER_VERSION=$(input "Enter the version of the Sonar Scanner" "$_SCANNER_VERSION_DEFAULT")
   [ $? -eq 1 ] && main
-  [ -z "$_RUNNER_VERSION" ] && message "Alert" "The Sonar Runner version can not be blank!"
+  [ -z "$_SCANNER_VERSION" ] && message "Alert" "The Sonar Scanner version can not be blank!"
 
   _HOST_ADDRESS=$(input "Enter the address of the Sonar Server" "$_DEFAULT_HOST")
   [ $? -eq 1 ] && main
   [ -z "$_HOST_ADDRESS" ] && message "Alert" "The server address can not be blank!"
 
-  if [ $_SONAR_OPTION = "QUBE" ]; then
+  if [ "$_SONAR_OPTION" = "QUBE" ]; then
     _USER_TOKEN=$(input "Enter the user token in sonar")
     [ $? -eq 1 ] && main
     [ -z "$_USER_TOKEN" ] && message "Alert" "The user token can not be blank!"
 
-  elif [ $_SONAR_OPTION = "GGAS" ]; then
+  elif [ "$_SONAR_OPTION" = "OTHER" ]; then
     _SERVER_ADDRESS=$(input "Enter the address and port of the MySQL Server" "$_CONNECTION_ADDRESS_MYSQL")
     [ $? -eq 1 ] && main
     [ -z "$_SERVER_ADDRESS" ] && message "Alert" "The server address can not be blank!"
@@ -289,23 +229,24 @@ install_sonar_runner () {
 
   fi
 
-  _RUNNER_ZIP_FILE="sonar-runner-dist-$_RUNNER_VERSION.zip"
+  _SCANNER_ZIP_FILE="sonar-scanner-$_SCANNER_VERSION.zip"
 
-  wget "http://repo1.maven.org/maven2/org/codehaus/sonar/runner/sonar-runner-dist/$_RUNNER_VERSION/$_RUNNER_ZIP_FILE"
+  wget "https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/$_SCANNER_ZIP_FILE"
 
-  unzip $_RUNNER_ZIP_FILE
-  rm $_RUNNER_ZIP_FILE
+  unzip $_SCANNER_ZIP_FILE
+  rm $_SCANNER_ZIP_FILE
 
-  mv "sonar-runner-$_RUNNER_VERSION" /opt/sonar-runner
+  mv "sonar-scanner-$_SCANNER_VERSION" /opt/
+  ln -sf "/opt/sonar-scanner-$_SCANNER_VERSION" /opt/sonar-scanner
 
-  _PROPERTIES_FILE="/opt/sonar-runner/conf/sonar-runner.properties"
+  _PROPERTIES_FILE="/opt/sonar-scanner/conf/sonar-scanner.properties"
 
   change_file "replace" "$_PROPERTIES_FILE" "^#sonar.host.url=$_DEFAULT_HOST" "sonar.host.url=$_HOST_ADDRESS"
 
-  if [ $_SONAR_OPTION = "QUBE" ]; then
-    change_file "replace" "$_PROPERTIES_FILE" "^#sonar.login=admin" "sonar.login=$_USER_TOKEN"
+  if [ "$_SONAR_OPTION" = "QUBE" ]; then
+    echo "sonar.login=$_USER_TOKEN" >> $_PROPERTIES_FILE
 
-  elif [ $_SONAR_OPTION = "GGAS" ]; then
+  elif [ "$_SONAR_OPTION" = "OTHER" ]; then
     change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.username=sonar" "sonar.jdbc.username=sonar"
     change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.password=sonar" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
     change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_SERVER_ADDRESS"
@@ -313,7 +254,7 @@ install_sonar_runner () {
 
   fi
 
-  message "Notice" "Sonar Runner successfully installed!"
+  message "Notice" "Sonar Scanner successfully installed!"
 }
 
 configure_nginx () {
@@ -326,7 +267,7 @@ configure_nginx () {
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
-    curl -sS "$_URL_CENTRAL/scripts/templates/nginx/redirect.conf" > sonar.conf
+    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > sonar.conf
 
     change_file "replace" "sonar.conf" "APP" "sonar"
     change_file "replace" "sonar.conf" "DOMAIN" "$_DOMAIN"
@@ -367,11 +308,11 @@ type_menu () {
   else
     _TEXT="_SONAR_SOURCE_$_SONAR_OPTION"
     _TEXT=$(echo "${!_TEXT}")
-    _TITLE="--backtitle \"$_TEXT - OS: $_OS_NAME\""
+    _TITLE="--backtitle \"Tools Installer - $_APP_NAME - $_TEXT | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 
     main
   fi
 }
 
-os_check
+setup
 type_menu

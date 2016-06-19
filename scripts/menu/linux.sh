@@ -1,57 +1,34 @@
 #!/bin/bash
 
-_URL_CENTRAL="http://prodigasistemas.github.io"
-_OPTIONS_LIST="ruby 'Ruby install' \
-               nginx 'NGINX install' \
-               postgresql 'PostgreSQL install' \
-               mysql 'MySQL install' \
-               docker 'Docker install' \
-               oracledb 'Oracle Database XE install' \
-               gitlab 'GitLab install' \
-               jenkins 'Jenkins CI install' \
-               sonar 'SonarQube install' \
-               redmine 'Redmine install' \
-               archiva 'Archiva install' \
-               jboss 'JBoss install'"
+_APP_NAME="Main menu"
+_OPTIONS_LIST="java 'Java installer' \
+               ruby 'Ruby installer' \
+               nginx 'NGINX installer' \
+               postgresql 'PostgreSQL installer' \
+               mysql 'MySQL installer' \
+               docker 'Docker installer' \
+               oracledb 'Oracle Database XE installer' \
+               gitlab 'GitLab installer' \
+               jenkins 'Jenkins CI installer' \
+               sonar 'SonarQube installer' \
+               redmine 'Redmine installer' \
+               archiva 'Archiva installer' \
+               jboss 'JBoss installer'"
 
-os_check () {
-  _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-  _OS_KERNEL=$(uname -r)
+setup () {
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
-    _OS_TYPE="deb"
-    _OS_NAME=$(lsb_release -is | awk '{ print tolower($1) }')
-    _OS_CODENAME=$(lsb_release -cs)
-    _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="apt-get"
-  elif [ -e "/etc/redhat-release" ]; then
-    _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
-    _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
-    _PACKAGE_COMMAND="yum"
-  fi
+  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
-  _TITLE="--backtitle \"Pródiga Sistemas - Tools Installer | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
-}
+  _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
 
-tool_check() {
-  echo "Checking for $1..."
-  if command -v $1 > /dev/null; then
-    echo "Detected $1..."
-  else
-    echo "Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
-  fi
-}
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/functions/linux.sh > $_FUNCTIONS_FILE 2> /dev/null
+  [ $? -ne 0 ] && echo "Functions were not loaded!" && exit 1
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
+  [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
-  main
+  os_check
 }
 
 main () {
@@ -63,13 +40,13 @@ main () {
   if [ -z "$_MAIN_OPTION" ]; then
     clear && exit 0
   else
-    curl -sS $_URL_CENTRAL/scripts/install/$_MAIN_OPTION/linux.sh | bash
+    curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh | bash
 
-    [ $? -ne 0 ] && message "Error" "Installation not found!"
+    [ $? -ne 0 ] && message "Alert" "Installer not found!"
 
     main
   fi
 }
 
-os_check
+setup
 main
