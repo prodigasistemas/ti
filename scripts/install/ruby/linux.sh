@@ -30,9 +30,9 @@ install_ruby () {
 
   disable_selinux
 
-  _VERSION=$(input "Ruby version" $_DEFAULT_VERSION)
+  _VERSION=$(input_field "ruby.version" "Ruby version" "$_DEFAULT_VERSION")
   [ $? -eq 1 ] && main
-  [ -z "$_VERSION" ] && _VERSION=$_DEFAULT_VERSION
+  [ -z "$_VERSION" ] && message "Alert" "The Ruby version can not be blank!"
 
   confirm "Do you confirm the installation of Ruby $_VERSION?"
   [ $? -eq 1 ] && main
@@ -43,7 +43,7 @@ install_ruby () {
 
   source /etc/profile.d/rvm.sh
 
-  add_to_group no
+  add_to_group $_GROUP "[no_alert]"
 
   case $_OS_TYPE in
     deb)
@@ -60,45 +60,27 @@ install_ruby () {
 
   run_as_user $_USER_LOGGED "gem install bundler"
 
-  message "Notice" "Success! Will be you logout. After, enter the command: ruby -v" "pkill -KILL -u $_USER_LOGGED"
+  [ $? -eq 0 ] && message "Notice" "Success! Will be you logout. After, enter the command: ruby -v" "pkill -KILL -u $_USER_LOGGED"
 }
 
 add_to_group () {
-  _SHOW_ALERT=$1
-  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
-
-  _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
-
-  _FIND_USER=$(cat /etc/passwd | grep $_USER)
-  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
-
-  if [ $_OS_NAME = "debian" ]; then
-    gpasswd -a $_USER $_GROUP
-  else
-    usermod -aG $_GROUP $_USER
-  fi
-
-  if [ "$_SHOW_ALERT" != "no" ]; then
-    if [ $? -eq 0 ]; then
-      message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
-    else
-      message "Error" "A problem has occurred in the operation!"
-    fi
-  fi
+  add_user_to_group $_GROUP
 }
 
 main () {
   tool_check curl
   tool_check dialog
 
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_OPTION" ]; then
+      clear && exit 0
+    else
+      $_OPTION
+    fi
   else
-    $_OPTION
+    [ ! -z "$(search_app ruby)" ] && install_ruby
   fi
 }
 

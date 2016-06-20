@@ -4,7 +4,7 @@
 
 _APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJava6 'Oracle Java 6 JDK' oracleJava7 'Oracle Java 7 JDK' oracleJava8 'Oracle Java 8 JDK'"
+_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJDK6 'Oracle Java 6 JDK' oracleJDK7 'Oracle Java 7 JDK' oracleJDK8 'Oracle Java 8 JDK'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -28,14 +28,13 @@ download_java () {
 
 install_openJDK () {
   _OPENJDK_VERSION=$1
-  [ $_OS_TYPE = "deb" ] && _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
-  [ $_OS_TYPE = "rpm" ] && _PACKAGE_NAME="java-1._OPENJDK_VERSION.0-openjdk-devel"
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE_NAME="java-1._OPENJDK_VERSION.0-openjdk-devel"
 
   $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
 
-  message "Notice" "Java $_OPENJDK_VERSION successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "Java $_OPENJDK_VERSION successfully installed!"
 }
-
 
 install_openJDK6 () {
   install_openJDK 6
@@ -49,7 +48,7 @@ install_openJDK8 () {
   install_openJDK 8
 }
 
-install_oracleJava6 () {
+install_oracleJDK6 () {
   _JAVA_VERSION="6u45"
   _BINARY_VERSION="b06"
   _JAVA_FOLDER="jdk1.6.0_45"
@@ -63,77 +62,71 @@ install_oracleJava6 () {
 
   delete_file $_JAVA_FILE
 
-  message "Notice" "Java successfully installed in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6'!"
+  [ $? -eq 0 ] && message "Notice" "Oracle Java 6 successfully installed in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6'!"
 }
 
-install_oracleJava7 () {
-  _JAVA_VERSION="7u80"
-  _BINARY_VERSION="b15"
-  _JAVA_FOLDER="jdk1.7.0_80"
+install_oracleJDK () {
+  _JAVA_VERSION=$1
+  _JAVA_UPDATE=$2
+  _BINARY_VERSION=$3
+  _JAVA_FOLDER="jdk1.${_JAVA_VERSION}.0_${_JAVA_UPDATE}"
+  _JAVA_PACKAGE="${_JAVA_VERSION}u${_JAVA_UPDATE}"
 
-  if [ $_OS_TYPE = "deb" ]; then
-    download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.tar.gz"
+  if [ "$_OS_TYPE" = "deb" ]; then
+    download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.tar.gz"
 
-    _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-7'"
+    _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.tar.gz"
+    _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION'"
     tar -xvzf $_JAVA_FILE
     mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/
-    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-7
+    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION
 
-  elif [ $_OS_TYPE = "rpm" ]; then
-    download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.rpm"
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+    download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.rpm"
 
-    _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
+    _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.rpm"
     $_PACKAGE_COMMAND localinstall -y $_JAVA_FILE
   fi
 
   delete_file $_JAVA_FILE
 
-  message "Notice" "Java successfully installed $_INSTALL_FOLDER!"
+  [ $? -eq 0 ] && message "Notice" "Oracle Java $_JAVA_VERSION successfully installed in $_INSTALL_FOLDER!"
 }
 
-install_oracleJava8 () {
-  _JAVA_VERSION="8u92"
-  _BINARY_VERSION="b14"
-  _JAVA_FOLDER="jdk1.8.0_92"
+install_oracleJDK7 () {
+  install_oracleJDK "7" "80" "b15"
+}
 
-  if [ $_OS_TYPE = "deb" ]; then
-    download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.tar.gz"
-
-    _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.tar.gz"
-    _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-8'"
-    tar -xvzf $_JAVA_FILE
-    mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER
-    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-8
-
-  elif [ $_OS_TYPE = "rpm" ]; then
-    download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.rpm"
-
-    _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.rpm"
-    $_PACKAGE_COMMAND localinstall -y $_JAVA_FILE
-  fi
-
-  delete_file $_JAVA_FILE
-
-  message "Notice" "Java successfully installed $_INSTALL_FOLDER!"
+install_oracleJDK8 () {
+  install_oracleJDK "8" "92" "b14"
 }
 
 main () {
   tool_check wget
   tool_check dialog
 
-  _JAVA_VERSION=$(menu "Select the option" "$_OPTIONS_LIST")
+  [ "$_OS_ARCH" = "32" ] && _ARCH="i586"
+  [ "$_OS_ARCH" = "64" ] && _ARCH="x64"
 
-  if [ -z "$_JAVA_VERSION" ]; then
-    clear && exit 0
+  if [ "$(provisioning)" = "manual" ]; then
+    _JAVA_VERSION=$(menu "Select the option" "$_OPTIONS_LIST")
+
+    if [ -z "$_JAVA_VERSION" ]; then
+      clear && exit 0
+    else
+      confirm "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?"
+      [ $? = 1 ] && main
+
+      install_$_JAVA_VERSION
+    fi
   else
-    [ $_OS_ARCH = "32" ] && _ARCH="i586"
-    [ $_OS_ARCH = "64" ] && _ARCH="x64"
-
-    confirm "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?"
-    [ $? = 1 ] && main
-
-    install_$_JAVA_VERSION
+    if [ ! -z "$(search_app java)" ]; then
+      _JAVA_VERSIONS=$(search_versions java.version)
+      for java_version in $_JAVA_VERSIONS; do
+        echo "> Installing $java_version ...";
+        install_$java_version
+      done
+    fi
   fi
 }
 

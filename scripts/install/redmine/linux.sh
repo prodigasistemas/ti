@@ -5,13 +5,13 @@
 # http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
 _APP_NAME="Redmine"
-_REDMINE_VERSION="3.2.3"
+_REDMINE_LAST_VERSION="3.2.3"
 _DEFAULT_PATH="/opt"
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
 
-_OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_VERSION in $_DEFAULT_PATH' \
-               configure_nginx 'Configure host on NGINX' \
+_OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_LAST_VERSION in $_DEFAULT_PATH' \
                configure_email 'Configure sending email' \
+               configure_nginx 'Configure host on NGINX' \
                issue_reports_plugin 'Install Redmine issue reports plugin'"
 
 setup () {
@@ -37,6 +37,42 @@ install_dependencies () {
   $_PACKAGE_COMMAND -y install $_PACKAGES
 }
 
+configure_database () {
+  _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
+
+  _HOST_ADDRESS=$(input_field "redmine.mysql.host" "Enter the host address of the MySQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
+
+  _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
+  [ $? -eq 1 ] && main
+  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+    if [ "$_OS_TYPE" = "rpm" ]; then
+      _MYSQL_ROOT_PASSWORD="[no_password]"
+    else
+       message "Alert" "The root password can not be blank!"
+    fi
+  fi
+
+  _MYSQL_REDMINE_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the password of the redmine user in MySQL")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8;"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_HOST_ADDRESS IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
+  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_HOST_ADDRESS WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+  echo "production:" > $_YAML_FILE
+  echo "  adapter: mysql2" >> $_YAML_FILE
+  echo "  database: redmine" >> $_YAML_FILE
+  echo "  host: $_HOST_ADDRESS" >> $_YAML_FILE
+  echo "  username: redmine" >> $_YAML_FILE
+  echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
+  echo "  encoding: utf8" >> $_YAML_FILE
+
+  [ $? -eq 0 ] && message "Notice" "Database successfully configured!"
+}
+
 install_redmine () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
   _USER_GROUP=$(echo $(groups $_USER_LOGGED | cut -d: -f2) | cut -d' ' -f1)
@@ -50,6 +86,10 @@ install_redmine () {
 
   _MYSQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v mysql")
   [ -z "$_MYSQL_INSTALLED" ] && message "Alert" "MySQL Client or Server is not installed!"
+
+  _REDMINE_VERSION=$(input_field "redmine.version" "Redmine version" "$_REDMINE_LAST_VERSION")
+  [ $? -eq 1 ] && main
+  [ -z "$_REDMINE_VERSION" ] && message "Alert" "The Redmine version can not be blank!"
 
   confirm "Confirm installation Redmine $_REDMINE_VERSION?" "Redmine installer"
   [ $? -eq 1 ] && main
@@ -105,82 +145,25 @@ install_redmine () {
 
   service unicorn_redmine start
 
-  message "Notice" "Redmine successfully installed! For test: cd $_REDMINE_FOLDER; RAILS_ENV=production bundle exec rails server --binding=[YOUR-IP]"
-}
-
-configure_database () {
-  _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
-
-  _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
-  [ $? -eq 1 ] && main
-  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
-
-  _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
-  [ $? -eq 1 ] && main
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
-    if [ "$_OS_TYPE" = "rpm" ]; then
-      _MYSQL_ROOT_PASSWORD="[no_password]"
-    else
-       message "Alert" "The root password can not be blank!"
-    fi
-  fi
-
-  _MYSQL_REDMINE_PASSWORD=$(input "Enter the password of the redmine user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
-
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8;"
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_HOST_ADDRESS IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_HOST_ADDRESS WITH GRANT OPTION; FLUSH PRIVILEGES;"
-
-  echo "production:" > $_YAML_FILE
-  echo "  adapter: mysql2" >> $_YAML_FILE
-  echo "  database: redmine" >> $_YAML_FILE
-  echo "  host: $_HOST_ADDRESS" >> $_YAML_FILE
-  echo "  username: redmine" >> $_YAML_FILE
-  echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
-  echo "  encoding: utf8" >> $_YAML_FILE
-}
-
-configure_nginx () {
-  if command -v nginx > /dev/null; then
-    _DOMAIN=$(input "Enter the domain of Redmine" "redmine.company.gov")
-    [ $? -eq 1 ] && main
-    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
-
-    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/ruby_on_rails.conf" > redmine.conf
-
-    change_file replace redmine.conf APP "redmine"
-    change_file replace redmine.conf DOMAIN "$_DOMAIN"
-    change_file replace redmine.conf PATH "$_DEFAULT_PATH"
-
-    mv redmine.conf /etc/nginx/conf.d/
-    rm redmine.conf*
-
-    service nginx restart
-
-    message "Notice" "The host is successfully configured in NGINX!"
-  else
-    message "Alert" "NGINX is not installed!"
-  fi
+  [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed! For test: cd $_REDMINE_FOLDER; RAILS_ENV=production bundle exec rails server --binding=[SERVER-IP]"
 }
 
 configure_email () {
-  _DOMAIN=$(input "Enter the domain" "company.com")
+  _DOMAIN=$(input_field "redmine.email.domain" "Enter the email domain" "company.com")
   [ $? -eq 1 ] && main
-  [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+  [ -z "$_DOMAIN" ] && message "Alert" "The email domain can not be blank!"
 
-  _SMTP_ADDRESS=$(input "Enter the SMTP address" "smtp.$_DOMAIN")
+  _SMTP_ADDRESS=$(input_field "redmine.email.smtp" "Enter the email SMTP address" "smtp.$_DOMAIN")
   [ $? -eq 1 ] && main
-  [ -z "$_SMTP_ADDRESS" ] && message "Alert" "The SMTP address can not be blank!"
+  [ -z "$_SMTP_ADDRESS" ] && message "Alert" "The email SMTP address can not be blank!"
 
-  _USER_NAME=$(input "Enter the user name")
+  _USER_NAME=$(input_field "redmine.email.user.name" "Enter the email user name")
   [ $? -eq 1 ] && main
-  [ -z "$_USER_NAME" ] && message "Alert" "The user name can not be blank!"
+  [ -z "$_USER_NAME" ] && message "Alert" "The email user name can not be blank!"
 
-  _USER_PASSWORD=$(input "Enter the user password")
+  _USER_PASSWORD=$(input_field "redmine.email.user.password" "Enter the email user password")
   [ $? -eq 1 ] && main
-  [ -z "$_USER_PASSWORD" ] && message "Alert" "The user password can not be blank!"
+  [ -z "$_USER_PASSWORD" ] && message "Alert" "The email user password can not be blank!"
 
   confirm "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" "Configure sending email"
   [ $? -eq 1 ] && main
@@ -200,18 +183,41 @@ configure_email () {
 
   /etc/init.d/unicorn_redmine upgrade
 
-  message "Notice" "Sending email is successfully configured!"
+  [ $? -eq 0 ] && message "Notice" "Sending email is successfully configured!"
+}
+
+configure_nginx () {
+  if command -v nginx > /dev/null; then
+    _DOMAIN=$(input_field "redmine.nginx.domain" "Enter the domain of Redmine" "redmine.company.gov")
+    [ $? -eq 1 ] && main
+    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+
+    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/ruby_on_rails.conf" > redmine.conf
+
+    change_file replace redmine.conf APP "redmine"
+    change_file replace redmine.conf DOMAIN "$_DOMAIN"
+    change_file replace redmine.conf PATH "$_DEFAULT_PATH"
+
+    mv redmine.conf /etc/nginx/conf.d/
+    rm redmine.conf*
+
+    service nginx restart
+
+    [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
+  else
+    message "Alert" "NGINX is not installed! Redmine host not configured!"
+  fi
 }
 
 issue_reports_plugin () {
   _ISSUE_REPORTS_FOLDER=$_REDMINE_FOLDER/plugins/redmine_issue_reports
 
   if command -v mysql > /dev/null; then
-    _HOST=$(input "Enter the host address of database" "localhost")
+    _HOST=$(input_field "redmine.mysql.host" "Enter the host address of database" "localhost")
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host address can not be blank!"
 
-    _USER_PASSWORD=$(input "Enter the redmine password in database")
+    _USER_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the redmine password in database")
     [ $? -eq 1 ] && main
     [ -z "$_USER_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
@@ -231,9 +237,9 @@ issue_reports_plugin () {
 
     mysql -h $_HOST -u redmine -p$_USER_PASSWORD redmine < $_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql
 
-    message "Notice" "Issue reports plugin is successfully configured!"
+    [ $? -eq 0 ] && message "Notice" "Issue reports plugin is successfully configured!"
   else
-    message "Alert" "The mysql-client is not installed!"
+    message "Alert" "The MySQL Client is not installed!"
   fi
 }
 
@@ -243,12 +249,19 @@ main () {
   tool_check wget
   tool_check dialog
 
-  _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_MAIN_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_MAIN_OPTION" ]; then
+      clear && exit 0
+    else
+      $_MAIN_OPTION
+    fi
   else
-    $_MAIN_OPTION
+    [ ! -z "$(search_app redmine)" ] && install_redmine
+    [ ! -z "$(search_app redmine.nginx)" ] && configure_nginx
+    [ ! -z "$(search_app redmine.email)" ] && configure_email
+    [ "$(search_value redmine.issue_reports_plugin)" = "yes" ] && issue_reports_plugin
   fi
 }
 

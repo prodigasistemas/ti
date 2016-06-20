@@ -26,15 +26,15 @@ setup () {
 
 install_nginx () {
   confirm "Confirm the installation of NGINX in $_OS_DESCRIPTION?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
-  if [ $_OS_TYPE = "deb" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
     curl -L http://nginx.org/keys/nginx_signing.key 2> /dev/null | apt-key add - &>/dev/null
 
     run_as_root "echo \"deb http://nginx.org/packages/$_OS_NAME/ $_OS_CODENAME nginx\" > /etc/apt/sources.list.d/nginx.list"
 
     $_PACKAGE_COMMAND update
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     _REPO_FILE="/etc/yum.repos.d/nginx.repo"
 
     [ "$_OS_ARCH" = "32" ] && _NGINX_ARCH="i386"
@@ -55,47 +55,29 @@ install_nginx () {
 
   [ "$_OS_TYPE" = "rpm" ] && service nginx start
 
-  add_to_group no
+  add_to_group $_GROUP "[no_alert]"
 
   message "Notice" "NGINX successfully installed!"
 }
 
 add_to_group () {
-  _SHOW_ALERT=$1
-  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
-
-  _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
-
-  _FIND_USER=$(cat /etc/passwd | grep $_USER)
-  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
-
-  if [ $_OS_NAME = "debian" ]; then
-    gpasswd -a $_USER $_GROUP
-  else
-    usermod -aG $_GROUP $_USER
-  fi
-
-  if [ "$_SHOW_ALERT" != "no" ]; then
-    if [ $? -eq 0 ]; then
-      message "Notice" "$_USER user was added the $_GROUP group successfully!"
-    else
-      message "Error" "A problem has occurred in the operation!"
-    fi
-  fi
+  add_user_to_group $_GROUP
 }
 
 main () {
   tool_check curl
   tool_check dialog
 
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_OPTION" ]; then
+      clear && exit 0
+    else
+      $_OPTION
+    fi
   else
-    $_OPTION
+    [ ! -z "$(search_app nginx)" ] && install_nginx
   fi
 }
 

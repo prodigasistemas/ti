@@ -1,0 +1,52 @@
+# Instalar duas versoes do java
+java.version = openJDK7
+java.version = oracleJDK8
+
+ruby.version = 2.3.1
+
+# Instalar mysql server
+mysql.server.remote_access = yes
+mysql.server.grant_privileges.host = localhost
+mysql.server.grant_privileges.root.password = 123456
+mysql.server.grant_privileges.database = mysql
+mysql.server.grant_privileges.user.name = vagrant
+mysql.server.grant_privileges.user.password = vagrant
+
+# Instalar postgresql server
+postgresql.server.version = 9.5
+postgresql.server.configure_locale_latin = yes
+postgresql.server.create_gsan_databases = yes
+postgresql.server.change_password = 123456
+postgresql.server.remote_access = yes
+
+# Instalar Docker
+docker
+
+# Instalar Oracle Database
+oracledb.port.ssh = 2222
+oracledb.port.connection = 1521
+oracledb.port.http = 5050
+oracledb.import_ggas_database = yes
+
+# Instalar NGINX
+nginx
+
+# Instalar Redmine
+redmine.version = 3.2.3
+redmine.mysql.host = localhost
+redmine.mysql.root.password = 123456
+redmine.mysql.user.password = redmine
+redmine.email.domain = localhost
+redmine.email.smtp = smtp.localhost
+redmine.email.user.name = username
+redmine.email.user.password = password
+redmine.nginx.domain = redmine.local
+redmine.issue_reports_plugin = yes
+
+# Instalar Jenkins
+jenkins.http.port = 8081
+jenkins.nginx.domain = jenkins.local
+jenkins.nginx.host = localhost:8081
+
+# Instalar SonarQube
+sonar

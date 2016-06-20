@@ -27,7 +27,7 @@ install_mysql_server () {
   confirm "Confirm the installation of MySQL Server?"
   [ $? -eq 1 ] && main
 
-  case $_OS_TYPE in
+  case "$_OS_TYPE" in
     deb)
       $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
       ;;
@@ -59,10 +59,10 @@ remote_access () {
   confirm "Do you want to enable remote access?"
   [ $? -eq 1 ] && main
 
-  if [ $_OS_TYPE = "deb" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
     _MYSQL_SERVICE="mysql"
     change_file "replace" "/etc/mysql/my.cnf" "bind-address" "#bind-address"
-  elif [ $_OS_TYPE = "rpm" ]; then
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     _MYSQL_SERVICE="mysqld"
     change_file "append" "/etc/my.cnf" "symbolic-links=0" "bind-address = 0.0.0.0"
   fi
@@ -73,11 +73,11 @@ remote_access () {
 }
 
 grant_privileges () {
-  _HOST_ADDRESS=$(input "Enter the host address of the MySQL Server" "localhost")
+  _HOST_ADDRESS=$(input_field "mysql.server.grant_privileges.host" "Enter the host address of the MySQL Server" "localhost")
   [ $? -eq 1 ] && main
   [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
 
-  _MYSQL_ROOT_PASSWORD=$(input "Enter the password of the root user in MySQL")
+  _MYSQL_ROOT_PASSWORD=$(input_field "mysql.server.grant_privileges.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
   if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
     if [ "$_OS_TYPE" = "rpm" ]; then
@@ -87,17 +87,17 @@ grant_privileges () {
     fi
   fi
 
-  _GRANT_DATABASE=$(input "Enter the database name")
+  _GRANT_DATABASE=$(input_field "mysql.server.grant_privileges.database" "Enter the database name")
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_DATABASE" ] && message "Alert" "The database name can not be blank!"
 
-  _GRANT_USER=$(input "Enter the user name")
+  _GRANT_USER=$(input_field "mysql.server.grant_privileges.user.name" "Enter the user name")
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_USER" ] && message "Alert" "The user name can not be blank!"
 
-  _GRANT_PASSWORD=$(input "Enter the password")
+  _GRANT_PASSWORD=$(input_field "mysql.server.grant_privileges.user.password" "Enter the user password")
   [ $? -eq 1 ] && main
-  [ -z "$_GRANT_PASSWORD" ] && message "Alert" "The password can not be blank!"
+  [ -z "$_GRANT_PASSWORD" ] && message "Alert" "The user password can not be blank!"
 
   mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_GRANT_DATABASE.* TO '$_GRANT_USER'@'%' IDENTIFIED BY '$_GRANT_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
@@ -107,12 +107,19 @@ grant_privileges () {
 main () {
   tool_check dialog
 
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_OPTION" ]; then
+      clear && exit 0
+    else
+      $_OPTION
+    fi
   else
-    $_OPTION
+    [ ! -z "$(search_app mysql.client)" ] && install_mysql_client
+    [ ! -z "$(search_app mysql.server)" ] && install_mysql_server
+    [ "$(search_value mysql.server.remote_access)" = "yes" ] && remote_access
+    [ ! -z "$(search_app mysql.server.grant_privileges)" ] && grant_privileges
   fi
 }
 

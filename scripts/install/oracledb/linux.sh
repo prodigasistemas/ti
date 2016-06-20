@@ -26,15 +26,15 @@ setup () {
 }
 
 install_oracleb () {
-  _SSH_PORT=$(input "Inform the ssh port (22) to be exported" "2222")
+  _SSH_PORT=$(input_field "oracledb.port.ssh" "Inform the ssh port (22) to be exported" "2222")
   [ $? -eq 1 ] && main
   [ -z "$_SSH_PORT" ] && message "Alert" "The ssh port can not be blank!"
 
-  _CONECTION_PORT=$(input "Inform the connection port (1521) to be exported" "1521")
+  _CONECTION_PORT=$(input_field "oracledb.port.connection" "Inform the connection port (1521) to be exported" "1521")
   [ $? -eq 1 ] && main
   [ -z "$_CONECTION_PORT" ] && message "Alert" "The connection port can not be blank!"
 
-  _HTTP_PORT=$(input "Inform the http port (8080) to be exported" "5050")
+  _HTTP_PORT=$(input_field "oracledb.port.http" "Inform the http port (8080) to be exported" "5050")
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
 
@@ -43,14 +43,14 @@ install_oracleb () {
 
   docker run --name oracle-xe-11g -d -p $_SSH_PORT:22 -p $_CONECTION_PORT:1521 -p $_HTTP_PORT:8080 --restart="always" wnameless/oracle-xe-11g
 
-  message "Notice" "Oracle Database successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "Oracle Database successfully installed!"
 }
 
 import_ggas_database () {
   confirm "Confirms the import of GGAS database?"
   [ $? -eq 1 ] && main
 
-  [ -e "ggas" ] && rm -rf ggas
+  delete_file "ggas"
 
   echo
   echo "=================================================="
@@ -75,29 +75,30 @@ import_ggas_database () {
   echo 'export PATH=$PATH:/u01/app/oracle/product/11.2.0/xe/bin' >> $_IMPORT_SCRIPT
   echo 'export ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe' >> $_IMPORT_SCRIPT
   echo 'export ORACLE_SID=XE' >> $_IMPORT_SCRIPT
-  echo 'for i in /tmp/sql/01/*.sql ; do echo "> Importando o arquivo $i ..." ; sqlplus system/oracle @$i ; done' >> $_IMPORT_SCRIPT
-  echo 'for i in /tmp/sql/02/*.sql ; do echo "> Importando o arquivo $i ..." ; sqlplus GGAS_ADMIN/GGAS_ADMIN @$i ; done' >> $_IMPORT_SCRIPT
+  echo 'for i in /tmp/sql/01/*.sql ; do echo "> Importing file $i ..." ; sqlplus system/oracle @$i ; done' >> $_IMPORT_SCRIPT
+  echo 'for i in /tmp/sql/02/*.sql ; do echo "> Importing file $i ..." ; sqlplus GGAS_ADMIN/GGAS_ADMIN @$i ; done' >> $_IMPORT_SCRIPT
   chmod +x $_IMPORT_SCRIPT
 
   echo
   echo "===================================================="
-  echo "you must run the commands in the container oracle db"
+  echo "you must run the commands in the container Oracle DB"
   echo "The root password is 'admin'"
   echo "===================================================="
 
   echo
   echo "====================================="
-  echo "Copy sql files to container oracle db"
+  echo "Copy SQL files to container Oracle DB"
   echo "====================================="
+  #TODO: get port ssh (22) exported from container
   scp -P 2222 -r ggas/sql root@localhost:/tmp
 
   echo
   echo "======================================="
-  echo "Import sql files to container oracle db"
+  echo "Import SQL files to container Oracle DB"
   echo "======================================="
   ssh -p 2222 root@localhost "/tmp/sql/import_db.sh"
 
-  message "Notice" "Import GGAS database was successful!"
+  [ $? -eq 0 ] && message "Notice" "Import GGAS database was successful!"
 }
 
 main () {
@@ -107,16 +108,21 @@ main () {
   if [ "$_OS_ARCH" = "32" ]; then
     message "Alert" "Oracle Database requires a 64-bit installation regardless of your distribution version!" "clear && exit 1"
   else
-    if command -v docker > /dev/null; then
-      _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+    if [ "$(provisioning)" = "manual" ]; then
+      if command -v docker > /dev/null; then
+        _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-      if [ -z "$_OPTION" ]; then
-        clear && exit 0
+        if [ -z "$_OPTION" ]; then
+          clear && exit 0
+        else
+          $_OPTION
+        fi
       else
-        $_OPTION
+        message "Alert" "Docker is not installed" "clear && exit 1"
       fi
     else
-      message "Alert" "Docker is not installed" "clear && exit 1"
+      [ ! -z "$(search_app oracledb)" ] && install_oracleb
+      [ "$(search_value oracledb.import_ggas_database)" = "yes" ] && import_ggas_database
     fi
   fi
 }

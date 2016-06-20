@@ -29,9 +29,9 @@ install_docker () {
   confirm "Confirm the installation of Docker in $_OS_DESCRIPTION?"
   [ $? -eq 1 ] && main
 
-  case $_OS_TYPE in
+  case "$_OS_TYPE" in
     deb)
-      if [ $_OS_NAME = "debian" ]; then
+      if [ "$_OS_NAME" = "debian" ]; then
         $_PACKAGE_COMMAND purge -y lxc-docker* docker.io*
 
         if [ $_OS_CODENAME = "wheezy" ]; then
@@ -48,7 +48,7 @@ install_docker () {
 
       $_PACKAGE_COMMAND update
 
-      if [ $_OS_NAME = "ubuntu" ]; then
+      if [ "$_OS_NAME" = "ubuntu" ]; then
         $_PACKAGE_COMMAND purge -y lxc-docker
         $_PACKAGE_COMMAND install -y linux-image-extra-$_OS_KERNEL
       fi
@@ -74,66 +74,45 @@ install_docker () {
 
   docker run hello-world
 
-  add_to_group no
+  add_to_group $_GROUP "[no_alert]"
 
   message "Notice" "Docker successfully installed!"
 }
 
 add_to_group () {
-  _SHOW_ALERT=$1
-  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
-
-  _USER=$(input "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
-
-  _FIND_USER=$(cat /etc/passwd | grep $_USER)
-  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
-
-  if [ $_OS_NAME = "debian" ]; then
-    gpasswd -a $_USER $_GROUP
-  else
-    usermod -aG $_GROUP $_USER
-  fi
-
-  if [ "$_SHOW_ALERT" != "no" ]; then
-    if [ $? -eq 0 ]; then
-      message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
-    else
-      message "Error" "A problem has occurred in the operation!"
-    fi
-  fi
+  add_user_to_group $_GROUP
 }
 
 main () {
   tool_check dialog
 
-  _MAJOR_VERION=$(uname -r | cut -d. -f1)
-  _MINOR_VERION=$(uname -r | cut -d. -f2)
+  _MAJOR_VERSION=$(uname -r | cut -d. -f1)
+  _MINOR_VERSION=$(uname -r | cut -d. -f2)
 
-  if [ $_OS_ARCH = "32" ]; then
-    dialog --title "Alert" --msgbox "Docker requires a 64-bit installation regardless of your distribution version!" 0 0
-    clear && exit 0
-  fi
-
-  if [ $_OS_NAME = "debian" ]; then
-    if [ $_MAJOR_VERION -lt 3 ]; then
-      dialog --title "Alert" --msgbox "Prerequisites Docker: the major version of Kernel ($_OS_KERNEL) is less than 3!" 0 0
-      clear && exit 0
-    fi
-
-    if [ $_MINOR_VERION -lt 10 ]; then
-      dialog --title "Alert" --msgbox "Prerequisites Docker: the minor version of Kernel ($_OS_KERNEL) is less than 10!" 0 0
-      clear && exit 0
-    fi
-  fi
-
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
-
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+  if [ "$_OS_ARCH" = "32" ]; then
+    message "Alert" "Docker requires a 64-bit installation regardless of your distribution version!" "clear && exit 1"
   else
-    $_OPTION
+    if [ "$_OS_NAME" = "debian" ]; then
+      if [ $_MAJOR_VERSION -lt 3 ]; then
+        message "Alert" "Prerequisites Docker: the major version of Kernel ($_OS_KERNEL) is less than 3!" "clear && exit 1"
+      fi
+
+      if [ "$_MINOR_VERSION" -lt 10 ]; then
+        message "Alert" "Prerequisites Docker: the minor version of Kernel ($_OS_KERNEL) is less than 10!" "clear && exit 1"
+      fi
+    fi
+
+    if [ "$(provisioning)" = "manual" ]; then
+      _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+
+      if [ -z "$_OPTION" ]; then
+        clear && exit 0
+      else
+        $_OPTION
+      fi
+    else
+      [ ! -z "$(search_app docker)" ] && install_docker
+    fi
   fi
 }
 

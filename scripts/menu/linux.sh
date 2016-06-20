@@ -35,16 +35,24 @@ main () {
   tool_check curl
   tool_check dialog
 
-  _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_MAIN_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_MAIN_OPTION" ]; then
+      clear && exit 0
+    else
+      curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh | bash
+
+      [ $? -ne 0 ] && message "Alert" "Installer not found!"
+
+      main
+    fi
   else
-    curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh | bash
-
-    [ $? -ne 0 ] && message "Alert" "Installer not found!"
-
-    main
+    _APPLICATIONS=$(search_applications)
+    for app in $_APPLICATIONS; do
+      echo "> Loading $app installer ...";
+      curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$app/linux.sh | bash
+    done
   fi
 }
 

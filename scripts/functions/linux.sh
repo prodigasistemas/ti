@@ -19,6 +19,8 @@ os_check () {
   fi
 
   _TITLE="--backtitle \"Tools Installer - $_APP_NAME | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
+
+  _RECIPE_FILE="recipe.ti"
 }
 
 tool_check() {
@@ -39,13 +41,65 @@ input () {
   echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
 }
 
-message () {
-  eval dialog --title \"$1\" --msgbox \"$2\" 0 0
+search_applications () {
+  echo $(cat $_RECIPE_FILE | sed '/^ *$/d; /^ *#/d' | cut -d. -f1 | uniq)
+}
 
-  if [ -z "$3" ]; then
-    main
+search_app () {
+  echo $(cat $_RECIPE_FILE | egrep ^$1 | cut -d. -f1 | uniq)
+}
+
+search_value () {
+  echo $(echo $(cat $_RECIPE_FILE | grep $1 | cut -d= -f2))
+}
+
+search_versions () {
+  echo $(cat $_RECIPE_FILE | egrep ^$1 | cut -d= -f2 | uniq)
+}
+
+input_field () {
+  _INPUT_FIELD=$1
+  _INPUT_MESSAGE=$2
+  _INPUT_VALUE=$3
+
+  if [ "$(provisioning)" = "manual" ]; then
+    echo $(eval dialog $_TITLE --stdout --inputbox \"$_INPUT_MESSAGE\" 0 0 \"$_INPUT_VALUE\")
   else
-    $3
+    if [ "$_INPUT_FIELD" = "[default]" ]; then
+      echo $_INPUT_VALUE
+    else
+      echo $(search_value $_INPUT_FIELD)
+    fi
+  fi
+}
+
+message () {
+  _MESSAGE_TITLE=$1
+  _MESSAGE_TEXT=$2
+  _MESSAGE_COMMAND=$3
+
+  if [ "$(provisioning)" = "manual" ]; then
+    eval dialog --title \"$_MESSAGE_TITLE\" --msgbox \"$_MESSAGE_TEXT\" 0 0
+
+    if [ -z "$_MESSAGE_COMMAND" ]; then
+      main
+    else
+      $_MESSAGE_COMMAND
+    fi
+  else
+    echo "> $_MESSAGE_TITLE: $_MESSAGE_TEXT"
+
+    if [ -z "$_MESSAGE_COMMAND" ]; then
+      [ "$_MESSAGE_TITLE" != "Notice" ] && exit 1
+    else
+      _FIND=$(echo $_MESSAGE_COMMAND | grep "clear &&")
+      if [ -z "$_FIND" ]; then
+        $3
+      else
+        _COMMAND=$(echo $_MESSAGE_COMMAND | sed "s|clear && ||g")
+        $_COMMAND
+      fi
+    fi
   fi
 }
 
@@ -53,10 +107,14 @@ confirm () {
   _CONFIRM_QUESTION=$1
   _CONFIRM_TITLE=$2
 
-  if [ ! -z "$_CONFIRM_TITLE" ]; then
-    dialog --title "$_CONFIRM_TITLE" --yesno "$1" 0 0
+  if [ "$(provisioning)" = "manual" ]; then
+    if [ ! -z "$_CONFIRM_TITLE" ]; then
+      dialog --title "$_CONFIRM_TITLE" --yesno "$1" 0 0
+    else
+      dialog --yesno "$1" 0 0
+    fi
   else
-    dialog --yesno "$1" 0 0
+    echo "$2"
   fi
 }
 
@@ -94,7 +152,7 @@ mysql_as_root () {
 }
 
 delete_file () {
-  [ -e "$1" ] && rm $1
+  [ -e "$1" ] && rm -rf $1
 }
 
 backup_folder () {
@@ -113,14 +171,16 @@ register_service () {
 
 java_check () {
   _VERSION_CHECK=$1
+  _JAVA_TMP_FILE="/tmp/.tools.installer.java_version"
 
   _JAVA_INSTALLED=$(command -v java)
   [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java is not installed!"
 
-  java -version 2> /tmp/.java_version
-  _JAVA_VERSION=$(cat /tmp/.java_version | grep "java version" | cut -d' ' -f3 | cut -d\" -f2)
+  java -version 2> $_JAVA_TMP_FILE
+  _JAVA_VERSION=$(cat $_JAVA_TMP_FILE | grep version | cut -d' ' -f3 | cut -d\" -f2)
   _JAVA_MAJOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f1)
   _JAVA_MINOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f2)
+  rm $_JAVA_TMP_FILE
 
   if [ "$_JAVA_MINOR_VERSION" -lt "$_VERSION_CHECK" ]; then
     message "Alert" "You must have Java $_VERSION_CHECK installed!"
@@ -132,9 +192,44 @@ disable_selinux () {
     _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")
 
     if [ ! -z "$_SELINUX_ENABLED" ]; then
-      dialog --title "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive" --msgbox "" 0 0
+      message "Alert" "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive"
 
       change_file "replace" "/etc/selinux/config" "^$_SELINUX_ENABLED" "SELINUX=permissive"
     fi
+  fi
+}
+
+add_user_to_group () {
+  _GROUP=$1
+  _SHOW_ALERT=$2
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+
+  _USER=$(input_field "[default]" "Enter the user name to be added to the group $_GROUP" "$_USER_LOGGED")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
+
+  _FIND_USER=$(cat /etc/passwd | grep $_USER)
+  [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
+
+  if [ "$_OS_NAME" = "debian" ]; then
+    gpasswd -a $_USER $_GROUP
+  else
+    usermod -aG $_GROUP $_USER
+  fi
+
+  if [ "$_SHOW_ALERT" != "[no_alert]" ]; then
+    if [ $? -eq 0 ]; then
+      message "Notice" "$_USER user was added the $_GROUP group successfully! You need to log out and log in again"
+    else
+      message "Error" "A problem has occurred in the operation!"
+    fi
+  fi
+}
+
+provisioning () {
+  if [ -e "$_RECIPE_FILE" ]; then
+    echo "automatic"
+  else
+    echo "manual"
   fi
 }

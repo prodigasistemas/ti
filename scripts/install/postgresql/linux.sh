@@ -9,8 +9,8 @@
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 
 _APP_NAME="PostgreSQL"
-_OPTIONS_LIST="install_postgresql 'Install the database server' \
-               configure_locale 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
+_OPTIONS_LIST="install_postgresql_server 'Install the database server' \
+               configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
                create_gsan_databases 'Create GSAN databases' \
                change_password 'Change password the user postgres' \
                remote_access 'Enable remote access'"
@@ -45,10 +45,10 @@ config_path () {
   fi
 }
 
-install_postgresql () {
+install_postgresql_server () {
   if [ "$_OS_TYPE" = "deb" ]; then
     confirm "Configure PostgreSQL Apt Repository?"
-    if [ $? = 0 ]; then
+    if [ $? -eq 0 ]; then
       wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
       run_as_root "echo \"deb http://apt.postgresql.org/pub/repos/apt/ $_OS_CODENAME-pgdg main\" > /etc/apt/sources.list.d/postgresql.list"
@@ -60,9 +60,9 @@ install_postgresql () {
     _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort)
     _LAST_VERSION=$(echo $_VERSIONS_LIST | grep -oE "[^ ]+$")
 
-    _POSTGRESQL_VERSION=$(input "Versions available: $_VERSIONS_LIST. Enter a version" "$_LAST_VERSION")
+    _POSTGRESQL_VERSION=$(input_field "postgresql.server.version" "Versions available: $_VERSIONS_LIST. Enter a version" "$_LAST_VERSION")
     [ $? -eq 1 ] && main
-    [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The version can not be blank!"
+    [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The PostgreSQL version can not be blank!"
   fi
 
   confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION?"
@@ -72,16 +72,17 @@ install_postgresql () {
     $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
+    #TODO: get updated versions
     $_PACKAGE_COMMAND install -y postgresql-server postgresql-contrib postgresql-devel
     service postgresql initdb
     service postgresql start
   fi
 
-  message "Notice" "PostgreSQL successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION successfully installed!"
 }
 
-configure_locale () {
-  confirm "Do you want to configure for LATIN1?"
+configure_locale_latin () {
+  confirm "Do you want to configure locale for LATIN1?"
   [ $? = 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
@@ -120,7 +121,7 @@ configure_locale () {
     service postgresql restart
   fi
 
-  message "Notice" "LATIN1 locale configured successfully!"
+  [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
 }
 
 create_gsan_databases () {
@@ -141,11 +142,11 @@ create_gsan_databases () {
   run_as_postgres "createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial"
   run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
 
-  message "Notice" "GSAN databases created successfully!"
+  [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
 }
 
 change_password () {
-  _PASSWORD=$(input "Enter a new password for the user postgres" "postgres")
+  _PASSWORD=$(input_field "postgresql.server.change_password" "Enter a new password for the user postgres" "postgres")
   [ $? -eq 1 ] && main
   [ -z "$_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
@@ -157,7 +158,7 @@ change_password () {
 
   service postgresql restart
 
-  message "Notice" "Password changed successfully!"
+  [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
 }
 
 remote_access () {
@@ -172,7 +173,7 @@ remote_access () {
 
   service postgresql restart
 
-  message "Notice" "Enabling remote access successfully held!"
+  [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }
 
 main () {
@@ -182,12 +183,20 @@ main () {
   [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   [ "$_OS_TYPE" = "rpm" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
 
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_OPTION" ]; then
+      clear && exit 0
+    else
+      $_OPTION
+    fi
   else
-    $_OPTION
+    [ ! -z "$(search_app postgresql.server)" ] && install_postgresql_server
+    [ "$(search_value postgresql.server.configure_locale_latin)" = "yes" ] && configure_locale_latin
+    [ "$(search_value postgresql.server.create_gsan_databases)" = "yes" ] && create_gsan_databases
+    [ ! -z "$(search_app postgresql.server.change_password)" ] && change_password
+    [ "$(search_value postgresql.server.remote_access)" = "yes" ] && remote_access
   fi
 }
 

@@ -26,17 +26,19 @@ setup () {
 install_jenkins () {
   java_check 7
 
-  _HTTP_PORT=$(input "Enter the http port for Jenkins" "8085")
+  _HTTP_PORT=$(input_field "jenkins.http.port" "Enter the http port for Jenkins" "8085")
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
 
-  confirm "Do you want to download the stable repository?"
-  [ $? -eq 0 ] && _STABLE="-stable"
+  if [ "$(provisioning)" = "manual" ]; then
+    confirm "Do you want to download the stable repository?"
+    [ $? -eq 0 ] && _STABLE="-stable"
+  fi
 
   confirm "Do you confirm the installation of Jenkins$_STABLE?"
   [ $? -eq 1 ] && main
 
-  case $_OS_TYPE in
+  case "$_OS_TYPE" in
     deb)
       wget -q -O - http://pkg.jenkins-ci.org/debian$_STABLE/jenkins-ci.org.key | apt-key add -
 
@@ -71,11 +73,11 @@ configure_nginx () {
   _DEFAULT_HOST="localhost:$_PORT"
 
   if command -v nginx > /dev/null; then
-    _DOMAIN=$(input "Enter the domain of Jenkins" "jenkins.company.gov")
+    _DOMAIN=$(input_field "jenkins.nginx.domain" "Enter the domain of Jenkins" "jenkins.company.gov")
     [ $? -eq 1 ] && main
     [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
-    _HOST=$(input "Enter the host of Jenkins server" "$_DEFAULT_HOST")
+    _HOST=$(input_field "jenkins.nginx.host" "Enter the host of Jenkins server" "$_DEFAULT_HOST")
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
@@ -92,7 +94,7 @@ configure_nginx () {
 
     message "Notice" "The host is successfully configured in NGINX!"
   else
-    message "Alert" "NGINX is not installed!"
+    message "Alert" "NGINX is not installed! Jenkins host not configured!"
   fi
 }
 
@@ -100,12 +102,17 @@ main () {
   tool_check wget
   tool_check dialog
 
-  _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
+  if [ "$(provisioning)" = "manual" ]; then
+    _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
-  if [ -z "$_OPTION" ]; then
-    clear && exit 0
+    if [ -z "$_OPTION" ]; then
+      clear && exit 0
+    else
+      $_OPTION
+    fi
   else
-    $_OPTION
+    [ ! -z "$(search_app jenkins)" ] && install_jenkins
+    [ ! -z "$(search_app jenkins.nginx)" ] && configure_nginx
   fi
 }
 
