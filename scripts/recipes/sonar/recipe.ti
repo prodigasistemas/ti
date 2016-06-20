@@ -1,0 +1,18 @@
+# Install Java JDK
+java.version = oracleJDK8
+
+# Install SonarQube from sonarqube.org
+sonar.source = qube
+
+# Configure java command path
+sonar.java.command = /opt/java-oracle-8/bin/java
+
+# Configure mysql connection
+sonar.mysql.host = localhost
+sonar.mysql.port = 3306
+sonar.mysql.root.password = root
+sonar.mysql.user.password = sonar
+
+## Configure host in nginx
+sonar.nginx.domain = sonar.local
+sonar.nginx.host = localhost:9000

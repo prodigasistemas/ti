@@ -1,0 +1,10 @@
+# Install Java JDK
+java.version = openJDK7
+
+# Install NGINX web server
+nginx
+
+# Install Jenkins CI
+jenkins.http.port = 8081
+jenkins.nginx.domain = jenkins.local
+jenkins.nginx.host = localhost:8081

@@ -1,37 +1,38 @@
-# Instalar duas versoes do java
+# Install two versions of Java JDK
 java.version = openJDK7
 java.version = oracleJDK8
 
+# Install Ruby
 ruby.version = 2.3.1
 
-# Instalar mysql server
+# Install MySQL Database Server
 mysql.server.remote_access = yes
-mysql.server.grant_privileges.host = localhost
-mysql.server.grant_privileges.root.password = 123456
-mysql.server.grant_privileges.database = mysql
-mysql.server.grant_privileges.user.name = vagrant
-mysql.server.grant_privileges.user.password = vagrant
+mysql.server.grant.privileges.host = localhost
+mysql.server.grant.privileges.root.password = root
+mysql.server.grant.privileges.database = mysql
+mysql.server.grant.privileges.user.name = vagrant
+mysql.server.grant.privileges.user.password = vagrant
 
-# Instalar postgresql server
+# Install PostgreSQL Database Server
 postgresql.server.version = 9.5
 postgresql.server.configure_locale_latin = yes
 postgresql.server.create_gsan_databases = yes
 postgresql.server.change_password = 123456
 postgresql.server.remote_access = yes
 
-# Instalar Docker
+# Install Docker
 docker
 
-# Instalar Oracle Database
+# Install Oracle Database XE
 oracledb.port.ssh = 2222
 oracledb.port.connection = 1521
 oracledb.port.http = 5050
 oracledb.import_ggas_database = yes
 
-# Instalar NGINX
+# Install NGINX web server
 nginx
 
-# Instalar Redmine
+# Install Redmine
 redmine.version = 3.2.3
 redmine.mysql.host = localhost
 redmine.mysql.root.password = 123456
@@ -43,10 +44,37 @@ redmine.email.user.password = password
 redmine.nginx.domain = redmine.local
 redmine.issue_reports_plugin = yes
 
-# Instalar Jenkins
+# Install Jenkins CI
 jenkins.http.port = 8081
 jenkins.nginx.domain = jenkins.local
 jenkins.nginx.host = localhost:8081
 
-# Instalar SonarQube
-sonar
+# Install SonarQube from sonarqube.org
+sonar.source = qube
+
+# Or install Sonar from other sources
+# sonar.source = other
+# sonar.other.download.url = http://sonar.ggas.com.br/download
+# sonar.other.download.file = sonarqube-5.0.tar.gz
+
+## Configure java command path
+sonar.java.command = java
+
+## Configure mysql connection
+sonar.mysql.host = localhost
+sonar.mysql.port = 3306
+sonar.mysql.root.password = root
+sonar.mysql.user.password = sonar
+
+## Import sql file from download
+# sonar.mysql.import.url = http://sonar.ggas.com.br/download
+# sonar.mysql.import.file = sonar.sql
+
+## Install sonar scanner
+sonar.scanner.version = 2.6.1
+sonar.scanner.host = http://localhost:9000
+sonar.scanner.user.token =
+
+## Configure host in nginx
+sonar.nginx.domain = sonar.local
+sonar.nginx.host = localhost:9000
