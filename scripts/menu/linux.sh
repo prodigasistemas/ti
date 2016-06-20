@@ -50,7 +50,9 @@ main () {
   else
     _APPLICATIONS=$(search_applications)
     for app in $_APPLICATIONS; do
-      echo "> Loading $app installer ...";
+      echo
+      echo "> Loading $app installer..."
+      echo
       curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$app/linux.sh | bash
     done
   fi

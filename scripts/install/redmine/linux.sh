@@ -145,7 +145,7 @@ install_redmine () {
 
   service unicorn_redmine start
 
-  [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed! For test: cd $_REDMINE_FOLDER; RAILS_ENV=production bundle exec rails server --binding=[SERVER-IP]"
+  [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed! For test: cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rails server --binding=[SERVER-IP]"
 }
 
 configure_email () {

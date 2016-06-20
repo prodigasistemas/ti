@@ -1,5 +1,6 @@
 #!/bin/bash
 # https://easyengine.io/tutorials/mysql/remote-access
+# http://stackoverflow.com/questions/7739645/install-mysql-on-ubuntu-without-password-prompt
 
 _APP_NAME="MySQL"
 _OPTIONS_LIST="install_mysql_server 'Install the database server' \
@@ -29,6 +30,9 @@ install_mysql_server () {
 
   case "$_OS_TYPE" in
     deb)
+      debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
+      debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
+
       $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
       ;;
     rpm)
@@ -40,7 +44,7 @@ install_mysql_server () {
       ;;
   esac
 
-  message "Notice" "MySQL Server successfully installed!"
+  message "Notice" "MySQL Server successfully installed! The root password is root"
 }
 
 install_mysql_client () {
@@ -73,11 +77,11 @@ remote_access () {
 }
 
 grant_privileges () {
-  _HOST_ADDRESS=$(input_field "mysql.server.grant_privileges.host" "Enter the host address of the MySQL Server" "localhost")
+  _HOST_ADDRESS=$(input_field "mysql.server.grant.privileges.host" "Enter the host address of the MySQL Server" "localhost")
   [ $? -eq 1 ] && main
   [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
 
-  _MYSQL_ROOT_PASSWORD=$(input_field "mysql.server.grant_privileges.root.password" "Enter the password of the root user in MySQL")
+  _MYSQL_ROOT_PASSWORD=$(input_field "mysql.server.grant.privileges.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
   if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
     if [ "$_OS_TYPE" = "rpm" ]; then
@@ -87,15 +91,15 @@ grant_privileges () {
     fi
   fi
 
-  _GRANT_DATABASE=$(input_field "mysql.server.grant_privileges.database" "Enter the database name")
+  _GRANT_DATABASE=$(input_field "mysql.server.grant.privileges.database" "Enter the database name")
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_DATABASE" ] && message "Alert" "The database name can not be blank!"
 
-  _GRANT_USER=$(input_field "mysql.server.grant_privileges.user.name" "Enter the user name")
+  _GRANT_USER=$(input_field "mysql.server.grant.privileges.user.name" "Enter the user name")
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_USER" ] && message "Alert" "The user name can not be blank!"
 
-  _GRANT_PASSWORD=$(input_field "mysql.server.grant_privileges.user.password" "Enter the user password")
+  _GRANT_PASSWORD=$(input_field "mysql.server.grant.privileges.user.password" "Enter the user password")
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_PASSWORD" ] && message "Alert" "The user password can not be blank!"
 
@@ -119,7 +123,7 @@ main () {
     [ ! -z "$(search_app mysql.client)" ] && install_mysql_client
     [ ! -z "$(search_app mysql.server)" ] && install_mysql_server
     [ "$(search_value mysql.server.remote_access)" = "yes" ] && remote_access
-    [ ! -z "$(search_app mysql.server.grant_privileges)" ] && grant_privileges
+    [ ! -z "$(search_app mysql.server.grant.privileges)" ] && grant_privileges
   fi
 }
 

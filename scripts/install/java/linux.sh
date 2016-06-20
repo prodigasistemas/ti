@@ -23,7 +23,7 @@ setup () {
 }
 
 download_java () {
-  wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/jdk-$1-linux-$3"
+  cd $_DEFAULT_INSTALLATION_FOLDER && wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/jdk-$1-linux-$3"
 }
 
 install_openJDK () {
@@ -56,9 +56,9 @@ install_oracleJDK6 () {
 
   download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
-  bash $_JAVA_FILE
-  mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/
-  ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-6
+  cd $_DEFAULT_INSTALLATION_FOLDER && bash $_JAVA_FILE
+
+  ln -sf $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-6
 
   delete_file $_JAVA_FILE
 
@@ -77,20 +77,22 @@ install_oracleJDK () {
 
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.tar.gz"
     _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION'"
-    tar -xvzf $_JAVA_FILE
-    mv $_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/
-    ln -s $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION
+
+    cd $_DEFAULT_INSTALLATION_FOLDER && tar -xvzf $_JAVA_FILE
+
+    ln -sf $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
     download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.rpm"
 
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.rpm"
+
     $_PACKAGE_COMMAND localinstall -y $_JAVA_FILE
   fi
 
   delete_file $_JAVA_FILE
 
-  [ $? -eq 0 ] && message "Notice" "Oracle Java $_JAVA_VERSION successfully installed in $_INSTALL_FOLDER!"
+  [ $? -eq 0 ] && message "Notice" "Oracle Java $_JAVA_VERSION successfully installed${_INSTALL_FOLDER}!"
 }
 
 install_oracleJDK7 () {
@@ -123,7 +125,9 @@ main () {
     if [ ! -z "$(search_app java)" ]; then
       _JAVA_VERSIONS=$(search_versions java.version)
       for java_version in $_JAVA_VERSIONS; do
-        echo "> Installing $java_version ...";
+        echo
+        echo "> Installing $java_version..."
+        echo
         install_$java_version
       done
     fi

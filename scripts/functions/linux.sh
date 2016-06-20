@@ -20,15 +20,15 @@ os_check () {
 
   _TITLE="--backtitle \"Tools Installer - $_APP_NAME | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 
-  _RECIPE_FILE="recipe.ti"
+  _RECIPE_FILE="$(pwd)/recipe.ti"
 }
 
 tool_check() {
-  echo "Checking for $1..."
+  echo "> Checking for $1..."
   if command -v $1 > /dev/null; then
-    echo "Detected $1!"
+    echo "> Detected $1!"
   else
-    echo "Installing $1..."
+    echo "> Installing $1..."
     $_PACKAGE_COMMAND install -y $1
   fi
 }
@@ -78,6 +78,9 @@ message () {
   _MESSAGE_TEXT=$2
   _MESSAGE_COMMAND=$3
 
+  echo *****************************************
+  echo $(provisioning)
+
   if [ "$(provisioning)" = "manual" ]; then
     eval dialog --title \"$_MESSAGE_TITLE\" --msgbox \"$_MESSAGE_TEXT\" 0 0
 
@@ -87,7 +90,9 @@ message () {
       $_MESSAGE_COMMAND
     fi
   else
+    echo
     echo "> $_MESSAGE_TITLE: $_MESSAGE_TEXT"
+    echo
 
     if [ -z "$_MESSAGE_COMMAND" ]; then
       [ "$_MESSAGE_TITLE" != "Notice" ] && exit 1

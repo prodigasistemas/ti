@@ -180,8 +180,8 @@ main () {
   tool_check wget
   tool_check dialog
 
-  [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
-  [ "$_OS_TYPE" = "rpm" ] && _POSTGRESQL_VERSION=$($_PACKAGE_COMMAND info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
+  [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+  [ "$_OS_TYPE" = "rpm" ] && _POSTGRESQL_VERSION=$(yum info postgresql | grep Version | head -n 1 | cut -d: -f2 | tr -d [:space:])
 
   if [ "$(provisioning)" = "manual" ]; then
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")

@@ -65,7 +65,7 @@ install_jenkins () {
 
   service jenkins restart
 
-  message "Notice" "Jenkins successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "Jenkins successfully installed!"
 }
 
 configure_nginx () {
@@ -92,7 +92,7 @@ configure_nginx () {
 
     service nginx restart
 
-    message "Notice" "The host is successfully configured in NGINX!"
+    [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else
     message "Alert" "NGINX is not installed! Jenkins host not configured!"
   fi

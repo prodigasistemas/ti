@@ -60,7 +60,7 @@ install_ruby () {
 
   run_as_user $_USER_LOGGED "gem install bundler"
 
-  [ $? -eq 0 ] && message "Notice" "Success! Will be you logout. After, enter the command: ruby -v" "pkill -KILL -u $_USER_LOGGED"
+  [ $? -eq 0 ] && message "Notice" "Success! Will be you logout or put source /etc/profile.d/rvm.sh. After, enter the command: ruby -v"
 }
 
 add_to_group () {
