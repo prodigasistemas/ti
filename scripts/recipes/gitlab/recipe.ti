@@ -1,0 +1,15 @@
+# Install NGINX web server
+nginx
+
+# Install GitLab
+gitlab.http.port = 7070
+gitlab.unicorn.port = 6060
+gitlab.shell.ssh.port = 22
+gitlab.postgresql.shared.buffers = 2GB
+gitlab.nginx.domain = gitlab.local
+gitlab.nginx.host = localhost:7070
+
+gitlab.email.domain = localhost
+gitlab.email.smtp = smtp.localhost
+gitlab.email.user.name = username
+gitlab.email.user.password = password
