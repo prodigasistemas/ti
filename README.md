@@ -6,6 +6,15 @@ Desenvolvida em [Shell Script](http://aurelio.net/shell/) e [Dialog](http://aure
 
 ## Ambiente de desenvolvimento
 
+### Instale o servidor web lighttpd
+http://redmine.lighttpd.net/projects/lighttpd/wiki/TutorialConfiguration
+
+    sudo apt-get install lighttpd
+
+    sudo ln -s /<PATH>/tools-installer/ /opt/
+
+    ./localserver.sh
+
 ### Baixe o projeto e o copie para um servidor web. Execute:
 
     curl -sS <SERVIDOR>[:PORTA]/scripts/menu/linux.sh | sudo _CENTRAL_URL_TOOLS=<SERVIDOR>[:PORTA] bash
