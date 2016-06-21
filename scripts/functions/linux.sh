@@ -78,9 +78,6 @@ message () {
   _MESSAGE_TEXT=$2
   _MESSAGE_COMMAND=$3
 
-  echo *****************************************
-  echo $(provisioning)
-
   if [ "$(provisioning)" = "manual" ]; then
     eval dialog --title \"$_MESSAGE_TITLE\" --msgbox \"$_MESSAGE_TEXT\" 0 0
 
@@ -149,10 +146,43 @@ run_as_user () {
 }
 
 mysql_as_root () {
-  if [ "$2" = "[no_password]" ]; then
-    mysql -h $1 -u root -e "$3" 2> /dev/null
+  _MYSQL_HOST=$1
+  _MYSQL_PORT=$2
+  _MYSQL_ROOT_PASSWORD=$3
+  _MYSQL_COMMAND=$4
+
+  if [ "$_MYSQL_ROOT_PASSWORD" = "[no_password]" ]; then
+    mysql -h $_MYSQL_HOST -P $_MYSQL_PORT -u root -e "$_MYSQL_COMMAND" 2> /dev/null
   else
-    mysql -h $1 -u root -p$2 -e "$3" 2> /dev/null
+    mysql -h $_MYSQL_HOST -P $_MYSQL_PORT -u root -p$_MYSQL_ROOT_PASSWORD -e "$_MYSQL_COMMAND" 2> /dev/null
+  fi
+}
+
+import_database () {
+  _DATABASE_TYPE=$1
+  _DATABASE_HOST=$2
+  _DATABASE_PORT=$3
+  _DATABASE_NAME=$4
+  _DATABASE_USER=$5
+  _DATABASE_PASSWORD=$6
+  _DATABASE_FILE=$7
+
+  if [ "$_DATABASE_TYPE" = "mysql" ]; then
+    mysql -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER -p$_DATABASE_PASSWORD $_DATABASE_NAME < $_DATABASE_FILE
+  fi
+}
+
+backup_database () {
+  _DATABASE_TYPE=$1
+  _DATABASE_HOST=$2
+  _DATABASE_PORT=$3
+  _DATABASE_NAME=$2
+  _DATABASE_USER=$3
+  _DATABASE_PASSWORD=$4
+  _DATABASE_BACKUP_DATE=".backup-`date +"%Y%m%d%H%M%S%N"`"
+
+  if [ "$_DATABASE_TYPE" = "mysql" ]; then
+    mysqldump -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER -p$_DATABASE_PASSWORD $_DATABASE_NAME | gzip -9 > "$_DATABASE_NAME$_DATABASE_BACKUP_DATE.sql.gz"
   fi
 }
 
@@ -161,7 +191,11 @@ delete_file () {
 }
 
 backup_folder () {
-  [ -e "$1" ] && mv "$1" "$1-backup-`date +"%Y%m%d%H%M%S%N"`"
+  _BACKUP_FOLDER="/opt/$1"
+
+  [ ! -e "$_BACKUP_FOLDER" ] && mkdir -p "$_BACKUP_FOLDER"
+
+  [ -e "$1" ] && mv "$1" "$_BACKUP_FOLDER/backup-`date +"%Y%m%d%H%M%S%N"`"
 }
 
 register_service () {

@@ -139,9 +139,12 @@ create_database () {
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
 
-  mysql_as_root $_MYSQL_HOST $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS sonar;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS sonar;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE DATABASE sonar;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP USER sonar@$_MYSQL_HOST;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
 
   [ $? -eq 0 ] && message "Notice" "User and database sonar successfully created!"
 }
@@ -154,6 +157,10 @@ import_database () {
   _MYSQL_PORT=$(input_field "sonar.mysql.port" "Enter the port of the MySQL Server" "$_MYSQL_PORT_DEFAULT")
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
+
+  _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
 
   _SONAR_OTHER_DOWNLOAD_URL=$(input_field "sonar.mysql.import.url" "Enter the sonar download URL" "$_SONAR_OTHER_DOWNLOAD_URL")
   [ $? -eq 1 ] && main
@@ -184,7 +191,7 @@ import_database () {
 
   [ ! -e "$_SONAR_OTHER_SQL_FILE" ] && message "Alert" "$_SONAR_OTHER_SQL_FILE file was not found. Import unrealized!"
 
-  mysql -h $_MYSQL_HOST -u sonar -p$_MYSQL_SONAR_PASSWORD < $_SONAR_OTHER_SQL_FILE
+  import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "sonar" "sonar" "$_MYSQL_SONAR_PASSWORD" "$_SONAR_OTHER_SQL_FILE"
 
   delete_file $_SONAR_OTHER_SQL_FILE
 

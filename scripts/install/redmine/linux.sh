@@ -40,9 +40,13 @@ install_dependencies () {
 configure_database () {
   _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
 
-  _HOST_ADDRESS=$(input_field "redmine.mysql.host" "Enter the host address of the MySQL Server" "localhost")
+  _MYSQL_HOST=$(input_field "redmine.mysql.host" "Enter the host of the MySQL Server" "localhost")
   [ $? -eq 1 ] && main
-  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
+  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+
+  _MYSQL_PORT=$(input_field "redmine.mysql.port" "Enter the port of the MySQL Server" "3306")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
 
   _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
@@ -58,14 +62,17 @@ configure_database () {
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE DATABASE IF NOT EXISTS redmine CHARACTER SET utf8;"
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_HOST_ADDRESS IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_HOST_ADDRESS WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP USER redmine@$_MYSQL_HOST;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
 
   echo "production:" > $_YAML_FILE
   echo "  adapter: mysql2" >> $_YAML_FILE
   echo "  database: redmine" >> $_YAML_FILE
-  echo "  host: $_HOST_ADDRESS" >> $_YAML_FILE
+  echo "  host: $_MYSQL_HOST" >> $_YAML_FILE
   echo "  username: redmine" >> $_YAML_FILE
   echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
   echo "  encoding: utf8" >> $_YAML_FILE
@@ -213,9 +220,13 @@ issue_reports_plugin () {
   _ISSUE_REPORTS_FOLDER=$_REDMINE_FOLDER/plugins/redmine_issue_reports
 
   if command -v mysql > /dev/null; then
-    _HOST=$(input_field "redmine.mysql.host" "Enter the host address of database" "localhost")
+    _MYSQL_HOST=$(input_field "redmine.mysql.host" "Enter the host of the MySQL Server" "localhost")
     [ $? -eq 1 ] && main
-    [ -z "$_HOST" ] && message "Alert" "The host address can not be blank!"
+    [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+
+    _MYSQL_PORT=$(input_field "redmine.mysql.port" "Enter the port of the MySQL Server" "3306")
+    [ $? -eq 1 ] && main
+    [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
 
     _USER_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the redmine password in database")
     [ $? -eq 1 ] && main
@@ -235,7 +246,7 @@ issue_reports_plugin () {
 
     [ -z "$_FIND_TAG" ] && echo "<%= javascript_include_tag 'custom_fields' %>" >> $_ISSUE_FORM_FILE
 
-    mysql -h $_HOST -u redmine -p$_USER_PASSWORD redmine < $_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql
+    import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "redmine" "redmine" "$_USER_PASSWORD" "$_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql"
 
     [ $? -eq 0 ] && message "Notice" "Issue reports plugin is successfully configured!"
   else

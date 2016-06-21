@@ -30,12 +30,14 @@ install_mysql_server () {
 
   case "$_OS_TYPE" in
     deb)
+      _PASSWORD_MESSAGE=" The root password is root"
       debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
       debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
 
       $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
       ;;
     rpm)
+      _PASSWORD_MESSAGE=" The root user has no password"
       $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
       register_service mysqld
@@ -44,7 +46,7 @@ install_mysql_server () {
       ;;
   esac
 
-  message "Notice" "MySQL Server successfully installed! The root password is root"
+  [ $? -eq 0 ] && message "Notice" "MySQL Server successfully installed!${_PASSWORD_MESSAGE}"
 }
 
 install_mysql_client () {
@@ -56,7 +58,7 @@ install_mysql_client () {
 
   $_PACKAGE_COMMAND -y install $_PACKAGE
 
-  message "Notice" "MySQL Client successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "MySQL Client successfully installed!"
 }
 
 remote_access () {
@@ -73,13 +75,17 @@ remote_access () {
 
   service $_MYSQL_SERVICE restart
 
-  message "Notice" "Enabling remote access successfully held!"
+  [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }
 
 grant_privileges () {
-  _HOST_ADDRESS=$(input_field "mysql.server.grant.privileges.host" "Enter the host address of the MySQL Server" "localhost")
+  _MYSQL_HOST=$(input_field "mysql.server.grant.privileges.host" "Enter the host of the MySQL Server" "localhost")
   [ $? -eq 1 ] && main
-  [ -z "$_HOST_ADDRESS" ] && message "Alert" "The host address can not be blank!"
+  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host can not be blank!"
+
+  _MYSQL_PORT=$(input_field "mysql.server.grant.privileges.port" "Enter the port of the MySQL Server" "3306")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
 
   _MYSQL_ROOT_PASSWORD=$(input_field "mysql.server.grant.privileges.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
@@ -103,9 +109,9 @@ grant_privileges () {
   [ $? -eq 1 ] && main
   [ -z "$_GRANT_PASSWORD" ] && message "Alert" "The user password can not be blank!"
 
-  mysql_as_root $_HOST_ADDRESS $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_GRANT_DATABASE.* TO '$_GRANT_USER'@'%' IDENTIFIED BY '$_GRANT_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_GRANT_DATABASE.* TO '$_GRANT_USER'@'%' IDENTIFIED BY '$_GRANT_PASSWORD' WITH GRANT OPTION; FLUSH PRIVILEGES;"
 
-  message "Notice" "Grant privileges successfully held!"
+  [ $? -eq 0 ] && message "Notice" "Grant privileges successfully held!"
 }
 
 main () {

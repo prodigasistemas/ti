@@ -8,6 +8,7 @@ ruby.version = 2.3.1
 # Install MySQL Database Server
 mysql.server.remote_access = yes
 mysql.server.grant.privileges.host = localhost
+mysql.server.grant.privileges.port = 3306
 mysql.server.grant.privileges.root.password = root
 mysql.server.grant.privileges.database = mysql
 mysql.server.grant.privileges.user.name = vagrant
@@ -35,6 +36,7 @@ nginx
 # Install Redmine
 redmine.version = 3.2.3
 redmine.mysql.host = localhost
+redmine.mysql.port = 3306
 redmine.mysql.root.password = 123456
 redmine.mysql.user.password = redmine
 redmine.email.domain = localhost
