@@ -219,11 +219,12 @@ delete_file () {
 }
 
 backup_folder () {
-  _BACKUP_FOLDER="/opt/$1"
+  _BACKUP_FOLDER="/opt/backups"
+  _LAST_FOLDER=$(echo $1 | cut -d/ -f3)
 
   [ ! -e "$_BACKUP_FOLDER" ] && mkdir -p "$_BACKUP_FOLDER"
 
-  [ -e "$1" ] && mv "$1" "$_BACKUP_FOLDER/backup-`date +"%Y%m%d%H%M%S%N"`"
+  [ -e "$1" ] && mv "$1" "$_BACKUP_FOLDER/$_LAST_FOLDER-`date +"%Y%m%d%H%M%S%N"`"
 }
 
 register_service () {

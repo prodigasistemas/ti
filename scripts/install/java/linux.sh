@@ -29,7 +29,7 @@ download_java () {
 install_openJDK () {
   _OPENJDK_VERSION=$1
   [ "$_OS_TYPE" = "deb" ] && _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
-  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE_NAME="java-1._OPENJDK_VERSION.0-openjdk-devel"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE_NAME="java-1.$_OPENJDK_VERSION.0-openjdk-devel"
 
   $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
 
