@@ -34,7 +34,7 @@ oracledb.import_ggas_database = yes
 nginx
 
 # Install Redmine
-redmine.version = 3.2.3
+redmine.version = 3.3.0
 redmine.mysql.host = localhost
 redmine.mysql.port = 3306
 redmine.mysql.root.password = 123456
@@ -45,6 +45,19 @@ redmine.email.user.name = username
 redmine.email.user.password = password
 redmine.nginx.domain = redmine.local
 redmine.issue_reports_plugin = yes
+
+# Install GitLab
+gitlab.http.port = 7070
+gitlab.unicorn.port = 6060
+gitlab.shell.ssh.port = 22
+gitlab.postgresql.shared.buffers = 2GB
+gitlab.nginx.domain = gitlab.local
+gitlab.nginx.host = localhost:7070
+
+gitlab.email.domain = localhost
+gitlab.email.smtp = smtp.localhost
+gitlab.email.user.name = username
+gitlab.email.user.password = password
 
 # Install Jenkins CI
 jenkins.http.port = 8081

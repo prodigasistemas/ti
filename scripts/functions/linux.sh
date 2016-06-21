@@ -24,13 +24,39 @@ os_check () {
 }
 
 tool_check() {
-  echo "> Checking for $1..."
+  print_colorful white bold "> Checking for $1..."
   if command -v $1 > /dev/null; then
-    echo "> Detected $1!"
+    print_colorful white bold "> Detected $1!"
   else
-    echo "> Installing $1..."
+    print_colorful white bold "> Installing $1..."
     $_PACKAGE_COMMAND install -y $1
   fi
+}
+
+print_colorful () {
+  _COLOR=$1
+  _STYLE=$2
+  _TEXT=$3
+
+  case $_COLOR in
+    white)
+      _PRINT_COLOR=37
+      ;;
+    yellow)
+      _PRINT_COLOR=33
+      ;;
+  esac
+
+  case $_STYLE in
+    normal)
+      _PRINT_STYLE=m
+      ;;
+    bold)
+      _PRINT_STYLE=1m
+      ;;
+  esac
+
+  echo -e "\e[${_PRINT_COLOR};${_PRINT_STYLE}${_TEXT}\e[m"
 }
 
 menu () {
@@ -88,7 +114,7 @@ message () {
     fi
   else
     echo
-    echo "> $_MESSAGE_TITLE: $_MESSAGE_TEXT"
+    print_colorful yellow bold "> $_MESSAGE_TITLE: $_MESSAGE_TEXT"
     echo
 
     if [ -z "$_MESSAGE_COMMAND" ]; then
@@ -116,7 +142,9 @@ confirm () {
       dialog --yesno "$1" 0 0
     fi
   else
-    echo "$2"
+    echo
+    print_colorful yellow bold "$2"
+    echo
   fi
 }
 

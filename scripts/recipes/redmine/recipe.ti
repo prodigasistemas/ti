@@ -14,7 +14,7 @@ mysql.server.grant.privileges.user.password = vagrant
 nginx
 
 # Install Redmine
-redmine.version = 3.2.3
+redmine.version = 3.3.0
 redmine.mysql.host = localhost
 redmine.mysql.port = 3306
 redmine.mysql.root.password = root
