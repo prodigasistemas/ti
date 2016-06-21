@@ -93,3 +93,9 @@ sonar.scanner.user.token =
 ## Configure host in nginx
 sonar.nginx.domain = sonar.local
 sonar.nginx.host = localhost:9000
+
+# Install Archiva
+archiva.version = 2.2.1
+archiva.http.port = 8070
+archiva.nginx.domain = archiva.local
+archiva.nginx.host = localhost:8070

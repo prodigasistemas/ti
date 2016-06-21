@@ -1,0 +1,11 @@
+# Install Java JDK
+java.version = openJDK7
+
+# Install NGINX web server
+nginx
+
+# Install Archiva
+archiva.version = 2.2.1
+archiva.http.port = 8070
+archiva.nginx.domain = archiva.local
+archiva.nginx.host = localhost:8070
