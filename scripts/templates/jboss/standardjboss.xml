@@ -1,0 +1,163 @@
+    <!-- Inicio da Inclusao para o GSAN -->
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite10</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>10</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite15</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>15</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite20</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>20</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite25</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>25</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite3</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>3</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite1</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>1</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+
+    <invoker-proxy-binding>
+      <name>message-driven-bean-limite50</name>
+      <invoker-mbean>default</invoker-mbean>
+      <proxy-factory>org.jboss.ejb.plugins.jms.JMSContainerInvoker</proxy-factory>
+      <proxy-factory-config>
+        <JMSProviderAdapterJNDI>DefaultJMSProvider</JMSProviderAdapterJNDI>
+        <ServerSessionPoolFactoryJNDI>StdJMSPool</ServerSessionPoolFactoryJNDI>
+        <!-- WARN: Don't set this to zero until a bug in the pooled executor is fixed -->
+        <MinimumSize>1</MinimumSize>
+        <MaximumSize>50</MaximumSize> <!--era 15 05/09/2006-->
+        <KeepAliveMillis>30000</KeepAliveMillis>
+        <MaxMessages>1</MaxMessages>
+        <MDBConfig>
+          <ReconnectIntervalSec>10</ReconnectIntervalSec>
+          <DLQConfig>
+            <DestinationQueue>queue/DLQ</DestinationQueue>
+            <MaxTimesRedelivered>10</MaxTimesRedelivered>
+            <TimeToLive>0</TimeToLive>
+          </DLQConfig>
+        </MDBConfig>
+      </proxy-factory-config>
+    </invoker-proxy-binding>
+

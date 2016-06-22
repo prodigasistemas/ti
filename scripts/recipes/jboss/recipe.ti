@@ -1,0 +1,11 @@
+# Install Java JDK
+java.version = openJDK6
+
+# Install JBoss
+jboss.version = 4
+jboss.config.owner = vagrant
+jboss.config.java.opts.xms = 512m
+jboss.config.java.opts.xmx = 1024m
+jboss.config.java.opts.max.perm.size = 512m
+jboss.config.port = 8098
+jboss.config.rmi.port = 8099
