@@ -6,12 +6,10 @@
 # http://serverfault.com/questions/601140/whats-the-difference-between-sudo-su-postgres-and-sudo-u-postgres
 # https://people.debian.org/~schultmc/locales.html
 # http://progblog10.blogspot.com.br/2013/06/enabling-remote-access-to-postgresql.html
-# http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 
 _APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
-               configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
-               create_gsan_databases 'Create GSAN databases' \
+               install_postgresql_client 'Install the database client' \
                change_password 'Change password the user postgres' \
                remote_access 'Enable remote access'"
 
@@ -29,10 +27,6 @@ setup () {
   [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
   os_check
-}
-
-run_as_postgres () {
-  su - postgres -c "$1"
 }
 
 config_path () {
@@ -81,68 +75,16 @@ install_postgresql_server () {
   [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION successfully installed!"
 }
 
-configure_locale_latin () {
-  confirm "Do you want to configure locale for LATIN1?"
-  [ $? = 1 ] && main
+install_postgresql_client () {
+  confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION Client?"
+  [ $? -eq 1 ] && main
 
-  if [ "$_OS_TYPE" = "deb" ]; then
-    if [ "$_OS_NAME" = "ubuntu" ]; then
-      run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local"
-      run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
-      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
-      run_as_root "echo LANG=\"pt_BR\" > /etc/default/locale"
-      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/default/locale"
-      run_as_root "echo \"pt_BR           pt_BR.ISO-8859-1\" >> /etc/locale.alias"
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGE="postgresql-client-$_POSTGRESQL_VERSION"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE="postgresql"
 
-    elif [ "$_OS_NAME" = "debian" ]; then
-      change_file "replace" "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
-    fi
+  $_PACKAGE_COMMAND -y install $_PACKAGE
 
-    locale-gen
-
-    run_as_postgres "pg_dropcluster --stop $_POSTGRESQL_VERSION main"
-    run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
-
-  elif [ "$_OS_TYPE" = "rpm" ]; then
-    service postgresql stop
-
-    _PGSQL_FOLDER="/var/lib/pgsql"
-
-    run_as_postgres "cp $_PGSQL_FOLDER/data/pg_hba.conf $_PGSQL_FOLDER/backups/"
-    run_as_postgres "cp $_PGSQL_FOLDER/data/postgresql.conf $_PGSQL_FOLDER/backups/"
-
-    run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
-
-    run_as_postgres "env LANG=LATIN1 /usr/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
-
-    run_as_postgres "cp $_PGSQL_FOLDER/backups/pg_hba.conf $_PGSQL_FOLDER/data/"
-    run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
-
-    service postgresql restart
-  fi
-
-  [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
-}
-
-create_gsan_databases () {
-  confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
-  [ $? = 1 ] && main
-
-  if [ "$_OS_TYPE" = "deb" ]; then
-    _POSTGRESQL_FOLDER="/var/lib/postgresql/$_POSTGRESQL_VERSION"
-  elif [ "$_OS_TYPE" = "rpm" ]; then
-    _POSTGRESQL_FOLDER="/var/lib/pgsql"
-  fi
-
-  _INDEX_FOLDER="$_POSTGRESQL_FOLDER/indices"
-
-  run_as_postgres "mkdir $_INDEX_FOLDER"
-  run_as_postgres "chmod 700 $_INDEX_FOLDER"
-  run_as_postgres "createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_comercial"
-  run_as_postgres "createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial"
-  run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
-
-  [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
+  [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION Client successfully installed!"
 }
 
 change_password () {
@@ -193,8 +135,6 @@ main () {
     fi
   else
     [ ! -z "$(search_app postgresql.server)" ] && install_postgresql_server
-    [ "$(search_value postgresql.server.configure_locale_latin)" = "yes" ] && configure_locale_latin
-    [ "$(search_value postgresql.server.create_gsan_databases)" = "yes" ] && create_gsan_databases
     [ ! -z "$(search_app postgresql.server.change_password)" ] && change_password
     [ "$(search_value postgresql.server.remote_access)" = "yes" ] && remote_access
   fi

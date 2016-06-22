@@ -16,8 +16,6 @@ mysql.server.grant.privileges.user.password = vagrant
 
 # Install PostgreSQL Database Server
 postgresql.server.version = 9.5
-postgresql.server.configure_locale_latin = yes
-postgresql.server.create_gsan_databases = yes
 postgresql.server.change_password = 123456
 postgresql.server.remote_access = yes
 

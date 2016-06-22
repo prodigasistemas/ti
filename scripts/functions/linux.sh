@@ -1,3 +1,5 @@
+# http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
+
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
   _OS_KERNEL=$(uname -r)
@@ -162,6 +164,9 @@ change_file () {
     append)
       sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
       ;;
+    insert)
+      sed -i$_CF_BACKUP -e "/$_CF_FROM/ i $_CF_TO" $_CF_FILE
+      ;;
   esac
 }
 
@@ -171,6 +176,10 @@ run_as_root () {
 
 run_as_user () {
   su - $1 -c "$2"
+}
+
+run_as_postgres () {
+  su - postgres -c "$1"
 }
 
 mysql_as_root () {
