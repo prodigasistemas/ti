@@ -264,6 +264,17 @@ java_check () {
   fi
 }
 
+jboss_check () {
+  _VERSION=$1
+
+  if [ "$_VERSION" = "4" ]; then
+    _SEARCH=$(cat /opt/jboss/readme.html | grep "$_JBOSS4_DESCRIPTION")
+    _MESSAGE="$_JBOSS4_DESCRIPTION not found!"
+  fi
+
+  [ -z "$_SEARCH" ] && message "Error" $_MESSAGE
+}
+
 disable_selinux () {
   if [ "$_OS_TYPE" = "rpm" ]; then
     _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")

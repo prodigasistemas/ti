@@ -13,7 +13,8 @@ _OPTIONS_LIST="java 'Java installer' \
                sonar 'SonarQube installer' \
                redmine 'Redmine installer' \
                archiva 'Archiva installer' \
-               jboss 'JBoss installer'"
+               jboss 'JBoss installer' \
+               gsan 'GSAN installer'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"

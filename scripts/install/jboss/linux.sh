@@ -8,11 +8,12 @@ _APP_NAME="JBoss"
 _OPT_FOLDER="/opt"
 _JBOSS_FOLDER="$_OPT_FOLDER/jboss"
 _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
+_WILDFLY_DESCRIPTION="8.2.1.Final"
 _PORT_DEFAULT="1099"
 _RMI_PORT_DEFAULT="1098"
 _OPTIONS_LIST="install_jboss4 'Install $_JBOSS4_DESCRIPTION' \
                configure_jboss4 'Configure $_JBOSS4_DESCRIPTION' \
-               install_wildfly8 'Install WildFly 8.2.1.Final'"
+               install_wildfly8 'Install WildFly $_WILDFLY_DESCRIPTION'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -28,17 +29,6 @@ setup () {
   [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
   os_check
-}
-
-check_version_jboss () {
-  _VERSION=$1
-
-  if [ "$_VERSION" = "4" ]; then
-    _SEARCH=$(cat /opt/jboss/readme.html | grep "$_JBOSS4_DESCRIPTION")
-    _MESSAGE="$_JBOSS4_DESCRIPTION not found!"
-  fi
-
-  [ -z "$_SEARCH" ] && message "Alert" $_MESSAGE
 }
 
 install_jboss4 () {
@@ -74,11 +64,11 @@ configure_jboss4 () {
 
   [ ! -e "$_JBOSS_FOLDER" ] && message "Alert" "Folder $_JBOSS_FOLDER not exists!"
 
-  check_version_jboss 4
+  jboss_check 4
 
-  _OWNER=$(input_field "jboss.config.owner" "Enter the owner name" "$_USER_LOGGED")
+  _OWNER=$(input_field "jboss.config.owner" "Enter the JBoss owner name" "$_USER_LOGGED")
   [ $? -eq 1 ] && main
-  [ -z "$_OWNER" ] && message "Alert" "The owner name can not be blank!"
+  [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 
   _JAVA_OPTS_XMS=$(input_field "jboss.config.java.opts.xms" "Enter the Java Opts XMS" "512m")
   [ $? -eq 1 ] && main
@@ -197,7 +187,7 @@ install_wildfly8 () {
   confirm "Do you confirm the installation of WildFly 8?"
   [ $? = 1 ] && main
 
-  _WILDFLY_FILE="8.2.1.Final"
+  _WILDFLY_FILE=$_WILDFLY_DESCRIPTION
 
   backup_folder "$_OPT_FOLDER/wildfly-$_WILDFLY_FILE"
 
@@ -234,6 +224,7 @@ main () {
       install_jboss4
       [ ! -z "$(search_app jboss.config)" ] && configure_jboss4
     fi
+    [ "$(search_value jboss.version)" = "8" ] && install_wildfly8
   fi
 }
 

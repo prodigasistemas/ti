@@ -88,11 +88,11 @@ install_postgresql_client () {
 }
 
 change_password () {
-  _PASSWORD=$(input_field "postgresql.server.change_password" "Enter a new password for the user postgres" "postgres")
+  _PASSWORD=$(input_field "postgresql.server.postgres.password" "Enter a new password for the user postgres" "postgres")
   [ $? -eq 1 ] && main
   [ -z "$_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
-  run_as_postgres "psql -c \"ALTER USER postgres WITH encrypted password '$_PASSWORD';\""
+  run_as_postgres "psql -c \"ALTER USER postgres WITH ENCRYPTED PASSWORD '$_PASSWORD';\""
 
   config_path
 
@@ -134,9 +134,10 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app postgresql.server)" ] && install_postgresql_server
-    [ ! -z "$(search_app postgresql.server.change_password)" ] && change_password
-    [ "$(search_value postgresql.server.remote_access)" = "yes" ] && remote_access
+    [ ! -z "$(search_app postgresql.server.version)" ] && install_postgresql_server
+    [ ! -z "$(search_app postgresql.client.version)" ] && install_postgresql_client
+    [ ! -z "$(search_app postgresql.server.postgres.password)" ] && change_password
+    [ "$(search_value postgresql.server.remote.access)" = "yes" ] && remote_access
   fi
 }
 

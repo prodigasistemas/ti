@@ -1,4 +1,4 @@
-# Install two versions of Java JDK
+# Install versions of Java JDK
 java.version = openJDK6
 java.version = openJDK7
 java.version = oracleJDK8
@@ -8,6 +8,10 @@ ruby.version = 2.3.1
 
 # Install MySQL Database Server
 mysql.server.remote_access = yes
+
+# Or MySQL Client
+# mysql.client
+
 mysql.server.grant.privileges.host = localhost
 mysql.server.grant.privileges.port = 3306
 mysql.server.grant.privileges.root.password = root
@@ -17,8 +21,15 @@ mysql.server.grant.privileges.user.password = vagrant
 
 # Install PostgreSQL Database Server
 postgresql.server.version = 9.5
-postgresql.server.change_password = 123456
-postgresql.server.remote_access = yes
+
+postgresql.server.host = localhost
+postgresql.server.port = 5432
+
+# Or PostgreSQL Client
+# postgresql.client.version = 9.5
+
+postgresql.server.postgres.password = 123456
+postgresql.server.remote.access = yes
 
 # Install Docker
 docker
