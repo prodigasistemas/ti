@@ -268,11 +268,13 @@ jboss_check () {
   _VERSION=$1
 
   if [ "$_VERSION" = "4" ]; then
-    _SEARCH=$(cat /opt/jboss/readme.html | grep "$_JBOSS4_DESCRIPTION")
-    _MESSAGE="$_JBOSS4_DESCRIPTION not found!"
+    _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
+    _FILE="/opt/jboss/readme.html"
+    [ -e "$_FILE" ] && _SEARCH=$(cat $_FILE | grep "$_JBOSS4_DESCRIPTION")
+    _MESSAGE="$_JBOSS4_DESCRIPTION not installed!"
   fi
 
-  [ -z "$_SEARCH" ] && message "Error" $_MESSAGE
+  [ -z "$_SEARCH" ] && message "Error" "$_MESSAGE"
 }
 
 disable_selinux () {

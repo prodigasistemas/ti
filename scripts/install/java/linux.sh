@@ -117,7 +117,7 @@ main () {
       clear && exit 0
     else
       confirm "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?"
-      [ $? = 1 ] && main
+      [ $? -eq 1 ] && main
 
       install_$_JAVA_VERSION
     fi

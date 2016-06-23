@@ -60,7 +60,7 @@ install_postgresql_server () {
   fi
 
   confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
     $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION

@@ -37,7 +37,7 @@ install_jboss4 () {
   java_check 6
 
   confirm "Do you confirm the installation of $_JBOSS4_DESCRIPTION?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   _JBOSS_FILE="jboss-4.0.1sp1"
 
@@ -91,7 +91,7 @@ configure_jboss4 () {
   [ -z "$_RMI_PORT" ] && message "Alert" "The rmi port can not be blank!"
 
   confirm "Do you confirm the configuration of $_JBOSS4_DESCRIPTION?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   # Insert standardjboss.xml
   _ORIGIN_FILE="$_JBOSS_FOLDER/server/default/conf/standardjboss.xml"
@@ -185,7 +185,7 @@ install_wildfly8 () {
   java_check 7
 
   confirm "Do you confirm the installation of WildFly 8?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   _WILDFLY_FILE=$_WILDFLY_DESCRIPTION
 

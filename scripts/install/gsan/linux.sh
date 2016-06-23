@@ -26,7 +26,7 @@ setup () {
   os_check
 }
 
-install_mybatis () {
+install_mybatis_migration () {
   _CURRENT_DIR=$(pwd)
 
   java_check 6
@@ -42,7 +42,7 @@ install_mybatis () {
   [ ! -e "$_JAVA_HOME" ] && message "Alert" "$_JAVA_HOME path not found!"
 
   confirm "Do you confirm the installation of $_MYBATIS_DESCRIPTION $_VERSION?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   tool_check wget
   tool_check unzip
@@ -104,7 +104,7 @@ install_gsan_migrations () {
   [ -z "$_POSTGRESQL_USER_PASSWORD" ] && message "Alert" "The user password of the PostgreSQL Server can not be blank!"
 
   confirm "Do you confirm the install of GSAN Migrations?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   tool_check git
 
@@ -156,7 +156,7 @@ install_gsan () {
   [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 
   confirm "Do you confirm the install of GSAN?"
-  [ $? = 1 ] && main
+  [ $? -eq 1 ] && main
 
   tool_check git
   tool_check ant
