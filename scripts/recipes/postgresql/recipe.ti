@@ -1,0 +1,7 @@
+# Install PostgreSQL Database Server
+postgresql.server.version = 9.5
+postgresql.server.host = localhost
+postgresql.server.port = 5432
+
+postgresql.server.postgres.password = 123456
+postgresql.server.remote.access = yes

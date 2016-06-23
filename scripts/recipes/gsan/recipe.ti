@@ -1,0 +1,25 @@
+# Install Java JDK
+java.version = openJDK6
+
+# Install PostgreSQL Database Server
+postgresql.server.version = 9.5
+postgresql.server.host = localhost
+postgresql.server.port = 5432
+postgresql.server.postgres.password = 123456
+
+# Install JBoss
+jboss.version = 4
+jboss.config.owner = vagrant
+jboss.config.java.opts.xms = 512m
+jboss.config.java.opts.xmx = 1024m
+jboss.config.java.opts.max.perm.size = 512m
+jboss.config.port = 8098
+jboss.config.rmi.port = 8099
+
+# Install GSAN
+gsan.mybatis.version = 3.2.0
+gsan.java.home = /usr/lib/jvm/java-6-openjdk
+gsan.postgresql.host = localhost
+gsan.postgresql.port = 5432
+gsan.postgresql.user.name = gsan
+gsan.postgresql.user.password = gsan
