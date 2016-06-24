@@ -1,12 +1,17 @@
 #!/bin/bash
 
+# https://github.com/prodigasistemas/gsan
 # http://www.mybatis.org/migrations/
+# https://github.com/mybatis/migrations/releases
 
 _APP_NAME="GSAN"
 _DEFAULT_PATH="/opt"
-_MYBATIS_VERSION="3.2.0"
+_MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
-_OPTIONS_LIST="install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
+_OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
+               configure_datasource 'Datasource configuration' \
+               create_gsan_databases 'Create GSAN databases' \
+               install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
                install_gsan_migrations 'Install GSAN Migrations' \
                install_gsan 'Install GSAN'"
 
@@ -26,16 +31,137 @@ setup () {
   os_check
 }
 
+input_datas () {
+  _POSTGRESQL_HOST=$(input_field "gsan.postgresql.host" "Enter the host of the PostgreSQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_HOST" ] && message "Alert" "The host of the PostgreSQL Server can not be blank!"
+
+  _POSTGRESQL_PORT=$(input_field "gsan.postgresql.port" "Enter the port of the PostgreSQL Server" "5432")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
+
+  _POSTGRESQL_USER_NAME=$(input_field "gsan.postgresql.user.name" "Enter the user name of the PostgreSQL Server")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_USER_NAME" ] && message "Alert" "The user name of the PostgreSQL Server can not be blank!"
+
+  _POSTGRESQL_USER_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter the user password of the PostgreSQL Server")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_USER_PASSWORD" ] && message "Alert" "The user password of the PostgreSQL Server can not be blank!"
+}
+
+configure_locale_latin () {
+  _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
+  [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
+
+  confirm "Do you want to configure locale for LATIN1?"
+  [ $? -eq 1 ] && main
+
+  if [ "$_OS_TYPE" = "deb" ]; then
+    if [ "$_OS_NAME" = "ubuntu" ]; then
+      run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local"
+      run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
+      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
+      run_as_root "echo LANG=\"pt_BR\" > /etc/default/locale"
+      run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/default/locale"
+      run_as_root "echo \"pt_BR           pt_BR.ISO-8859-1\" >> /etc/locale.alias"
+
+    elif [ "$_OS_NAME" = "debian" ]; then
+      change_file "replace" "/etc/locale.gen" "# pt_BR ISO-8859-1" "pt_BR ISO-8859-1"
+
+    fi
+
+    locale-gen
+
+    run_as_postgres "pg_dropcluster --stop $_POSTGRESQL_VERSION main"
+    run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
+
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+    service postgresql-$_POSTGRESQL_VERSION stop
+
+    _PGSQL_FOLDER="/var/lib/pgsql/$_POSTGRESQL_VERSION"
+
+    run_as_postgres "cp $_PGSQL_FOLDER/data/pg_hba.conf $_PGSQL_FOLDER/backups/"
+    run_as_postgres "cp $_PGSQL_FOLDER/data/postgresql.conf $_PGSQL_FOLDER/backups/"
+
+    run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
+
+    run_as_postgres "env LANG=LATIN1 service postgresql-$_POSTGRESQL_VERSION initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
+
+    run_as_postgres "cp $_PGSQL_FOLDER/backups/pg_hba.conf $_PGSQL_FOLDER/data/"
+    run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
+
+    [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
+
+    service postgresql$_SERVICE_VERSION restart
+  fi
+
+  [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
+}
+
+configure_datasource () {
+  jboss_check 4
+
+  input_datas
+
+  confirm "Host: $_POSTGRESQL_HOST\nPort: $_POSTGRESQL_PORT\nUser: $_POSTGRESQL_USER_NAME\nPassword: $_POSTGRESQL_USER_PASSWORD\nDo you confirm the configuration of Datasource?"
+  [ $? -eq 1 ] && main
+
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/gsan/postgres-ds.xml" > postgres-ds.xml
+
+  change_file replace postgres-ds.xml HOST $_POSTGRESQL_HOST
+  change_file replace postgres-ds.xml PORT $_POSTGRESQL_PORT
+  change_file replace postgres-ds.xml USERNAME $_POSTGRESQL_USER_NAME
+  change_file replace postgres-ds.xml PASSWORD $_POSTGRESQL_USER_PASSWORD
+
+  mv postgres-ds.xml $_DEFAULT_PATH/jboss/server/default/deploy/
+  rm postgres-ds.xml*
+
+  [ $? -eq 0 ] && message "Notice" "Datasource successfully configured!"
+}
+
+create_gsan_databases () {
+  _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
+  [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
+
+  _PASSWORD=$(input_field "postgresql.server.postgres.password" "Enter a password for the user postgres")
+  [ $? -eq 1 ] && main
+  [ ! -z "$_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_PASSWORD"
+
+  confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
+  [ $? -eq 1 ] && main
+
+  if [ "$_OS_TYPE" = "deb" ]; then
+    _POSTGRESQL_FOLDER="/var/lib/postgresql/$_POSTGRESQL_VERSION"
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+    _POSTGRESQL_FOLDER="/var/lib/pgsql/$_POSTGRESQL_VERSION"
+  fi
+
+  _INDEX_FOLDER="$_POSTGRESQL_FOLDER/indices"
+
+  run_as_postgres "rm -rf $_INDEX_FOLDER"
+  run_as_postgres "mkdir $_INDEX_FOLDER"
+  run_as_postgres "chmod 700 $_INDEX_FOLDER"
+  run_as_postgres "$_INFORM_PASSWORD createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_comercial"
+  run_as_postgres "$_INFORM_PASSWORD createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial"
+  run_as_postgres "$_INFORM_PASSWORD psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
+
+  [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
+}
+
 install_mybatis_migration () {
   _CURRENT_DIR=$(pwd)
 
   java_check 6
 
+  [ -z "$JAVA_HOME" ] && JAVA_HOME="/usr/lib/jvm/java-6-openjdk-$_ARCH"
+  [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/usr/lib/jvm/java-1.6.0"
+  [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/opt/jdk1.6.0_45"
+
   _VERSION=$(input_field "gsan.mybatis.version" "Enter the $_MYBATIS_DESCRIPTION version" "$_MYBATIS_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && message "Alert" "The $_MYBATIS_DESCRIPTION version can not be blank!"
 
-  _JAVA_HOME=$(input_field "gsan.java.home" "Enter the JAVA_HOME path" "$JAVA_HOME")
+  _JAVA_HOME=$(input_field "[default]" "Enter the JAVA_HOME path" "$JAVA_HOME")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_HOME" ] && message "Alert" "The JAVA_HOME path can not be blank!"
 
@@ -64,7 +190,7 @@ install_mybatis_migration () {
   _MAJOR_VERSION=$(echo $_VERSION | cut -d. -f1)
   _MYBATIS_JAR_FILE=$(ls $_DEFAULT_PATH/mybatis-migrations/lib/mybatis-$_MAJOR_VERSION*.jar | head -n 1)
 
-  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_JAR_FILE $_JAVA_HOME/jre/lib/ext/
+  ln -sf $_MYBATIS_JAR_FILE $_JAVA_HOME/jre/lib/ext/
 
   ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $_JAVA_HOME/jre/lib/ext/
 
@@ -79,7 +205,6 @@ install_mybatis_migration () {
 
 install_gsan_migrations () {
   _CURRENT_DIR=$(pwd)
-  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Client or Server is not installed!"
@@ -87,26 +212,14 @@ install_gsan_migrations () {
   _MYBATIS_INSTALLED=$(run_as_user $_USER_LOGGED "command -v migrate")
   [ -z "$_MYBATIS_INSTALLED" ] && message "Error" "$_MYBATIS_DESCRIPTION is not installed!"
 
-  _POSTGRESQL_HOST=$(input_field "gsan.postgresql.host" "Enter the host of the PostgreSQL Server" "localhost")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_HOST" ] && message "Alert" "The host of the PostgreSQL Server can not be blank!"
+  input_datas
 
-  _POSTGRESQL_PORT=$(input_field "gsan.postgresql.port" "Enter the port of the PostgreSQL Server" "5432")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
-
-  _POSTGRESQL_USER_NAME=$(input_field "gsan.postgresql.user.name" "Enter the user name of the PostgreSQL Server")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_USER_NAME" ] && message "Alert" "The user name of the PostgreSQL Server can not be blank!"
-
-  _POSTGRESQL_USER_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter the user password of the PostgreSQL Server")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_USER_PASSWORD" ] && message "Alert" "The user password of the PostgreSQL Server can not be blank!"
-
-  confirm "Do you confirm the install of GSAN Migrations?"
+  confirm "Host: $_POSTGRESQL_HOST\nPort: $_POSTGRESQL_PORT\nUser: $_POSTGRESQL_USER_NAME\nPassword: $_POSTGRESQL_USER_PASSWORD\nDo you confirm the install of GSAN Migrations?"
   [ $? -eq 1 ] && main
 
   tool_check git
+
+  delete_file $_DEFAULT_PATH/gsan-migracoes
 
   cd $_DEFAULT_PATH && git clone https://github.com/prodigasistemas/gsan-migracoes.git
 
@@ -145,11 +258,12 @@ install_gsan_migrations () {
 
 install_gsan () {
   _CURRENT_DIR=$(pwd)
-  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   java_check 6
 
   jboss_check 4
+
+  [ ! -e "/etc/init.d/jboss" ] && message "Alert" "JBoss 4 is not configured!"
 
   _OWNER=$(input_field "jboss.config.owner" "Enter the JBoss owner name" "$_USER_LOGGED")
   [ $? -eq 1 ] && main
@@ -161,9 +275,13 @@ install_gsan () {
   tool_check git
   tool_check ant
 
-  cd $_DEFAULT_PATH && git clone https://github.com/prodigasistemas/gsan.git
+  cd $_DEFAULT_PATH
 
-  [ $? -ne 0 ] && message "Error" "Download of GSAN not realized!"
+  if [ ! -e "$_DEFAULT_PATH/gsan" ]; then
+    git clone https://github.com/prodigasistemas/gsan.git
+
+    [ $? -ne 0 ] && message "Error" "Download of GSAN not realized!"
+  fi
 
   _PROPERTIES_FILE="$_DEFAULT_PATH/gsan/build.properties"
 
@@ -178,11 +296,7 @@ install_gsan () {
 
   run_as_user $_OWNER "JBOSS_HOME=$_DEFAULT_PATH/jboss /etc/init.d/jboss stop"
 
-  run_as_user $_OWNER "export JBOSS_GSAN=$_DEFAULT_PATH/jboss"
-
-  run_as_user $_OWNER "export GSAN_PATH=$(pwd)"
-
-  run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && bash scripts/build/build_gcom.sh"
+  run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
 
   run_as_user $_OWNER "JBOSS_HOME=$JBOSS_GSAN /etc/init.d/jboss start"
 
@@ -193,7 +307,11 @@ install_gsan () {
 
 main () {
   [ "$_OS_ARCH" = "32" ] && _ARCH="i386"
-  [ "$_OS_ARCH" = "64" ] && _ARCH="x64"
+  [ "$_OS_ARCH" = "64" ] && _ARCH="amd64"
+
+  _POSTGRESQL_VERSION=$(postgres_version)
+
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
@@ -206,7 +324,13 @@ main () {
       $_MAIN_OPTION
     fi
   else
-    [ ! -z "$(search_app gsan.mybatis.version)" ] && install_mybatis
+    [ "$(search_value gsan.configure.locale.latin)" = "yes" ] && configure_locale_latin
+    if [ "$(search_value gsan.create.databases)" = "yes" ]; then
+      configure_datasource
+      create_gsan_databases
+    fi
+    [ ! -z "$(search_app gsan.mybatis.version)" ] && install_mybatis_migration
+    [ "$(search_value gsan.install.migrations)" = "yes" ] && install_gsan_migrations
     [ ! -z "$(search_app gsan)" ] && install_gsan
   fi
 }

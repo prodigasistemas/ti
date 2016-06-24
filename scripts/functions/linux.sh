@@ -8,6 +8,7 @@ os_check () {
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
+    _OS_NUMBER=$(lsb_release -rs)
     _OS_DESCRIPTION="$(lsb_release -cds) $_OS_ARCH bits"
     _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
@@ -61,14 +62,6 @@ print_colorful () {
   echo -e "\e[${_PRINT_COLOR};${_PRINT_STYLE}${_TEXT}\e[m"
 }
 
-menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
-}
-
-input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
-}
-
 search_applications () {
   echo $(cat $_RECIPE_FILE | sed '/^ *$/d; /^ *#/d' | cut -d. -f1 | uniq)
 }
@@ -83,6 +76,14 @@ search_value () {
 
 search_versions () {
   echo $(cat $_RECIPE_FILE | egrep ^$1 | cut -d= -f2 | uniq)
+}
+
+menu () {
+  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
+}
+
+input () {
+  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
 }
 
 input_field () {
@@ -182,6 +183,16 @@ run_as_postgres () {
   su - postgres -c "$1"
 }
 
+postgres_version() {
+  [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+  if [ "$_OS_TYPE" = "rpm" ]; then
+    _POSTGRESQL_VERSION=$(run_as_postgres "psql -V" | cut -d' ' -f3)
+    _POSTGRESQL_VERSION=${_POSTGRESQL_VERSION:0:3}
+  fi
+
+  echo $_POSTGRESQL_VERSION
+}
+
 mysql_as_root () {
   _MYSQL_HOST=$1
   _MYSQL_PORT=$2
@@ -270,8 +281,10 @@ jboss_check () {
   if [ "$_VERSION" = "4" ]; then
     _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
     _FILE="/opt/jboss/readme.html"
+
     [ -e "$_FILE" ] && _SEARCH=$(cat $_FILE | grep "$_JBOSS4_DESCRIPTION")
-    _MESSAGE="$_JBOSS4_DESCRIPTION not installed!"
+
+    _MESSAGE="$_JBOSS4_DESCRIPTION is not installed!"
   fi
 
   [ -z "$_SEARCH" ] && message "Error" "$_MESSAGE"

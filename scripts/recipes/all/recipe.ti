@@ -28,7 +28,7 @@ postgresql.server.port = 5432
 # Or PostgreSQL Client
 # postgresql.client.version = 9.5
 
-postgresql.server.postgres.password = 123456
+postgresql.server.postgres.password = postgres
 postgresql.server.remote.access = yes
 
 # Install Docker
@@ -120,9 +120,13 @@ jboss.config.port = 8098
 jboss.config.rmi.port = 8099
 
 # Install GSAN
-gsan.mybatis.version = 3.2.0
-gsan.java.home = /usr/lib/jvm/java-6-openjdk
+gsan.configure.locale.latin = yes
+gsan.create.databases = yes
+
+gsan.mybatis.migrations.version = 3.2.1
+gsan.install.migrations = yes
+
 gsan.postgresql.host = localhost
 gsan.postgresql.port = 5432
-gsan.postgresql.user.name = gsan
-gsan.postgresql.user.password = gsan
+gsan.postgresql.user.name = postgres
+gsan.postgresql.user.password = postgres

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasources>
+    <local-tx-datasource>
+        <jndi-name>PostgresDS</jndi-name>
+        <connection-url>jdbc:postgresql://HOST:PORT/gsan_comercial</connection-url>
+            <driver-class>org.postgresql.Driver</driver-class>
+        <user-name>USERNAME</user-name>
+        <password>PASSWORD</password>
+        <min-pool-size>5</min-pool-size>
+        <max-pool-size>200</max-pool-size>
+        <idle-timeout-minutes>2</idle-timeout-minutes>
+        <prepared-statement-cache-size>40</prepared-statement-cache-size>
+    </local-tx-datasource>
+
+    <local-tx-datasource>
+        <jndi-name>PostgresGerencialDS</jndi-name>
+        <connection-url>jdbc:postgresql://HOST:PORT/gsan_gerencial</connection-url>
+            <driver-class>org.postgresql.Driver</driver-class>
+        <user-name>USERNAME</user-name>
+        <password>PASSWORD</password>
+    </local-tx-datasource>
+</datasources>
