@@ -3,12 +3,14 @@
 # https://github.com/prodigasistemas/gsan
 # http://www.mybatis.org/migrations/
 # https://github.com/mybatis/migrations/releases
+# http://stackoverflow.com/questions/4262374/failed-to-create-task-or-type-propertyfile-ant-build
 
 _APP_NAME="GSAN"
 _DEFAULT_PATH="/opt"
 _MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
 _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
+               change_postgres_password 'Change password the user postgres' \
                configure_datasource 'Datasource configuration' \
                create_gsan_databases 'Create GSAN databases' \
                install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
@@ -80,19 +82,13 @@ configure_locale_latin () {
 
     _PGSQL_FOLDER="/var/lib/pgsql/$_POSTGRESQL_VERSION"
 
-    run_as_postgres "cp $_PGSQL_FOLDER/data/pg_hba.conf $_PGSQL_FOLDER/backups/"
-    run_as_postgres "cp $_PGSQL_FOLDER/data/postgresql.conf $_PGSQL_FOLDER/backups/"
-
     run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
 
     if [ "$_OS_RELEASE" -le 6 ]; then
-      run_as_postgres "env LANG=LATIN1 service postgresql-$_POSTGRESQL_VERSION initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
+      run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
     else
       run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
     fi
-
-    run_as_postgres "cp $_PGSQL_FOLDER/backups/pg_hba.conf $_PGSQL_FOLDER/data/"
-    run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
 
     [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
@@ -127,7 +123,7 @@ create_gsan_databases () {
   _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
-  _PASSWORD=$(input_field "postgresql.server.postgres.password" "Enter a password for the user postgres")
+  _PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter a password for the user postgres")
   [ $? -eq 1 ] && main
   [ ! -z "$_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_PASSWORD"
 
@@ -152,6 +148,42 @@ create_gsan_databases () {
   [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
 }
 
+config_path () {
+  if [ "$_OS_TYPE" = "deb" ]; then
+    _PG_CONFIG_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+    _PG_CONFIG_PATH="/var/lib/pgsql/$_POSTGRESQL_VERSION/data"
+  fi
+}
+
+change_postgres_password () {
+  _OLD_PASSWORD=$(input_field "[default]" "Enter a old password for the user postgres")
+  [ $? -eq 1 ] && main
+
+  _NEW_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter a new password for the user postgres")
+  [ $? -eq 1 ] && main
+  [ -z "$_NEW_PASSWORD" ] && message "Alert" "The password can not be blank!"
+
+  [ ! -z "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
+
+  confirm "Confirm change postgres password?"
+  [ $? -eq 1 ] && main
+
+  run_as_postgres "${_INFORM_PASSWORD} psql -c \"ALTER USER postgres WITH ENCRYPTED PASSWORD '$_NEW_PASSWORD';\""
+
+  config_path
+
+  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "ident$" "md5"
+  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "trust$" "md5"
+  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "peer$" "md5"
+
+  [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
+
+  admin_service postgresql$_SERVICE_VERSION restart
+
+  [ $? -eq 0 ] && message "Notice" "postgres password changed successfully!"
+}
+
 install_mybatis_migration () {
   _CURRENT_DIR=$(pwd)
 
@@ -161,7 +193,7 @@ install_mybatis_migration () {
   [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/usr/lib/jvm/java-1.6.0"
   [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/opt/jdk1.6.0_45"
 
-  _VERSION=$(input_field "gsan.mybatis.version" "Enter the $_MYBATIS_DESCRIPTION version" "$_MYBATIS_VERSION")
+  _VERSION=$(input_field "gsan.mybatis.migrations.version" "Enter the $_MYBATIS_DESCRIPTION version" "$_MYBATIS_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && message "Alert" "The $_MYBATIS_DESCRIPTION version can not be blank!"
 
@@ -202,7 +234,7 @@ install_mybatis_migration () {
 
   cd $_CURRENT_DIR
 
-  migrate info
+  run_as_user $_USER_LOGGED "migrate info"
 
   [ $? -eq 0 ] && message "Notice" "$_MYBATIS_DESCRIPTION $_VERSION successfully installed!"
 }
@@ -250,9 +282,9 @@ install_gsan_migrations () {
     _SEARCH_PASSWORD=$(cat $_PROPERTIES_FILE | egrep "^password=")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_PASSWORD" "password=$_POSTGRESQL_USER_PASSWORD"
 
-    migrate status --env=production
+    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && migrate status --env=production"
 
-    migrate up --env=production
+    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && migrate up --env=production"
   done
 
   cd $_CURRENT_DIR
@@ -278,6 +310,7 @@ install_gsan () {
 
   tool_check git
   tool_check ant
+  [ "$_OS_TYPE" = "rpm" ] && tool_check ant-nodeps
 
   cd $_DEFAULT_PATH
 
@@ -330,11 +363,12 @@ main () {
     fi
   else
     [ "$(search_value gsan.configure.locale.latin)" = "yes" ] && configure_locale_latin
+    [ ! -z "$(search_app gsan.postgresql.user.password)" ] && change_postgres_password
     if [ "$(search_value gsan.create.databases)" = "yes" ]; then
       configure_datasource
       create_gsan_databases
     fi
-    [ ! -z "$(search_app gsan.mybatis.version)" ] && install_mybatis_migration
+    [ ! -z "$(search_app gsan.mybatis.migrations.version)" ] && install_mybatis_migration
     [ "$(search_value gsan.install.migrations)" = "yes" ] && install_gsan_migrations
     [ ! -z "$(search_app gsan)" ] && install_gsan
   fi

@@ -23,6 +23,8 @@ setup () {
 }
 
 download_java () {
+  tool_check wget
+
   cd $_DEFAULT_INSTALLATION_FOLDER && wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/jdk-$1-linux-$3"
 }
 
@@ -104,13 +106,12 @@ install_oracleJDK8 () {
 }
 
 main () {
-  tool_check wget
-  tool_check dialog
-
   [ "$_OS_ARCH" = "32" ] && _ARCH="i586"
   [ "$_OS_ARCH" = "64" ] && _ARCH="x64"
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _JAVA_VERSION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_JAVA_VERSION" ]; then

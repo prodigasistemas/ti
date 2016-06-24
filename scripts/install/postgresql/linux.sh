@@ -45,6 +45,8 @@ install_postgresql_server () {
     _PG_SOURCE_FILE="/etc/apt/sources.list.d/postgresql.list"
 
     if [ ! -e "$_PG_SOURCE_FILE" ]; then
+      tool_check wget
+
       wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
       run_as_root "echo \"deb http://apt.postgresql.org/pub/repos/apt/ $_OS_CODENAME-pgdg main\" > $_PG_SOURCE_FILE"
@@ -111,7 +113,7 @@ install_postgresql_client () {
 }
 
 change_password () {
-  _OLD_PASSWORD=$(input "Enter a old password for the user postgres")
+  _OLD_PASSWORD=$(input_field "[default]" "Enter a old password for the user postgres")
   [ $? -eq 1 ] && main
 
   _NEW_PASSWORD=$(input_field "postgresql.server.postgres.password" "Enter a new password for the user postgres")
@@ -128,6 +130,7 @@ change_password () {
   config_path
 
   change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "ident$" "md5"
+  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "trust$" "md5"
   change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "peer$" "md5"
 
   [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
@@ -155,12 +158,11 @@ remote_access () {
 }
 
 main () {
-  tool_check wget
-  tool_check dialog
-
   _POSTGRESQL_VERSION=$(postgres_version)
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

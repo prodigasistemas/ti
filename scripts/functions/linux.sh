@@ -185,7 +185,7 @@ run_as_user () {
 }
 
 run_as_postgres () {
-  su - postgres -c "$1"
+  su - postgres -c "$1" 2> /dev/null
 }
 
 postgres_version() {

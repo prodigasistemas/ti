@@ -1,12 +1,6 @@
 # Install Java JDK
 java.version = openJDK6
 
-# Install PostgreSQL Database Server
-postgresql.server.version = 9.5
-postgresql.server.host = localhost
-postgresql.server.port = 5432
-postgresql.server.postgres.password = postgres
-
 # Install JBoss
 jboss.version = 4
 jboss.config.owner = vagrant
@@ -15,6 +9,12 @@ jboss.config.java.opts.xmx = 1024m
 jboss.config.java.opts.max.perm.size = 512m
 jboss.config.port = 8098
 jboss.config.rmi.port = 8099
+
+# Install PostgreSQL Database Server
+postgresql.server.version = 9.5
+postgresql.server.host = localhost
+postgresql.server.port = 5432
+postgresql.server.postgres.password = postgres
 
 # Install GSAN
 gsan.configure.locale.latin = yes

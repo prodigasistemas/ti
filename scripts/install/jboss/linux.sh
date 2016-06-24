@@ -53,6 +53,8 @@ install_jboss4 () {
 
   ln -sf $_JBOSS_FILE jboss
 
+  [ "$_OS_TYPE" = "rpm" ] && ln -sf "$_OPT_FOLDER/$_JBOSS_FILE" "/usr/local/jboss"
+
   cd $_CURRENT_DIR
 
   [ $? -eq 0 ] && message "Notice" "$_JBOSS4_DESCRIPTION successfully installed!"
