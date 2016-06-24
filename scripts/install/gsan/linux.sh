@@ -76,7 +76,7 @@ configure_locale_latin () {
     run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
-    service postgresql-$_POSTGRESQL_VERSION stop
+    admin_service postgresql-$_POSTGRESQL_VERSION stop
 
     _PGSQL_FOLDER="/var/lib/pgsql/$_POSTGRESQL_VERSION"
 
@@ -85,14 +85,18 @@ configure_locale_latin () {
 
     run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
 
-    run_as_postgres "env LANG=LATIN1 service postgresql-$_POSTGRESQL_VERSION initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
+    if [ "$_OS_RELEASE" -le 6 ]; then
+      run_as_postgres "env LANG=LATIN1 service postgresql-$_POSTGRESQL_VERSION initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
+    else
+      run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
+    fi
 
     run_as_postgres "cp $_PGSQL_FOLDER/backups/pg_hba.conf $_PGSQL_FOLDER/data/"
     run_as_postgres "cp $_PGSQL_FOLDER/backups/postgresql.conf $_PGSQL_FOLDER/data/"
 
     [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
-    service postgresql$_SERVICE_VERSION restart
+    admin_service postgresql$_SERVICE_VERSION restart
   fi
 
   [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
@@ -310,6 +314,7 @@ main () {
   [ "$_OS_ARCH" = "64" ] && _ARCH="amd64"
 
   _POSTGRESQL_VERSION=$(postgres_version)
+  _POSTGRESQL_VERSION_COMPACT=$(echo $_POSTGRESQL_VERSION | sed 's/\.//g')
 
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 

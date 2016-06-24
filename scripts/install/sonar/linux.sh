@@ -57,7 +57,7 @@ install_sonar_qube () {
     rpm)
       wget -O /etc/yum.repos.d/sonar.repo http://downloads.sourceforge.net/project/sonar-pkg/rpm/sonar.repo
       $_PACKAGE_COMMAND -y install sonar
-      register_service sonar
+      admin_service sonar register
       ;;
   esac
 }
@@ -86,9 +86,9 @@ install_sonar_other () {
 
   ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
-  register_service sonar
+  admin_service sonar register
 
-  service sonar restart
+  admin_service sonar restart
 }
 
 install_sonar () {
@@ -96,7 +96,7 @@ install_sonar () {
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
-  service sonar stop
+  admin_service sonar stop
 
   backup_folder $_SONAR_FOLDER
 
@@ -106,7 +106,7 @@ install_sonar () {
   change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_COMMAND"
 
   if [ "$_SONAR_OPTION" = "QUBE" ] && [ "$_OS_TYPE" = "rpm" ]; then
-    service sonar restart
+    admin_service sonar restart
   fi
 
   [ $? -eq 0 ] && message "Notice" "Sonar successfully installed!"
@@ -223,7 +223,7 @@ sonar_properties () {
   change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_MYSQL_HOST:$_MYSQL_PORT"
   change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
 
-  service sonar restart
+  admin_service sonar restart
 
   [ $? -eq 0 ] && message "Notice" "Connection to the database configured!"
 }
@@ -314,7 +314,7 @@ configure_nginx () {
     mv sonar.conf /etc/nginx/conf.d/
     rm sonar.conf*
 
-    service nginx restart
+    admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else

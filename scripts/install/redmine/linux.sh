@@ -148,9 +148,9 @@ install_redmine () {
   rm $_UNICORN_INIT_FILE*
   ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
 
-  register_service unicorn_redmine
+  admin_service unicorn_redmine register
 
-  service unicorn_redmine start
+  admin_service unicorn_redmine start
 
   [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed! For test: cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rails server --binding=[SERVER-IP]"
 }
@@ -208,7 +208,7 @@ configure_nginx () {
     mv redmine.conf /etc/nginx/conf.d/
     rm redmine.conf*
 
-    service nginx restart
+    admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else

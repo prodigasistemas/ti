@@ -40,9 +40,9 @@ install_mysql_server () {
       _PASSWORD_MESSAGE=" The root user has no password"
       $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
-      register_service mysqld
+      admin_service mysqld register
 
-      service mysqld start
+      admin_service mysqld start
       ;;
   esac
 
@@ -73,7 +73,7 @@ remote_access () {
     change_file "append" "/etc/my.cnf" "symbolic-links=0" "bind-address = 0.0.0.0"
   fi
 
-  service $_MYSQL_SERVICE restart
+  admin_service $_MYSQL_SERVICE restart
 
   [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }

@@ -248,13 +248,53 @@ backup_folder () {
 }
 
 register_service () {
-  _SERVICE_NAME=$1
+  _REGISTER_SERVICE_NAME=$1
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    update-rc.d $_SERVICE_NAME defaults
+    update-rc.d $_REGISTER_SERVICE_NAME defaults
+
   elif [ "$_OS_TYPE" = "rpm" ]; then
-    chkconfig $_SERVICE_NAME on
+
+    if [ "$_OS_RELEASE" -le 6 ]; then
+      chkconfig $_REGISTER_SERVICE_NAME on
+    else
+      systemctl enable $_REGISTER_SERVICE_NAME
+    fi
+
   fi
+}
+
+action_service () {
+  _ACTION_SERVICE_NAME=$1
+  _ACTION_SERVICE_OPTION=$2
+
+  if [ "$_OS_TYPE" = "deb" ]; then
+    service $_ACTION_SERVICE_NAME $_ACTION_SERVICE_OPTION
+
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+
+    if [ "$_OS_RELEASE" -le 6 ]; then
+      service $_ACTION_SERVICE_NAME $_ACTION_SERVICE_OPTION
+    else
+      systemctl $_ACTION_SERVICE_OPTION $_ACTION_SERVICE_NAME
+    fi
+
+  fi
+}
+
+admin_service () {
+  _ADMIN_SERVICE_NAME=$1
+  _ADMIN_SERVICE_OPTION=$2
+
+  case $_ADMIN_SERVICE_OPTION in
+    register)
+      register_service $_ADMIN_SERVICE_NAME
+      ;;
+
+    start|restart|reload|stop|status)
+      action_service $_ADMIN_SERVICE_NAME $_ADMIN_SERVICE_OPTION
+      ;;
+  esac
 }
 
 java_check () {

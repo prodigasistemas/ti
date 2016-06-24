@@ -39,7 +39,7 @@ install_archiva () {
   confirm "Do you confirm the installation of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
-  service archiva stop 2> /dev/null
+  admin_service archiva stop 2> /dev/null
 
   wget http://archive.apache.org/dist/archiva/$_VERSION/binaries/apache-archiva-$_VERSION-bin.zip
 
@@ -55,9 +55,9 @@ install_archiva () {
 
   ln -sf $_ARCHIVA_FOLDER/bin/archiva /etc/init.d/
 
-  register_service archiva
+  admin_service archiva register
 
-  service archiva restart
+  admin_service archiva restart
 
   [ $? -eq 0 ] && message "Notice" "$_APP_NAME successfully installed!"
 }
@@ -86,7 +86,7 @@ configure_nginx () {
     mv archiva.conf /etc/nginx/conf.d/
     rm archiva.conf*
 
-    service nginx restart
+    admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else

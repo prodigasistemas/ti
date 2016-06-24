@@ -8,6 +8,7 @@
 # http://progblog10.blogspot.com.br/2013/06/enabling-remote-access-to-postgresql.html
 # http://dba.stackexchange.com/questions/14740/how-to-use-psql-with-no-password-prompt
 # https://wiki.postgresql.org/wiki/YUM_Installation
+# https://www.unixmen.com/postgresql-9-4-released-install-centos-7/
 
 _APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
@@ -83,9 +84,15 @@ install_postgresql_server () {
 
     $_PACKAGE_COMMAND install -y postgresql$_POSTGRESQL_VERSION_COMPACT-server postgresql$_POSTGRESQL_VERSION_COMPACT-contrib postgresql$_POSTGRESQL_VERSION_COMPACT-devel
 
-    service postgresql-$_POSTGRESQL_VERSION initdb
-    chkconfig postgresql-$_POSTGRESQL_VERSION on
-    service postgresql-$_POSTGRESQL_VERSION start
+    if [ "$_OS_RELEASE" -le 6 ]; then
+      service postgresql-$_POSTGRESQL_VERSION initdb
+    else
+      /usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup initdb
+    fi
+
+    admin_service postgresql-$_POSTGRESQL_VERSION register
+
+    admin_service postgresql-$_POSTGRESQL_VERSION start
   fi
 
   [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION Server successfully installed!"
@@ -125,7 +132,7 @@ change_password () {
 
   [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
-  service postgresql$_SERVICE_VERSION restart
+  admin_service postgresql$_SERVICE_VERSION restart
 
   [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
 }
@@ -142,7 +149,7 @@ remote_access () {
 
   [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
-  service postgresql$_SERVICE_VERSION restart
+  admin_service postgresql$_SERVICE_VERSION restart
 
   [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }

@@ -170,7 +170,7 @@ configure_jboss4 () {
 
   chown $_OWNER:$_OWNER -R "$_OPT_FOLDER/$_REAL_JBOSS_FOLDER"
 
-  register_service jboss
+  admin_service jboss register
 
   run_as_user $_OWNER "JBOSS_HOME=$_JBOSS_FOLDER /etc/init.d/jboss start"
 

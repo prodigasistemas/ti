@@ -70,7 +70,7 @@ install_docker () {
 
   $_PACKAGE_COMMAND install -y docker-engine
 
-  service docker start
+  admin_service docker start
 
   docker run hello-world
 

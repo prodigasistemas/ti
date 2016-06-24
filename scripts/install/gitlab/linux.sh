@@ -151,7 +151,7 @@ configure_nginx () {
     mv gitlab.conf /etc/nginx/conf.d/
     rm gitlab.conf*
 
-    service nginx restart
+    admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else

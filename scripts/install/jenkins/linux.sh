@@ -57,13 +57,13 @@ install_jenkins () {
 
       $_PACKAGE_COMMAND -y install jenkins
 
-      register_service jenkins
+      admin_service jenkins register
 
       change_file "replace" "/etc/sysconfig/jenkins" "^JENKINS_PORT=\"8080\"" "JENKINS_PORT=\"$_HTTP_PORT\""
       ;;
   esac
 
-  service jenkins restart
+  admin_service jenkins restart
 
   [ $? -eq 0 ] && message "Notice" "Jenkins successfully installed!"
 }
@@ -90,7 +90,7 @@ configure_nginx () {
     mv jenkins.conf /etc/nginx/conf.d/
     rm jenkins.conf*
 
-    service nginx restart
+    admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else

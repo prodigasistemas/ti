@@ -53,7 +53,7 @@ install_nginx () {
 
   chmod 775 /var/log/nginx
 
-  [ "$_OS_TYPE" = "rpm" ] && service nginx start
+  [ "$_OS_TYPE" = "rpm" ] && admin_service nginx start
 
   add_to_group $_GROUP "[no_alert]"
 
