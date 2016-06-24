@@ -71,7 +71,12 @@ search_app () {
 }
 
 search_value () {
-  echo $(echo $(cat $_RECIPE_FILE | grep $1 | cut -d= -f2))
+  _SEARCH_VALUE=$1
+  _SEARCH_FILE=$2
+
+  [ -z "$_SEARCH_FILE" ] && _SEARCH_FILE=$_RECIPE_FILE
+
+  echo $(echo $(cat $_SEARCH_FILE | grep $_SEARCH_VALUE | cut -d= -f2))
 }
 
 search_versions () {

@@ -38,7 +38,6 @@ docker
 oracledb.port.ssh = 2222
 oracledb.port.connection = 1521
 oracledb.port.http = 5050
-oracledb.import_ggas_database = yes
 
 # Install NGINX web server
 nginx
