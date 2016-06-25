@@ -80,7 +80,7 @@ install_oracleJDK () {
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.tar.gz"
     _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION'"
 
-    cd $_DEFAULT_INSTALLATION_FOLDER && tar -xvzf $_JAVA_FILE
+    cd $_DEFAULT_INSTALLATION_FOLDER && tar -xzf $_JAVA_FILE
 
     ln -sf $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION
 
@@ -127,7 +127,7 @@ main () {
       _JAVA_VERSIONS=$(search_versions java.version)
       for java_version in $_JAVA_VERSIONS; do
         echo
-        echo "> Installing $java_version..."
+        print_colorful yellow bold "> Installing $java_version..."
         echo
         install_$java_version
       done

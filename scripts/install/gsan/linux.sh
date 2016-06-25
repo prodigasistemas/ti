@@ -217,7 +217,7 @@ install_mybatis_migration () {
 
   [ $? -ne 0 ] && message "Error" "Download of $_MYBATIS_FILE.zip not realized!"
 
-  unzip -o $_MYBATIS_FILE.zip
+  unzip -oq $_MYBATIS_FILE.zip
 
   ln -sf $_MYBATIS_FILE mybatis-migrations
 

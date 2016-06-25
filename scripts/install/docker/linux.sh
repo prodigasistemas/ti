@@ -84,7 +84,7 @@ add_to_group () {
 }
 
 main () {
-  tool_check dialog
+  [ "$(provisioning)" = "manual" ] && tool_check dialog
 
   _MAJOR_VERSION=$(uname -r | cut -d. -f1)
   _MINOR_VERSION=$(uname -r | cut -d. -f2)

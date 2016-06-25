@@ -43,7 +43,7 @@ install_archiva () {
 
   wget http://archive.apache.org/dist/archiva/$_VERSION/binaries/apache-archiva-$_VERSION-bin.zip
 
-  unzip apache-archiva-$_VERSION-bin.zip
+  unzip -oq apache-archiva-$_VERSION-bin.zip
 
   rm apache-archiva-$_VERSION-bin.zip
 
@@ -97,9 +97,10 @@ configure_nginx () {
 main () {
   tool_check wget
   tool_check unzip
-  tool_check dialog
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

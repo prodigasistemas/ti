@@ -105,7 +105,7 @@ install_redmine () {
 
   wget http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz
 
-  tar -xvzf redmine-$_REDMINE_VERSION.tar.gz
+  tar -xzf redmine-$_REDMINE_VERSION.tar.gz
 
   rm redmine-$_REDMINE_VERSION.tar.gz
 
@@ -234,7 +234,7 @@ issue_reports_plugin () {
 
     wget https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip
 
-    unzip master.zip
+    unzip -oq master.zip
     rm master.zip
     mv redmine_issue_reports-master $_ISSUE_REPORTS_FOLDER
 
@@ -258,9 +258,10 @@ main () {
   tool_check curl
   tool_check unzip
   tool_check wget
-  tool_check dialog
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _MAIN_OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_MAIN_OPTION" ]; then

@@ -47,7 +47,7 @@ install_jboss4 () {
 
   wget http://downloads.sourceforge.net/project/jboss/JBoss/JBoss-4.0.1SP1/$_JBOSS_FILE.zip
 
-  unzip -o $_JBOSS_FILE.zip
+  unzip -oq $_JBOSS_FILE.zip
 
   rm $_JBOSS_FILE.zip
 
@@ -127,7 +127,7 @@ configure_jboss4 () {
   # Copy files from jboss-libs
   cd /tmp && wget https://github.com/prodigasistemas/jboss-libs/archive/master.zip
 
-  unzip master.zip && rm master.zip
+  unzip -oq master.zip && rm master.zip
 
   export JBOSS_HOME=$_JBOSS_FOLDER
 
@@ -197,7 +197,7 @@ install_wildfly8 () {
 
   wget http://download.jboss.org/wildfly/$_WILDFLY_FILE/wildfly-$_WILDFLY_FILE.tar.gz
 
-  tar -xvzf "wildfly-$_WILDFLY_FILE.tar.gz"
+  tar -xzf "wildfly-$_WILDFLY_FILE.tar.gz"
 
   rm "wildfly-$_WILDFLY_FILE.tar.gz"
 
@@ -211,9 +211,10 @@ install_wildfly8 () {
 main () {
   tool_check wget
   tool_check unzip
-  tool_check dialog
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

@@ -14,7 +14,7 @@ os_check () {
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
     _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | awk '{ print tolower($3) }' | cut -d. -f1)
+    _OS_RELEASE=$(cat /etc/redhat-release | sed 's/CentOS //; s/Linux //g' | cut -d' ' -f2 | cut -d. -f1)
     _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
     _PACKAGE_COMMAND="yum"
   else
@@ -27,6 +27,7 @@ os_check () {
 }
 
 tool_check() {
+  echo
   print_colorful white bold "> Checking for $1..."
   if command -v $1 > /dev/null; then
     print_colorful white bold "> Detected $1!"
@@ -34,6 +35,7 @@ tool_check() {
     print_colorful white bold "> Installing $1..."
     $_PACKAGE_COMMAND install -y $1
   fi
+  echo
 }
 
 print_colorful () {

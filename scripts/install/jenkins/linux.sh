@@ -100,9 +100,10 @@ configure_nginx () {
 
 main () {
   tool_check wget
-  tool_check dialog
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

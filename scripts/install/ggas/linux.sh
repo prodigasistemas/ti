@@ -103,12 +103,12 @@ import_ggas_database () {
 }
 
 main () {
-  tool_check dialog
-
   _TI_FOLDER="/opt/tools-installer"
   _ORACLE_CONFIG="$_TI_FOLDER/oracle.conf"
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

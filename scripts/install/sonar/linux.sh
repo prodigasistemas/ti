@@ -77,7 +77,7 @@ install_sonar_other () {
   wget "$_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_FILE"
   [ $? -ne 0 ] && message "Error" "Download of file $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_FILE unrealized!"
 
-  tar -xvzf "$_SONAR_OTHER_FILE"
+  tar -xzf "$_SONAR_OTHER_FILE"
   rm "$_SONAR_OTHER_FILE"
 
   _DIR_EXTRACTED=$(echo $_SONAR_OTHER_FILE | sed 's/.tar.gz//g')
@@ -268,7 +268,7 @@ install_sonar_scanner () {
 
   wget "https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/$_SCANNER_ZIP_FILE"
 
-  unzip $_SCANNER_ZIP_FILE
+  unzip -oq $_SCANNER_ZIP_FILE
   rm $_SCANNER_ZIP_FILE
 
   mv "sonar-scanner-$_SCANNER_VERSION" /opt/
@@ -336,12 +336,13 @@ type_menu () {
   os_check
   tool_check curl
   tool_check wget
-  tool_check dialog
   tool_check unzip
 
-  _SONAR_OPTION=$(menu "Select the sonar source" "$_SONAR_SOURCE_LIST")
-
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
+    _SONAR_OPTION=$(menu "Select the sonar source" "$_SONAR_SOURCE_LIST")
+
     if [ -z "$_SONAR_OPTION" ]; then
       clear && exit 0
     else
