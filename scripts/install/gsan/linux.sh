@@ -301,7 +301,7 @@ install_gsan () {
 
   [ ! -e "/etc/init.d/jboss" ] && message "Alert" "JBoss 4 is not configured!"
 
-  _OWNER=$(input_field "jboss.config.owner" "Enter the JBoss owner name" "$_USER_LOGGED")
+  _OWNER=$(input_field "[default]" "Enter the JBoss owner name" "$_USER_LOGGED")
   [ $? -eq 1 ] && main
   [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 

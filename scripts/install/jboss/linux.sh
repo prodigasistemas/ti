@@ -68,7 +68,7 @@ configure_jboss4 () {
 
   jboss_check 4
 
-  _OWNER=$(input_field "jboss.config.owner" "Enter the JBoss owner name" "$_USER_LOGGED")
+  _OWNER=$(input_field "[default]" "Enter the JBoss owner name" "$_USER_LOGGED")
   [ $? -eq 1 ] && main
   [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 
