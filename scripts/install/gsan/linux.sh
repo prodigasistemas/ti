@@ -33,18 +33,6 @@ setup () {
   os_check
 }
 
-get_java_home () {
-  if [ ! -z "$JAVA_HOME" ]; then
-    _JAVA_HOME=$JAVA_HOME
-  else
-    _JAVA_HOME="/usr/lib/jvm/java-6-openjdk-$_ARCH"
-    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-1.6.0"
-    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/jdk1.6.0_45"
-  fi
-
-  echo $_JAVA_HOME
-}
-
 input_datas () {
   _POSTGRESQL_HOST=$(input_field "gsan.postgresql.host" "Enter the host of the PostgreSQL Server" "localhost")
   [ $? -eq 1 ] && main
@@ -195,7 +183,7 @@ install_mybatis_migration () {
 
   java_check 6
 
-  _JAVA_HOME=$(get_java_home)
+  _JAVA_HOME=$(get_java_home 6)
 
   _VERSION=$(input_field "gsan.mybatis.migrations.version" "Enter the $_MYBATIS_DESCRIPTION version" "$_MYBATIS_VERSION")
   [ $? -eq 1 ] && main
@@ -336,7 +324,7 @@ install_gsan () {
 
   chown $_OWNER:$_OWNER -R $_DEFAULT_PATH/gsan
 
-  _JAVA_HOME=$(get_java_home)
+  _JAVA_HOME=$(get_java_home 6)
 
   run_as_user $_OWNER "JBOSS_HOME=$_DEFAULT_PATH/jboss /etc/init.d/jboss stop"
 

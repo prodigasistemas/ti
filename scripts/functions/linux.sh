@@ -305,12 +305,32 @@ admin_service () {
   esac
 }
 
+get_java_home () {
+  _JAVA_VERSION=$1
+
+  if [ ! -z "$JAVA_HOME" ]; then
+    _JAVA_HOME=$JAVA_HOME
+  else
+    _JAVA_HOME="/usr/lib/jvm/java-$_JAVA_VERSION-openjdk-$_ARCH"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-1.$_JAVA_VERSION.0"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/java-oracle-$_JAVA_VERSION"
+  fi
+
+  echo $_JAVA_HOME
+}
+
 java_check () {
   _VERSION_CHECK=$1
   _JAVA_TMP_FILE="/tmp/.tools.installer.java_version"
 
   _JAVA_INSTALLED=$(command -v java)
-  [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java is not installed!"
+  if [ -z "$_JAVA_INSTALLED" ]; then
+    JAVA_HOME=$(get_java_home $_VERSION_CHECK)
+    PATH=$PATH:$JAVA_HOME/bin
+
+    _JAVA_INSTALLED=$(command -v java)
+    [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java is not installed!"
+  fi
 
   java -version 2> $_JAVA_TMP_FILE
   _JAVA_VERSION=$(cat $_JAVA_TMP_FILE | grep version | cut -d' ' -f3 | cut -d\" -f2)
