@@ -31,11 +31,12 @@ tool_check() {
   print_colorful white bold "> Checking for $1..."
   if command -v $1 > /dev/null; then
     print_colorful white bold "> Detected $1!"
+    echo
   else
     print_colorful white bold "> Installing $1..."
+    echo
     $_PACKAGE_COMMAND install -y $1
   fi
-  echo
 }
 
 print_colorful () {

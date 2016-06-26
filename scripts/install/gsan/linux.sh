@@ -84,15 +84,9 @@ configure_locale_latin () {
 
     run_as_postgres "rm -rf $_PGSQL_FOLDER/data/*"
 
-    if [ "$_OS_RELEASE" -le 6 ]; then
-      run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
-    else
-      run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
-    fi
+    run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
 
-    [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
-
-    admin_service postgresql$_SERVICE_VERSION restart
+    admin_service postgresql-$_POSTGRESQL_VERSION restart
   fi
 
   [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"

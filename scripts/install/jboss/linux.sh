@@ -156,15 +156,11 @@ configure_jboss4 () {
   # Configure initializer script
   chmod +x $_JBOSS_FOLDER/bin/*.sh
 
-  if [ "$_OS_TYPE" = "deb" ]; then
-    _SCRIPT_NAME="jboss_init_debian.sh"
+  _SCRIPT_NAME="jboss_init_debian.sh"
 
-    if [ "$_OWNER" != "jenkins" ]; then
-      change_file "replace" "$_JBOSS_FOLDER/bin/$_SCRIPT_NAME" "jenkins" "$_OWNER"
-    fi
+  if [ "$_OWNER" != "jenkins" ]; then
+    change_file "replace" "$_JBOSS_FOLDER/bin/$_SCRIPT_NAME" "jenkins" "$_OWNER"
   fi
-
-  [ "$_OS_TYPE" = "rpm" ] && _SCRIPT_NAME="jboss_init_redhat.sh"
 
   ln -sf $_JBOSS_FOLDER/bin/$_SCRIPT_NAME /etc/init.d/jboss
 
