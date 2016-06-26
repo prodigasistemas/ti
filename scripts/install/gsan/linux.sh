@@ -195,6 +195,9 @@ install_mybatis_migration () {
 
   [ ! -e "$_JAVA_HOME" ] && message "Alert" "$_JAVA_HOME path not found!"
 
+  export JAVA_HOME=$_JAVA_HOME
+  export PATH=$PATH:$JAVA_HOME/bin
+
   confirm "Do you confirm the installation of $_MYBATIS_DESCRIPTION $_VERSION?"
   [ $? -eq 1 ] && main
 
@@ -218,9 +221,9 @@ install_mybatis_migration () {
   _MAJOR_VERSION=$(echo $_VERSION | cut -d. -f1)
   _MYBATIS_JAR_FILE=$(ls $_DEFAULT_PATH/mybatis-migrations/lib/mybatis-$_MAJOR_VERSION*.jar | head -n 1)
 
-  ln -sf $_MYBATIS_JAR_FILE $_JAVA_HOME/jre/lib/ext/
+  ln -sf $_MYBATIS_JAR_FILE $JAVA_HOME/jre/lib/ext/
 
-  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $_JAVA_HOME/jre/lib/ext/
+  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $JAVA_HOME/jre/lib/ext/
 
   ln -sf $_DEFAULT_PATH/mybatis-migrations/bin/migrate /usr/local/bin
 
@@ -252,6 +255,9 @@ install_gsan_migrations () {
   cd $_DEFAULT_PATH && git clone https://github.com/prodigasistemas/gsan-migracoes.git
 
   [ $? -ne 0 ] && message "Error" "Download of GSAN Migrations not realized!"
+
+  export JAVA_HOME=$_JAVA_HOME
+  export PATH=$PATH:$JAVA_HOME/bin
 
   _DATABASES="comercial gerencial"
 
