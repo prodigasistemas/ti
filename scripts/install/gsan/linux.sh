@@ -33,6 +33,18 @@ setup () {
   os_check
 }
 
+get_java_home () {
+  if [ ! -z "$JAVA_HOME" ]; then
+    _JAVA_HOME=$JAVA_HOME
+  else
+    _JAVA_HOME="/usr/lib/jvm/java-6-openjdk-$_ARCH"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-1.6.0"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/jdk1.6.0_45"
+  fi
+
+  echo $_JAVA_HOME
+}
+
 input_datas () {
   _POSTGRESQL_HOST=$(input_field "gsan.postgresql.host" "Enter the host of the PostgreSQL Server" "localhost")
   [ $? -eq 1 ] && main
@@ -183,15 +195,13 @@ install_mybatis_migration () {
 
   java_check 6
 
-  [ -z "$JAVA_HOME" ] && JAVA_HOME="/usr/lib/jvm/java-6-openjdk-$_ARCH"
-  [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/usr/lib/jvm/java-1.6.0"
-  [ ! -e "$JAVA_HOME" ] && JAVA_HOME="/opt/jdk1.6.0_45"
+  _JAVA_HOME=$(get_java_home)
 
   _VERSION=$(input_field "gsan.mybatis.migrations.version" "Enter the $_MYBATIS_DESCRIPTION version" "$_MYBATIS_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && message "Alert" "The $_MYBATIS_DESCRIPTION version can not be blank!"
 
-  _JAVA_HOME=$(input_field "[default]" "Enter the JAVA_HOME path" "$JAVA_HOME")
+  _JAVA_HOME=$(input_field "[default]" "Enter the JAVA_HOME path" "$_JAVA_HOME")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_HOME" ] && message "Alert" "The JAVA_HOME path can not be blank!"
 
@@ -304,7 +314,8 @@ install_gsan () {
 
   tool_check git
   tool_check ant
-  [ "$_OS_TYPE" = "rpm" ] && tool_check ant-nodeps
+
+  [ "$_OS_TYPE" = "rpm" ] && [ "$_OS_RELEASE" -le 6 ] && tool_check ant-nodeps
 
   cd $_DEFAULT_PATH
 
@@ -325,9 +336,11 @@ install_gsan () {
 
   chown $_OWNER:$_OWNER -R $_DEFAULT_PATH/gsan
 
+  _JAVA_HOME=$(get_java_home)
+
   run_as_user $_OWNER "JBOSS_HOME=$_DEFAULT_PATH/jboss /etc/init.d/jboss stop"
 
-  run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
+  run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
 
   run_as_user $_OWNER "JBOSS_HOME=$JBOSS_GSAN /etc/init.d/jboss start"
 
