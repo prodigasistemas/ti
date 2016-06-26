@@ -195,9 +195,6 @@ install_mybatis_migration () {
 
   [ ! -e "$_JAVA_HOME" ] && message "Alert" "$_JAVA_HOME path not found!"
 
-  export JAVA_HOME=$_JAVA_HOME
-  export PATH=$PATH:$JAVA_HOME/bin
-
   confirm "Do you confirm the installation of $_MYBATIS_DESCRIPTION $_VERSION?"
   [ $? -eq 1 ] && main
 
@@ -223,13 +220,13 @@ install_mybatis_migration () {
 
   ln -sf $_MYBATIS_JAR_FILE $JAVA_HOME/jre/lib/ext/
 
-  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $JAVA_HOME/jre/lib/ext/
+  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $_JAVA_HOME/jre/lib/ext/
 
   ln -sf $_DEFAULT_PATH/mybatis-migrations/bin/migrate /usr/local/bin
 
   cd $_CURRENT_DIR
 
-  run_as_user $_USER_LOGGED "migrate info"
+  run_as_user $_USER_LOGGED "JAVA_HOME=$_JAVA_HOME migrate info"
 
   [ $? -eq 0 ] && message "Notice" "$_MYBATIS_DESCRIPTION $_VERSION successfully installed!"
 }
@@ -256,8 +253,7 @@ install_gsan_migrations () {
 
   [ $? -ne 0 ] && message "Error" "Download of GSAN Migrations not realized!"
 
-  export JAVA_HOME=$_JAVA_HOME
-  export PATH=$PATH:$JAVA_HOME/bin
+  _JAVA_HOME=$(get_java_home 6)
 
   _DATABASES="comercial gerencial"
 
@@ -280,9 +276,9 @@ install_gsan_migrations () {
     _SEARCH_PASSWORD=$(cat $_PROPERTIES_FILE | egrep "^password=")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_PASSWORD" "password=$_POSTGRESQL_USER_PASSWORD"
 
-    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && migrate status --env=production"
+    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate status --env=production"
 
-    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && migrate up --env=production"
+    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate up --env=production"
   done
 
   cd $_CURRENT_DIR

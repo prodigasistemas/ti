@@ -1,5 +1,5 @@
 # Install Java JDK
-java.version = openJDK6
+java.version = oracleJDK6
 
 # Install JBoss
 jboss.version = 4

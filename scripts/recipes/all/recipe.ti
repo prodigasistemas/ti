@@ -1,5 +1,5 @@
 # Install versions of Java JDK
-java.version = openJDK6
+java.version = oracleJDK6
 java.version = openJDK7
 java.version = oracleJDK8
 
