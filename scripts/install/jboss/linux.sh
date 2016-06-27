@@ -190,8 +190,9 @@ install_wildfly8 () {
   [ $? -eq 1 ] && main
 
   _WILDFLY_FILE=$_WILDFLY_DESCRIPTION
+  _WILDFLY_FOLDER="$_DEFAULT_PATH/wildfly-$_WILDFLY_FILE"
 
-  backup_folder "$_DEFAULT_PATH/wildfly-$_WILDFLY_FILE"
+  backup_folder $_WILDFLY_FOLDER
 
   cd $_DEFAULT_PATH
 
@@ -201,21 +202,30 @@ install_wildfly8 () {
 
   rm "wildfly-$_WILDFLY_FILE.tar.gz"
 
-  change_file "replace" "$_DEFAULT_PATH/wildfly/standalone/configuration/standalone.xml" '<socket-binding name="http" port="${jboss.http.port:9090}"/>' "<socket-binding name=\"http\" port=\"\${jboss.http.port:$_HTTP_PORT}\"/>"
+  change_file "replace" "$_WILDFLY_FOLDER/standalone/configuration/standalone.xml" '<socket-binding name="http" port="${jboss.http.port:9090}"/>' "<socket-binding name=\"http\" port=\"\${jboss.http.port:$_HTTP_PORT}\"/>"
 
-  adduser --system --group --no-create-home --home $_DEFAULT_PATH/wildfly --disabled-login wildfly
+  adduser --system --group --no-create-home --home $_WILDFLY_FOLDER --disabled-login wildfly
 
-  chown wildfly:wildfly -R $_DEFAULT_PATH/wildfly/
+  chown wildfly:wildfly -R $_WILDFLY_FOLDER
 
-  chmod g+w -R $_DEFAULT_PATH/wildfly/
+  chmod g+w -R $_WILDFLY_FOLDER
+
+  _JAVA_HOME=$(get_java_home 7)
+
+  change_file "replace" "$_WILDFLY_FOLDER/bin/init.d/wildfly.conf" "# JAVA_HOME=\"/usr/lib/jvm/default-java\"" "JAVA_HOME=\"$_JAVA_HOME\""
 
   ln -sf "wildfly-$_WILDFLY_FILE" wildfly
 
-  ln -sf $_DEFAULT_PATH/wildfly/bin/init.d/wildfly-init-debian.sh /etc/init.d/wildfly
+  ln -sf $_WILDFLY_FOLDER/bin/init.d/wildfly-init-debian.sh /etc/init.d/wildfly
+
+  [ "$_OS_TYPE" = "deb" ] && _LINK_FOLDER="/etc/default"
+  [ "$_OS_TYPE" = "rpm" ] && _LINK_FOLDER="/etc/sysconfig"
+
+  ln -sf $_WILDFLY_FOLDER/bin/init.d/wildfly.conf $_LINK_FOLDER/wildfly
 
   admin_service wildfly register
 
-  JBOSS_HOME=$_DEFAULT_PATH/wildfly /etc/init.d/wildfly start
+  /etc/init.d/wildfly start
 
   cd $_CURRENT_DIR
 
