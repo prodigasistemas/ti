@@ -49,6 +49,8 @@ install_ggas () {
 
   [ $? -ne 0 ] && message "Error" "Download of $_APP_NAME not realized!"
 
+  chown $_USER_LOGGED:$_USER_LOGGED -R $_DEFAULT_PATH/ggas
+
   print_colorful yellow bold "> Installing Gradle $_GRADLE_VERSION..."
 
   cd $_DEFAULT_PATH
@@ -67,13 +69,13 @@ install_ggas () {
 
   cd $_DEFAULT_PATH/ggas
 
-  JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build
+  run_as_user $_USER_LOGGED "JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build"
 
   print_colorful yellow bold "> Deploying $_APP_NAME..."
 
   /etc/init.d/wildfly stop
 
-  cp $_DEFAULT_PATH/ggas/workspace/build/libs/workspace*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war
+  run_as_user $_USER_LOGGED "cp $_DEFAULT_PATH/ggas/workspace/build/libs/workspace*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
 
   /etc/init.d/wildfly start
 
@@ -183,6 +185,7 @@ configure_nginx () {
 main () {
   _TI_FOLDER="/opt/tools-installer"
   _ORACLE_CONFIG="$_TI_FOLDER/oracle.conf"
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
