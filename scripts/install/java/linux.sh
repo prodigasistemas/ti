@@ -126,9 +126,8 @@ main () {
     if [ -n "$(search_app java)" ]; then
       _JAVA_VERSIONS=$(search_versions java.version)
       for java_version in $_JAVA_VERSIONS; do
-        echo
         print_colorful yellow bold "> Installing $java_version..."
-        echo
+
         install_$java_version
       done
     fi

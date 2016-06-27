@@ -1,3 +1,6 @@
+# Install Java JDK
+java.version = openJDK7
+
 # Install Docker
 docker
 
@@ -6,4 +9,44 @@ oracledb.port.ssh = 2222
 oracledb.port.connection = 1521
 oracledb.port.http = 5050
 
+# Install NGINX web server
+nginx
+
+# Install Wildfly 8
+jboss.version = 8
+wildfly.http.port = 8081
+
+# Install MySQL Server
+mysql.server.grant.privileges.host = localhost
+mysql.server.grant.privileges.port = 3306
+mysql.server.grant.privileges.root.password = root
+mysql.server.grant.privileges.database = sonar
+mysql.server.grant.privileges.user.name = sonar
+mysql.server.grant.privileges.user.password = sonar
+
+# Install Sonar from other sources
+sonar.source = other
+sonar.other.download.url = http://sonar.ggas.com.br/download
+sonar.other.download.file = sonarqube-5.0.tar.gz
+
+sonar.java.command = java
+
+sonar.mysql.host = localhost
+sonar.mysql.port = 3306
+sonar.mysql.root.password = root
+sonar.mysql.user.password = sonar
+
+sonar.mysql.import.url = http://sonar.ggas.com.br/download
+sonar.mysql.import.file = sonar.sql
+
+sonar.scanner.version = 2.6.1
+sonar.scanner.host = http://localhost:9000
+
+sonar.nginx.domain = sonar.local
+sonar.nginx.host = localhost:9000
+
+# Install GGAS
 ggas.import.database = yes
+
+ggas.nginx.domain = wildfly.local
+ggas.nginx.host = localhost:8081

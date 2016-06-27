@@ -5,12 +5,12 @@
 # http://unix.stackexchange.com/questions/32908/how-to-insert-the-content-of-a-file-into-another-file-before-a-pattern-marker
 
 _APP_NAME="JBoss"
-_OPT_FOLDER="/opt"
-_JBOSS_FOLDER="$_OPT_FOLDER/jboss"
+_DEFAULT_PATH="/opt"
+_JBOSS_FOLDER="$_DEFAULT_PATH/jboss"
 _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
-_WILDFLY_DESCRIPTION="8.2.1.Final"
 _PORT_DEFAULT="1099"
 _RMI_PORT_DEFAULT="1098"
+_WILDFLY_DESCRIPTION="8.2.1.Final"
 _OPTIONS_LIST="install_jboss4 'Install $_JBOSS4_DESCRIPTION' \
                configure_jboss4 'Configure $_JBOSS4_DESCRIPTION' \
                install_wildfly8 'Install WildFly $_WILDFLY_DESCRIPTION'"
@@ -41,9 +41,9 @@ install_jboss4 () {
 
   _JBOSS_FILE="jboss-4.0.1sp1"
 
-  backup_folder "$_OPT_FOLDER/$_JBOSS_FILE"
+  backup_folder "$_DEFAULT_PATH/$_JBOSS_FILE"
 
-  cd $_OPT_FOLDER
+  cd $_DEFAULT_PATH
 
   wget http://downloads.sourceforge.net/project/jboss/JBoss/JBoss-4.0.1SP1/$_JBOSS_FILE.zip
 
@@ -53,7 +53,7 @@ install_jboss4 () {
 
   ln -sf $_JBOSS_FILE jboss
 
-  [ "$_OS_TYPE" = "rpm" ] && ln -sf "$_OPT_FOLDER/$_JBOSS_FILE" "/usr/local/jboss"
+  [ "$_OS_TYPE" = "rpm" ] && ln -sf "$_DEFAULT_PATH/$_JBOSS_FILE" "/usr/local/jboss"
 
   cd $_CURRENT_DIR
 
@@ -166,7 +166,7 @@ configure_jboss4 () {
 
   _REAL_JBOSS_FOLDER=$(echo $(ls -l /opt/jboss | cut -d'>' -f2))
 
-  chown $_OWNER:$_OWNER -R "$_OPT_FOLDER/$_REAL_JBOSS_FOLDER"
+  chown $_OWNER:$_OWNER -R "$_DEFAULT_PATH/$_REAL_JBOSS_FOLDER"
 
   admin_service jboss register
 
@@ -182,14 +182,18 @@ install_wildfly8 () {
 
   java_check 7
 
+  _HTTP_PORT=$(input_field "wildfly.http.port" "Enter the http port for WildFly" "9090")
+  [ $? -eq 1 ] && main
+  [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
+
   confirm "Do you confirm the installation of WildFly 8?"
   [ $? -eq 1 ] && main
 
   _WILDFLY_FILE=$_WILDFLY_DESCRIPTION
 
-  backup_folder "$_OPT_FOLDER/wildfly-$_WILDFLY_FILE"
+  backup_folder "$_DEFAULT_PATH/wildfly-$_WILDFLY_FILE"
 
-  cd $_OPT_FOLDER
+  cd $_DEFAULT_PATH
 
   wget http://download.jboss.org/wildfly/$_WILDFLY_FILE/wildfly-$_WILDFLY_FILE.tar.gz
 
@@ -197,7 +201,21 @@ install_wildfly8 () {
 
   rm "wildfly-$_WILDFLY_FILE.tar.gz"
 
+  change_file "replace" "$_DEFAULT_PATH/wildfly/standalone/configuration/standalone.xml" '<socket-binding name="http" port="${jboss.http.port:9090}"/>' "<socket-binding name=\"http\" port=\"${jboss.http.port:$_HTTP_PORT}\"/>"
+
+  adduser --system --group --no-create-home --home $_DEFAULT_PATH/wildfly --disabled-login wildfly
+
+  chown wildfly:wildfly -R $_DEFAULT_PATH/wildfly/
+
+  chmod g+w -R $_DEFAULT_PATH/wildfly/
+
   ln -sf "wildfly-$_WILDFLY_FILE" wildfly
+
+  ln -sf $_DEFAULT_PATH/wildfly/bin/init.d/wildfly-init-debian.sh /etc/init.d/wildfly
+
+  admin_service wildfly register
+
+  JBOSS_HOME=$_DEFAULT_PATH/wildfly /etc/init.d/wildfly start
 
   cd $_CURRENT_DIR
 

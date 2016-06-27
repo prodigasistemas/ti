@@ -27,14 +27,11 @@ os_check () {
 }
 
 tool_check() {
-  echo
   print_colorful white bold "> Checking for $1..."
   if command -v $1 > /dev/null; then
     print_colorful white bold "> Detected $1!"
-    echo
   else
     print_colorful white bold "> Installing $1..."
-    echo
     $_PACKAGE_COMMAND install -y $1
   fi
 }
@@ -62,7 +59,9 @@ print_colorful () {
       ;;
   esac
 
+  echo
   echo -e "\e[${_PRINT_COLOR};${_PRINT_STYLE}${_TEXT}\e[m"
+  echo
 }
 
 search_applications () {
@@ -124,9 +123,7 @@ message () {
       $_MESSAGE_COMMAND
     fi
   else
-    echo
     print_colorful yellow bold "> $_MESSAGE_TITLE: $_MESSAGE_TEXT"
-    echo
 
     if [ -z "$_MESSAGE_COMMAND" ]; then
       [ "$_MESSAGE_TITLE" != "Notice" ] && exit 1
@@ -153,9 +150,7 @@ confirm () {
       dialog --yesno "$1" 0 0
     fi
   else
-    echo
     print_colorful yellow bold "$2"
-    echo
   fi
 }
 
@@ -346,14 +341,16 @@ java_check () {
 jboss_check () {
   _VERSION=$1
 
-  if [ "$_VERSION" = "4" ]; then
-    _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
-    _FILE="/opt/jboss/readme.html"
+  case $_VERSION in
+    "4")
+      _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
+      _FILE="/opt/jboss/readme.html"
 
-    [ -e "$_FILE" ] && _SEARCH=$(cat $_FILE | grep "$_JBOSS4_DESCRIPTION")
+      [ -e "$_FILE" ] && _SEARCH=$(cat $_FILE | grep "$_JBOSS4_DESCRIPTION")
 
-    _MESSAGE="$_JBOSS4_DESCRIPTION is not installed!"
-  fi
+      _MESSAGE="$_JBOSS4_DESCRIPTION is not installed!"
+      ;;
+  esac
 
   [ -z "$_SEARCH" ] && message "Error" "$_MESSAGE"
 }

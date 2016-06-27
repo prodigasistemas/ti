@@ -52,9 +52,8 @@ main () {
   else
     _APPLICATIONS=$(search_applications)
     for app in $_APPLICATIONS; do
-      echo
       print_colorful yellow bold "> Loading $app installer..."
-      echo
+
       curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$app/linux.sh | bash
     done
   fi

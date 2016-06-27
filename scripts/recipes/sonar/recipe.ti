@@ -7,8 +7,8 @@ mysql.server.grant.privileges.host = localhost
 mysql.server.grant.privileges.port = 3306
 mysql.server.grant.privileges.root.password = root
 mysql.server.grant.privileges.database = sonar
-mysql.server.grant.privileges.user.name = vagrant
-mysql.server.grant.privileges.user.password = vagrant
+mysql.server.grant.privileges.user.name = sonar
+mysql.server.grant.privileges.user.password = sonar
 
 # Install SonarQube from sonarqube.org
 sonar.source = qube
