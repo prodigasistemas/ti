@@ -4,7 +4,7 @@
 
 _APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' oracleJDK6 'Oracle Java 6 JDK' oracleJDK7 'Oracle Java 7 JDK' oracleJDK8 'Oracle Java 8 JDK'"
+_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' openJDK9 'OpenJDK 9' oracleJDK6 'Oracle Java 6 JDK' oracleJDK7 'Oracle Java 7 JDK' oracleJDK8 'Oracle Java 8 JDK'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -48,6 +48,10 @@ install_openJDK7 () {
 
 install_openJDK8 () {
   install_openJDK 8
+}
+
+install_openJDK9 () {
+  install_openJDK 9
 }
 
 install_oracleJDK6 () {

@@ -201,7 +201,7 @@ install_wildfly8 () {
 
   rm "wildfly-$_WILDFLY_FILE.tar.gz"
 
-  change_file "replace" "$_DEFAULT_PATH/wildfly/standalone/configuration/standalone.xml" '<socket-binding name="http" port="${jboss.http.port:9090}"/>' "<socket-binding name=\"http\" port=\"${jboss.http.port:$_HTTP_PORT}\"/>"
+  change_file "replace" "$_DEFAULT_PATH/wildfly/standalone/configuration/standalone.xml" '<socket-binding name="http" port="${jboss.http.port:9090}"/>' "<socket-binding name=\"http\" port=\"\${jboss.http.port:$_HTTP_PORT}\"/>"
 
   adduser --system --group --no-create-home --home $_DEFAULT_PATH/wildfly --disabled-login wildfly
 

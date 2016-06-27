@@ -1,5 +1,5 @@
 # Install Java JDK
-java.version = openJDK7
+java.version = oracleJDK7
 
 # Install Docker
 docker
@@ -29,7 +29,7 @@ sonar.source = other
 sonar.other.download.url = http://sonar.ggas.com.br/download
 sonar.other.download.file = sonarqube-5.0.tar.gz
 
-sonar.java.command = java
+sonar.java.command = /opt/java-oracle-7/bin/java
 
 sonar.mysql.host = localhost
 sonar.mysql.port = 3306

@@ -65,7 +65,7 @@ install_ggas () {
 
   print_colorful yellow bold "> Building $_APP_NAME..."
 
-  $_DEFAULT_PATH/gradle/bin/gradle build
+  JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build
 
   print_colorful yellow bold "> Deploying $_APP_NAME..."
 
