@@ -206,6 +206,8 @@ install_wildfly8 () {
 
   adduser --system --group --no-create-home --home $_WILDFLY_FOLDER --disabled-login wildfly
 
+  add_user_to_group wildfly
+
   chown wildfly:wildfly -R $_WILDFLY_FOLDER
 
   chmod g+w -R $_WILDFLY_FOLDER

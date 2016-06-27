@@ -32,7 +32,7 @@ install_ggas () {
 
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
-  confirm "Do you confirm the install of $_APP_NAME?"
+  confirm "Confirm the installation of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
   tool_check git
@@ -57,13 +57,15 @@ install_ggas () {
 
   [ $? -ne 0 ] && message "Error" "Download of Gradle $_GRADLE_VERSION not realized!"
 
-  unzip gradle-$_GRADLE_VERSION-bin.zip
+  unzip -oq gradle-$_GRADLE_VERSION-bin.zip
 
   rm gradle-$_GRADLE_VERSION-bin.zip
 
   ln -sf gradle-$_GRADLE_VERSION $_DEFAULT_PATH/gradle
 
   print_colorful yellow bold "> Building $_APP_NAME..."
+
+  cd $_DEFAULT_PATH/ggas
 
   JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build
 
