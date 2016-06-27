@@ -221,7 +221,7 @@ main () {
   else
     if [ "$(search_value jboss.version)" = "4" ]; then
       install_jboss4
-      [ ! -z "$(search_app jboss.config)" ] && configure_jboss4
+      [ -n "$(search_app jboss.config)" ] && configure_jboss4
     fi
     [ "$(search_value jboss.version)" = "8" ] && install_wildfly8
   fi

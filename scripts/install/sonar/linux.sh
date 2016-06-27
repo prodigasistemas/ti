@@ -181,7 +181,7 @@ import_database () {
   [ $? -ne 0 ] && message "Error" "Download of file $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_SQL_FILE unrealized!"
 
   _CHECKS_FILE_ZIPPED=$(file -b $_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE | grep [Z,z]ip)
-  if [ ! -z "$_CHECKS_FILE_ZIPPED" ]; then
+  if [ -n "$_CHECKS_FILE_ZIPPED" ]; then
     cd $_DIR_SQL_TEMP && unzip $_SONAR_OTHER_SQL_FILE
     rm $_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE
     _SONAR_OTHER_SQL_FILE=$(ls $_DIR_SQL_TEMP/*.sql)
@@ -358,15 +358,15 @@ type_menu () {
       QUBE|OTHER)
         install_sonar
 
-        if [ ! -z "$(search_app sonar.mysql)" ]; then
+        if [ -n "$(search_app sonar.mysql)" ]; then
           create_database
           sonar_properties
 
-          [ ! -z "$(search_app sonar.mysql.import)" ] && import_database
+          [ -n "$(search_app sonar.mysql.import)" ] && import_database
         fi
 
-        [ ! -z "$(search_app sonar.scanner)" ] && install_sonar_scanner
-        [ ! -z "$(search_app sonar.nginx)" ] && configure_nginx
+        [ -n "$(search_app sonar.scanner)" ] && install_sonar_scanner
+        [ -n "$(search_app sonar.nginx)" ] && configure_nginx
         ;;
     esac
   fi

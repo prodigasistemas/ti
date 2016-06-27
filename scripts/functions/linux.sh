@@ -147,7 +147,7 @@ confirm () {
   _CONFIRM_TITLE=$2
 
   if [ "$(provisioning)" = "manual" ]; then
-    if [ ! -z "$_CONFIRM_TITLE" ]; then
+    if [ -n "$_CONFIRM_TITLE" ]; then
       dialog --title "$_CONFIRM_TITLE" --yesno "$1" 0 0
     else
       dialog --yesno "$1" 0 0
@@ -308,7 +308,7 @@ admin_service () {
 get_java_home () {
   _JAVA_VERSION=$1
 
-  if [ ! -z "$JAVA_HOME" ]; then
+  if [ -n "$JAVA_HOME" ]; then
     _JAVA_HOME=$JAVA_HOME
   else
     _JAVA_HOME="/usr/lib/jvm/java-$_JAVA_VERSION-openjdk-$_ARCH"
@@ -362,7 +362,7 @@ disable_selinux () {
   if [ "$_OS_TYPE" = "rpm" ]; then
     _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")
 
-    if [ ! -z "$_SELINUX_ENABLED" ]; then
+    if [ -n "$_SELINUX_ENABLED" ]; then
       message "Alert" "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive"
 
       change_file "replace" "/etc/selinux/config" "^$_SELINUX_ENABLED" "SELINUX=permissive"

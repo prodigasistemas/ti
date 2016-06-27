@@ -81,7 +81,7 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app ruby)" ] && install_ruby
+    [ -n "$(search_app ruby)" ] && install_ruby
   fi
 }
 

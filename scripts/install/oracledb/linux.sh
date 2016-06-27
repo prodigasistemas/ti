@@ -70,7 +70,7 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app oracledb)" ] && install_oracleb
+    [ -n "$(search_app oracledb)" ] && install_oracleb
   fi
 }
 

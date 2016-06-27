@@ -77,7 +77,7 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app nginx)" ] && install_nginx
+    [ -n "$(search_app nginx)" ] && install_nginx
   fi
 }
 

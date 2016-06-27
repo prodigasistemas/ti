@@ -112,8 +112,8 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app jenkins.http.port)" ] && install_jenkins
-    [ ! -z "$(search_app jenkins.nginx)" ] && configure_nginx
+    [ -n "$(search_app jenkins.http.port)" ] && install_jenkins
+    [ -n "$(search_app jenkins.nginx)" ] && configure_nginx
   fi
 }
 

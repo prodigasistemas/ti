@@ -174,9 +174,9 @@ main () {
       $_MAIN_OPTION
     fi
   else
-    [ ! -z "$(search_app gitlab)" ] && install_gitlab
-    [ ! -z "$(search_app gitlab.email)" ] && configure_email
-    [ ! -z "$(search_app gitlab.nginx)" ] && configure_nginx
+    [ -n "$(search_app gitlab)" ] && install_gitlab
+    [ -n "$(search_app gitlab.email)" ] && configure_email
+    [ -n "$(search_app gitlab.nginx)" ] && configure_nginx
   fi
 }
 

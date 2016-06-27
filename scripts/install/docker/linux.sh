@@ -111,7 +111,7 @@ main () {
         $_OPTION
       fi
     else
-      [ ! -z "$(search_app docker)" ] && install_docker
+      [ -n "$(search_app docker)" ] && install_docker
     fi
   fi
 }

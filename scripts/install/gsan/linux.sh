@@ -119,7 +119,7 @@ create_gsan_databases () {
 
   _PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter a password for the user postgres")
   [ $? -eq 1 ] && main
-  [ ! -z "$_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_PASSWORD"
+  [ -n "$_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_PASSWORD"
 
   confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
   [ $? -eq 1 ] && main
@@ -158,7 +158,7 @@ change_postgres_password () {
   [ $? -eq 1 ] && main
   [ -z "$_NEW_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
-  [ ! -z "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
+  [ -n "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
 
   confirm "Confirm change postgres password?"
   [ $? -eq 1 ] && main
@@ -360,14 +360,14 @@ main () {
     fi
   else
     [ "$(search_value gsan.configure.locale.latin)" = "yes" ] && configure_locale_latin
-    [ ! -z "$(search_app gsan.postgresql.user.password)" ] && change_postgres_password
+    [ -n "$(search_app gsan.postgresql.user.password)" ] && change_postgres_password
     if [ "$(search_value gsan.create.databases)" = "yes" ]; then
       configure_datasource
       create_gsan_databases
     fi
-    [ ! -z "$(search_app gsan.mybatis.migrations.version)" ] && install_mybatis_migration
+    [ -n "$(search_app gsan.mybatis.migrations.version)" ] && install_mybatis_migration
     [ "$(search_value gsan.install.migrations)" = "yes" ] && install_gsan_migrations
-    [ ! -z "$(search_app gsan)" ] && install_gsan
+    [ -n "$(search_app gsan)" ] && install_gsan
   fi
 }
 

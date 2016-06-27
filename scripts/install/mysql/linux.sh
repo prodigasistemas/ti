@@ -126,10 +126,10 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app mysql.client)" ] && install_mysql_client
-    [ ! -z "$(search_app mysql.server)" ] && install_mysql_server
+    [ -n "$(search_app mysql.client)" ] && install_mysql_client
+    [ -n "$(search_app mysql.server)" ] && install_mysql_server
     [ "$(search_value mysql.server.remote_access)" = "yes" ] && remote_access
-    [ ! -z "$(search_app mysql.server.grant.privileges)" ] && grant_privileges
+    [ -n "$(search_app mysql.server.grant.privileges)" ] && grant_privileges
   fi
 }
 

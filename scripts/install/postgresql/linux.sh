@@ -120,7 +120,7 @@ change_password () {
   [ $? -eq 1 ] && main
   [ -z "$_NEW_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
-  [ ! -z "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
+  [ -n "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
 
   confirm "Confirm change postgres password?"
   [ $? -eq 1 ] && main
@@ -171,9 +171,9 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app postgresql.server.version)" ] && install_postgresql_server
-    [ ! -z "$(search_app postgresql.client.version)" ] && install_postgresql_client
-    [ ! -z "$(search_app postgresql.server.postgres.password)" ] && change_password
+    [ -n "$(search_app postgresql.server.version)" ] && install_postgresql_server
+    [ -n "$(search_app postgresql.client.version)" ] && install_postgresql_client
+    [ -n "$(search_app postgresql.server.postgres.password)" ] && change_password
     [ "$(search_value postgresql.server.remote.access)" = "yes" ] && remote_access
   fi
 }

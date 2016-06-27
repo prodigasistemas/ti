@@ -270,9 +270,9 @@ main () {
       $_MAIN_OPTION
     fi
   else
-    [ ! -z "$(search_app redmine)" ] && install_redmine
-    [ ! -z "$(search_app redmine.nginx)" ] && configure_nginx
-    [ ! -z "$(search_app redmine.email)" ] && configure_email
+    [ -n "$(search_app redmine)" ] && install_redmine
+    [ -n "$(search_app redmine.nginx)" ] && configure_nginx
+    [ -n "$(search_app redmine.email)" ] && configure_email
     [ "$(search_value redmine.issue_reports_plugin)" = "yes" ] && issue_reports_plugin
   fi
 }

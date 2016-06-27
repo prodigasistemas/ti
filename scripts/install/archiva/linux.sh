@@ -109,8 +109,8 @@ main () {
       $_OPTION
     fi
   else
-    [ ! -z "$(search_app archiva)" ] && install_archiva
-    [ ! -z "$(search_app archiva.nginx)" ] && configure_nginx
+    [ -n "$(search_app archiva)" ] && install_archiva
+    [ -n "$(search_app archiva.nginx)" ] && configure_nginx
   fi
 }
 

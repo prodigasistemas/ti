@@ -123,7 +123,7 @@ main () {
       install_$_JAVA_VERSION
     fi
   else
-    if [ ! -z "$(search_app java)" ]; then
+    if [ -n "$(search_app java)" ]; then
       _JAVA_VERSIONS=$(search_versions java.version)
       for java_version in $_JAVA_VERSIONS; do
         echo
