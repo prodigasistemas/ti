@@ -74,7 +74,7 @@ install_docker () {
 
   docker run hello-world
 
-  add_to_group $_GROUP "[no_alert]"
+  add_user_to_group $_GROUP "[no_alert]"
 
   message "Notice" "Docker successfully installed!"
 }

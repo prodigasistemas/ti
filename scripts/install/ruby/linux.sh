@@ -43,7 +43,7 @@ install_ruby () {
 
   source /etc/profile.d/rvm.sh
 
-  add_to_group $_GROUP "[no_alert]"
+  add_user_to_group $_GROUP "[no_alert]"
 
   case $_OS_TYPE in
     deb)

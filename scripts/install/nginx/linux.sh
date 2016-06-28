@@ -55,7 +55,7 @@ install_nginx () {
 
   [ "$_OS_TYPE" = "rpm" ] && admin_service nginx start
 
-  add_to_group $_GROUP "[no_alert]"
+  add_user_to_group $_GROUP "[no_alert]"
 
   message "Notice" "NGINX successfully installed!"
 }
