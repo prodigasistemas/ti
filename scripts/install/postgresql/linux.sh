@@ -15,6 +15,7 @@ _APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
                install_postgresql_client 'Install the database client' \
                add_user 'Add user to $_APP_NAME' \
+               change_password 'Change password the user' \
                create_database 'Create database' \
                remote_access 'Enable remote access'"
 
@@ -135,6 +136,27 @@ create_database () {
   run_as_postgres "psql -c \"GRANT CONNECT ON DATABASE $_DATABASE_NAME TO $_OWNER_NAME;\""
 
   [ $? -eq 0 ] && message "Notice" "Create database $_DATABASE_NAME successfully!"
+}
+
+change_password () {
+  _POSTGRES_PASSWORD=$(input_field "[default]" "Enter the postgres password")
+  [ $? -eq 1 ] && main
+  [ -n "$_POSTGRES_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_POSTGRES_PASSWORD"
+
+  _USER_NAME=$(input_field "[default]" "Enter the user name")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER_NAME" ] && message "Alert" "The user name can not be blank!"
+
+  _NEW_PASSWORD=$(input_field "[default]" "Enter a new password for the user $_USER_NAME")
+  [ $? -eq 1 ] && main
+  [ -z "$_NEW_PASSWORD" ] && message "Alert" "The new password can not be blank!"
+
+  confirm "Confirm change $_USER_NAME password?"
+  [ $? -eq 1 ] && main
+
+  run_as_postgres "${_INFORM_PASSWORD} psql -c \"ALTER USER $_USER_NAME WITH ENCRYPTED PASSWORD '$_NEW_PASSWORD';\""
+
+  [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
 }
 
 remote_access () {

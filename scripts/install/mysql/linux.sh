@@ -7,6 +7,7 @@ _OPTIONS_LIST="install_mysql_server 'Install the database server' \
                install_mysql_client 'Install the database client' \
                create_database 'Create database' \
                add_user 'Add user to $_APP_NAME Database' \
+               change_password 'Change password the user' \
                remote_access 'Enable remote access'"
 
 setup () {
@@ -41,6 +42,20 @@ mysql_database_name_input () {
   _MYSQL_DATABASE=$(input_field "[default]" "Enter the database name")
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_DATABASE" ] && message "Alert" "The database name can not be blank!"
+}
+
+mysql_user_input () {
+  _MYSQL_HOST=$(input_field "[default]" "Enter the host name" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host name can not be blank!"
+
+  _MYSQL_USER_NAME=$(input_field "[default]" "Enter the user name")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_USER_NAME" ] && message "Alert" "The user name can not be blank!"
+
+  _MYSQL_USER_PASSWORD=$(input_field "[default]" "Enter the user password")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_USER_PASSWORD" ] && message "Alert" "The user password can not be blank!"
 }
 
 install_mysql_server () {
@@ -98,26 +113,29 @@ add_user () {
 
   mysql_database_name_input
 
-  _MYSQL_HOST=$(input_field "[default]" "Enter the host name" "localhost")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host name can not be blank!"
+  mysql_user_input
 
-  _USER_NAME=$(input_field "[default]" "Enter the user name")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER_NAME" ] && message "Alert" "The user name can not be blank!"
-
-  _USER_PASSWORD=$(input_field "[default]" "Enter the user password")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER_PASSWORD" ] && message "Alert" "The user password can not be blank!"
-
-  confirm "Confirm create user $_USER_NAME@$_MYSQL_HOST to $_MYSQL_DATABASE?"
+  confirm "Confirm create user $_MYSQL_USER_NAME@$_MYSQL_HOST to $_MYSQL_DATABASE?"
   [ $? -eq 1 ] && main
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER '$_USER_NAME'@'$_MYSQL_HOST' IDENTIFIED BY '$_USER_PASSWORD';"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_MYSQL_DATABASE.* TO '$_USER_NAME'@'$_MYSQL_HOST' WITH GRANT OPTION;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' IDENTIFIED BY '$_MYSQL_USER_PASSWORD';"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_MYSQL_DATABASE.* TO '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' WITH GRANT OPTION;"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
 
-  [ $? -eq 0 ] && message "Notice" "User $_USER_NAME added and granted successfully!"
+  [ $? -eq 0 ] && message "Notice" "User $_MYSQL_USER_NAME added and granted successfully!"
+}
+
+change_password () {
+  mysql_root_password_input
+
+  mysql_user_input
+
+  confirm "Confirm change $_MYSQL_USER_NAME@$_MYSQL_HOST password?"
+  [ $? -eq 1 ] && main
+
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "SET PASSWORD FOR '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' = PASSWORD('$_MYSQL_USER_PASSWORD');"
+
+  [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
 }
 
 remote_access () {

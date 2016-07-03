@@ -183,13 +183,13 @@ run_as_user () {
 }
 
 run_as_postgres () {
-  su - postgres -c "$1" 2> /dev/null
+  su - postgres -c "$1"
 }
 
 postgres_version() {
   [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   if [ "$_OS_TYPE" = "rpm" ]; then
-    _POSTGRESQL_VERSION=$(run_as_postgres "psql -V" | cut -d' ' -f3)
+    _POSTGRESQL_VERSION=$(psql -V 2> /dev/null | cut -d' ' -f3)
     _POSTGRESQL_VERSION=${_POSTGRESQL_VERSION:0:3}
   fi
 
