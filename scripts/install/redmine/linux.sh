@@ -40,17 +40,13 @@ install_dependencies () {
 configure_database () {
   _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
 
-  _MYSQL_HOST=$(input_field "redmine.mysql.host" "Enter the host of the MySQL Server" "localhost")
+  _MYSQL_HOST=$(input_field "[default]" "Enter the host of the MySQL Server" "localhost")
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
 
-  _MYSQL_PORT=$(input_field "redmine.mysql.port" "Enter the port of the MySQL Server" "3306")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
-
   _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+  [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
     if [ "$_OS_TYPE" = "rpm" ]; then
       _MYSQL_ROOT_PASSWORD="[no_password]"
     else
@@ -62,12 +58,12 @@ configure_database () {
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP USER redmine@$_MYSQL_HOST;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP USER redmine@$_MYSQL_HOST;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
 
   echo "production:" > $_YAML_FILE
   echo "  adapter: mysql2" >> $_YAML_FILE
@@ -219,39 +215,38 @@ configure_nginx () {
 issue_reports_plugin () {
   _ISSUE_REPORTS_FOLDER=$_REDMINE_FOLDER/plugins/redmine_issue_reports
 
-  if command -v mysql > /dev/null; then
-    _MYSQL_HOST=$(input_field "redmine.mysql.host" "Enter the host of the MySQL Server" "localhost")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+  _MYSQL_CHECK=$(command -v mysql)
+  [ -z "$_MYSQL_CHECK" ] && message "Alert" "The MySQL Client is not installed!"
 
-    _MYSQL_PORT=$(input_field "redmine.mysql.port" "Enter the port of the MySQL Server" "3306")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
+  _MYSQL_HOST=$(input_field "[default]" "Enter the host of the MySQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
 
-    _USER_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the redmine password in database")
-    [ $? -eq 1 ] && main
-    [ -z "$_USER_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+  _MYSQL_PORT=$(input_field "[default]" "Enter the port of the MySQL Server" "3306")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
 
-    wget https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip
+  _USER_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the redmine password in database")
+  [ $? -eq 1 ] && main
+  [ -z "$_USER_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
-    unzip -oq master.zip
-    rm master.zip
-    mv redmine_issue_reports-master $_ISSUE_REPORTS_FOLDER
+  wget https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip
 
-    cp $_ISSUE_REPORTS_FOLDER/config/config.example.yml $_ISSUE_REPORTS_FOLDER/config/config.yml
-    cp $_ISSUE_REPORTS_FOLDER/update-redmine/custom_fields.js $_REDMINE_FOLDER/public/javascripts
+  unzip -oq master.zip
+  rm master.zip
+  mv redmine_issue_reports-master $_ISSUE_REPORTS_FOLDER
 
-    _ISSUE_FORM_FILE=$_REDMINE_FOLDER/app/views/issues/_form.html.erb
-    _FIND_TAG=$(cat $_ISSUE_FORM_FILE | grep custom_fields)
+  cp $_ISSUE_REPORTS_FOLDER/config/config.example.yml $_ISSUE_REPORTS_FOLDER/config/config.yml
+  cp $_ISSUE_REPORTS_FOLDER/update-redmine/custom_fields.js $_REDMINE_FOLDER/public/javascripts
 
-    [ -z "$_FIND_TAG" ] && echo "<%= javascript_include_tag 'custom_fields' %>" >> $_ISSUE_FORM_FILE
+  _ISSUE_FORM_FILE=$_REDMINE_FOLDER/app/views/issues/_form.html.erb
+  _FIND_TAG=$(cat $_ISSUE_FORM_FILE | grep custom_fields)
 
-    import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "redmine" "redmine" "$_USER_PASSWORD" "$_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql"
+  [ -z "$_FIND_TAG" ] && echo "<%= javascript_include_tag 'custom_fields' %>" >> $_ISSUE_FORM_FILE
 
-    [ $? -eq 0 ] && message "Notice" "Issue reports plugin is successfully configured!"
-  else
-    message "Alert" "The MySQL Client is not installed!"
-  fi
+  import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "redmine" "redmine" "$_USER_PASSWORD" "$_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql"
+
+  [ $? -eq 0 ] && message "Notice" "Issue reports plugin is successfully configured!"
 }
 
 main () {
@@ -273,7 +268,7 @@ main () {
     [ -n "$(search_app redmine)" ] && install_redmine
     [ -n "$(search_app redmine.nginx)" ] && configure_nginx
     [ -n "$(search_app redmine.email)" ] && configure_email
-    [ "$(search_value redmine.issue_reports_plugin)" = "yes" ] && issue_reports_plugin
+    [ "$(search_value redmine.issue.reports.plugin)" = "yes" ] && issue_reports_plugin
   fi
 }
 

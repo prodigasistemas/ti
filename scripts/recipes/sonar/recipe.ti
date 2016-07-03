@@ -3,12 +3,7 @@ java.version = oracleJDK8
 
 # Install MySQL Database Server
 mysql.server
-mysql.server.grant.privileges.host = localhost
-mysql.server.grant.privileges.port = 3306
-mysql.server.grant.privileges.root.password = root
-mysql.server.grant.privileges.database = sonar
-mysql.server.grant.privileges.user.name = sonar
-mysql.server.grant.privileges.user.password = sonar
+mysql.server.root.password = root
 
 # Install SonarQube from sonarqube.org
 sonar.source = qube
@@ -16,9 +11,7 @@ sonar.source = qube
 # Configure java command path
 sonar.java.command = /opt/java-oracle-8/bin/java
 
-# Configure mysql connection
-sonar.mysql.host = localhost
-sonar.mysql.port = 3306
+# Configure mysql
 sonar.mysql.root.password = root
 sonar.mysql.user.password = sonar
 

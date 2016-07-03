@@ -10,9 +10,6 @@ _SONAR_FOLDER="/opt/sonar"
 _PROPERTIES_FOLDER="$_SONAR_FOLDER/conf"
 _NGINX_DEFAULT_HOST="localhost:9000"
 _DEFAULT_HOST="http://$_NGINX_DEFAULT_HOST"
-_CONNECTION_ADDRESS_MYSQL="localhost:3306"
-_MYSQL_HOST_DEFAULT="localhost"
-_MYSQL_PORT_DEFAULT="3306"
 _SCANNER_VERSION_DEFAULT="2.6.1"
 
 _SONAR_OTHER_DOWNLOAD_URL="http://sonar.ggas.com.br/download"
@@ -27,9 +24,9 @@ _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
                install_sonar_scanner 'Install the Sonar Scanner' \
                configure_nginx 'Configure host on NGINX'"
 
-_OPTIONS_DATABASE="create_database 'Create the user and sonar database' \
-                   import_database 'Import sonar database from SQL file' \
-                   sonar_properties 'Configure the connection to the database'"
+_OPTIONS_DATABASE="create_sonar_database 'Create the user and sonar database' \
+                   import_sonar_database 'Import sonar database from SQL file' \
+                   configure_sonar_properties 'Configure the connection to the database'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -45,6 +42,26 @@ setup () {
   [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
   os_check
+}
+
+mysql_host_input () {
+  _MYSQL_HOST=$(input_field "[default]" "Enter the host of the MySQL Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+}
+
+mysql_connection_input () {
+  mysql_host_input
+
+  _MYSQL_PORT=$(input_field "[default]" "Enter the port of the MySQL Server" "3306")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
+}
+
+mysql_user_password_input () {
+  _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
+  [ $? -eq 1 ] && main
+  [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
 }
 
 install_sonar_qube () {
@@ -112,15 +129,9 @@ install_sonar () {
   [ $? -eq 0 ] && message "Notice" "Sonar successfully installed!"
 }
 
-create_database () {
+create_sonar_database () {
   if command -v mysql > /dev/null; then
-    _MYSQL_HOST=$(input_field "sonar.mysql.host" "Enter the host of the MySQL Server" "$_MYSQL_HOST_DEFAULT")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
-
-    _MYSQL_PORT=$(input_field "sonar.mysql.port" "Enter the port of the MySQL Server" "$_MYSQL_PORT_DEFAULT")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
+    mysql_host_input
   else
     message "Alert" "MySQL Client is not installed!"
   fi
@@ -135,38 +146,28 @@ create_database () {
     fi
   fi
 
-  _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
+  mysql_user_password_input
 
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS sonar;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE DATABASE sonar;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "DROP USER sonar@$_MYSQL_HOST;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION;"
-  mysql_as_root $_MYSQL_HOST $_MYSQL_PORT $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS sonar;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE sonar;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP USER sonar@$_MYSQL_HOST;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
 
   [ $? -eq 0 ] && message "Notice" "User and database sonar successfully created!"
 }
 
-import_database () {
-  _MYSQL_HOST=$(input_field "sonar.mysql.host" "Enter the host of the MySQL Server" "$_MYSQL_HOST_DEFAULT")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+import_sonar_database () {
+  mysql_connection_input
 
-  _MYSQL_PORT=$(input_field "sonar.mysql.port" "Enter the port of the MySQL Server" "$_MYSQL_PORT_DEFAULT")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
+  mysql_user_password_input
 
-  _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
-
-  _SONAR_OTHER_DOWNLOAD_URL=$(input_field "sonar.mysql.import.url" "Enter the sonar download URL" "$_SONAR_OTHER_DOWNLOAD_URL")
+  _SONAR_OTHER_DOWNLOAD_URL=$(input_field "sonar.mysql.import.database.url" "Enter the sonar download URL" "$_SONAR_OTHER_DOWNLOAD_URL")
   [ $? -eq 1 ] && main
   [ -z "$_SONAR_OTHER_DOWNLOAD_URL" ] && message "Alert" "The sonar download URL can not be blank!"
 
-  _SONAR_OTHER_SQL_FILE=$(input_field "sonar.mysql.import.file" "Enter the sonar SQL file to import" "sonar.sql")
+  _SONAR_OTHER_SQL_FILE=$(input_field "sonar.mysql.import.database.file" "Enter the sonar SQL file to import" "sonar.sql")
   [ $? -eq 1 ] && main
   [ -z "$_SONAR_OTHER_SQL_FILE" ] && message "Alert" "The sonar SQL file can not be blank!"
 
@@ -198,29 +199,21 @@ import_database () {
   [ $? -eq 0 ] && message "Notice" "Sonar database successfully imported!"
 }
 
-sonar_properties () {
+configure_sonar_properties () {
   _PROPERTIES_FILE="$_PROPERTIES_FOLDER/sonar.properties"
 
   [ ! -e "$_PROPERTIES_FILE" ] && message "Alert" "The properties file '$_PROPERTIES_FILE' was not found!"
 
-  _MYSQL_HOST=$(input_field "sonar.mysql.host" "Enter the host of the MySQL Server" "$_MYSQL_HOST_DEFAULT")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+  mysql_connection_input
 
-  _MYSQL_PORT=$(input_field "sonar.mysql.port" "Enter the port of the MySQL Server" "$_MYSQL_PORT_DEFAULT")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
-
-  _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
+  mysql_user_password_input
 
   _PROPERTIES_USERNAME=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
   _PROPERTIES_PASSWORD=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
 
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
-  change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_MYSQL_HOST:$_MYSQL_PORT"
+  change_file "replace" "$_PROPERTIES_FILE" "localhost:3306" "$_MYSQL_HOST:$_MYSQL_PORT"
   change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
 
   admin_service sonar restart
@@ -250,17 +243,9 @@ install_sonar_scanner () {
     [ -z "$_USER_TOKEN" ] && message "Alert" "The user token can not be blank!"
 
   elif [ "$_SONAR_OPTION" = "OTHER" ]; then
-    _MYSQL_HOST=$(input_field "sonar.mysql.host" "Enter the host of the MySQL Server" "$_MYSQL_HOST_DEFAULT")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+    mysql_connection_input
 
-    _MYSQL_PORT=$(input_field "sonar.mysql.port" "Enter the port of the MySQL Server" "$_MYSQL_PORT_DEFAULT")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
-
-    _MYSQL_SONAR_PASSWORD=$(input_field "sonar.mysql.user.password" "Enter the password of the sonar user in MySQL")
-    [ $? -eq 1 ] && main
-    [ -z "$_MYSQL_SONAR_PASSWORD" ] && message "Alert" "The sonar password can not be blank!"
+    mysql_user_password_input
 
   fi
 
@@ -287,7 +272,7 @@ install_sonar_scanner () {
 
     change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
     change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
-    change_file "replace" "$_PROPERTIES_FILE" "$_CONNECTION_ADDRESS_MYSQL" "$_MYSQL_HOST:$_MYSQL_PORT"
+    change_file "replace" "$_PROPERTIES_FILE" "localhost:3306" "$_MYSQL_HOST:$_MYSQL_PORT"
     change_file "replace" "$_PROPERTIES_FILE" "^#sonar.jdbc.url=jdbc:mysql" "sonar.jdbc.url=jdbc:mysql"
 
   fi
@@ -359,10 +344,10 @@ type_menu () {
         install_sonar
 
         if [ -n "$(search_app sonar.mysql)" ]; then
-          create_database
-          sonar_properties
+          create_sonar_database
+          configure_sonar_properties
 
-          [ -n "$(search_app sonar.mysql.import)" ] && import_database
+          [ -n "$(search_app sonar.mysql.import.database)" ] && import_sonar_database
         fi
 
         [ -n "$(search_app sonar.scanner)" ] && install_sonar_scanner

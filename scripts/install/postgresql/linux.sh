@@ -9,11 +9,13 @@
 # http://dba.stackexchange.com/questions/14740/how-to-use-psql-with-no-password-prompt
 # https://wiki.postgresql.org/wiki/YUM_Installation
 # https://www.unixmen.com/postgresql-9-4-released-install-centos-7/
+# http://dba.stackexchange.com/questions/33943/granting-access-to-all-tables-for-a-user
 
 _APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
                install_postgresql_client 'Install the database client' \
-               change_password 'Change password the user postgres' \
+               add_user 'Add user to $_APP_NAME' \
+               create_database 'Create database' \
                remote_access 'Enable remote access'"
 
 setup () {
@@ -30,14 +32,6 @@ setup () {
   [ -e "$_FUNCTIONS_FILE" ] && source $_FUNCTIONS_FILE && rm $_FUNCTIONS_FILE
 
   os_check
-}
-
-config_path () {
-  if [ "$_OS_TYPE" = "deb" ]; then
-    _PG_CONFIG_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
-  elif [ "$_OS_TYPE" = "rpm" ]; then
-    _PG_CONFIG_PATH="/var/lib/pgsql/$_POSTGRESQL_VERSION/data"
-  fi
 }
 
 install_postgresql_server () {
@@ -112,43 +106,49 @@ install_postgresql_client () {
   [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION Client successfully installed!"
 }
 
-change_password () {
-  _OLD_PASSWORD=$(input_field "[default]" "Enter a old password for the user postgres")
+add_user () {
+  postgres_add_user "[default]" "[default]"
+}
+
+create_database () {
+  _DATABASE_NAME=$(input_field "[default]" "Enter the database name")
+  [ $? -eq 1 ] && main
+  [ -z "$_DATABASE_NAME" ] && message "Alert" "The database name can not be blank!"
+
+  _OWNER_NAME=$(input_field "[default]" "Enter the owner name")
+  [ $? -eq 1 ] && main
+  [ -z "$_OWNER_NAME" ] && message "Alert" "The owner name can not be blank!"
+
+  _ENCODING=$(input_field "[default]" "Enter the enconding" "UTF8")
+  [ $? -eq 1 ] && main
+  [ -z "$_ENCODING" ] && message "Alert" "The enconding can not be blank!"
+
+  _TABLESPACE=$(input_field "[default]" "Enter the tablespace" "pg_default")
+  [ $? -eq 1 ] && main
+  [ -z "$_TABLESPACE" ] && message "Alert" "The tablespace can not be blank!"
+
+  confirm "Confirm create database $_DATABASE_NAME?"
   [ $? -eq 1 ] && main
 
-  _NEW_PASSWORD=$(input_field "postgresql.server.postgres.password" "Enter a new password for the user postgres")
-  [ $? -eq 1 ] && main
-  [ -z "$_NEW_PASSWORD" ] && message "Alert" "The password can not be blank!"
+  run_as_postgres "psql -c \"CREATE DATABASE $_DATABASE_NAME WITH OWNER=$_OWNER_NAME ENCODING='$_ENCODING' TABLESPACE=$_TABLESPACE;\""
+  run_as_postgres "psql -c \"REVOKE CONNECT ON DATABASE $_DATABASE_NAME FROM PUBLIC;\""
+  run_as_postgres "psql -c \"GRANT CONNECT ON DATABASE $_DATABASE_NAME TO $_OWNER_NAME;\""
 
-  [ -n "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
-
-  confirm "Confirm change postgres password?"
-  [ $? -eq 1 ] && main
-
-  run_as_postgres "${_INFORM_PASSWORD} psql -c \"ALTER USER postgres WITH ENCRYPTED PASSWORD '$_NEW_PASSWORD';\""
-
-  config_path
-
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "ident$" "md5"
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "trust$" "md5"
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "peer$" "md5"
-
-  [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
-
-  admin_service postgresql$_SERVICE_VERSION restart
-
-  [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
+  [ $? -eq 0 ] && message "Notice" "Create database $_DATABASE_NAME successfully!"
 }
 
 remote_access () {
   confirm "Do you want to enable remote access?"
   [ $? -eq 1 ] && main
 
-  config_path
+  _PG_CONFIG_PATH=$(postgres_config_path)
 
   change_file "append" "$_PG_CONFIG_PATH/pg_hba.conf" "^# IPv4 local connections:" "host    all             all             0.0.0.0/0               md5"
 
   change_file "replace" "$_PG_CONFIG_PATH/postgresql.conf" "^#listen_addresses = 'localhost'" "listen_addresses = '*'"
+
+  run_as_postgres "psql -c \"REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;\""
+  run_as_postgres "psql -c \"GRANT CONNECT ON DATABASE postgres TO postgres;\""
 
   [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
@@ -173,7 +173,6 @@ main () {
   else
     [ -n "$(search_app postgresql.server.version)" ] && install_postgresql_server
     [ -n "$(search_app postgresql.client.version)" ] && install_postgresql_client
-    [ -n "$(search_app postgresql.server.postgres.password)" ] && change_password
     [ "$(search_value postgresql.server.remote.access)" = "yes" ] && remote_access
   fi
 }

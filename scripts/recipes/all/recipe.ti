@@ -7,17 +7,12 @@ java.version = oracleJDK8
 ruby.version = 2.3.1
 
 # Install MySQL Database Server
-mysql.server.remote_access = yes
+mysql.server.remote.access = no
 
 # Or MySQL Client
 # mysql.client
 
-mysql.server.grant.privileges.host = localhost
-mysql.server.grant.privileges.port = 3306
-mysql.server.grant.privileges.root.password = root
-mysql.server.grant.privileges.database = mysql
-mysql.server.grant.privileges.user.name = vagrant
-mysql.server.grant.privileges.user.password = vagrant
+mysql.server.root.password = root
 
 # Install PostgreSQL Database Server
 postgresql.server.version = 9.5
@@ -28,8 +23,7 @@ postgresql.server.port = 5432
 # Or PostgreSQL Client
 # postgresql.client.version = 9.5
 
-postgresql.server.postgres.password = postgres
-postgresql.server.remote.access = yes
+postgresql.server.remote.access = no
 
 # Install Docker
 docker
@@ -44,16 +38,15 @@ nginx
 
 # Install Redmine
 redmine.version = 3.3.0
-redmine.mysql.host = localhost
-redmine.mysql.port = 3306
-redmine.mysql.root.password = 123456
+redmine.mysql.root.password = root
 redmine.mysql.user.password = redmine
+
 redmine.email.domain = localhost
 redmine.email.smtp = smtp.localhost
 redmine.email.user.name = username
 redmine.email.user.password = password
 redmine.nginx.domain = redmine.local
-redmine.issue_reports_plugin = yes
+redmine.issue.reports.plugin = yes
 
 # Install GitLab
 gitlab.http.port = 7070
@@ -84,15 +77,13 @@ sonar.source = qube
 ## Configure java command path
 sonar.java.command = java
 
-## Configure mysql connection
-sonar.mysql.host = localhost
-sonar.mysql.port = 3306
+## Configure mysql credencial
 sonar.mysql.root.password = root
 sonar.mysql.user.password = sonar
 
 ## Import sql file from download
-# sonar.mysql.import.url = http://sonar.ggas.com.br/download
-# sonar.mysql.import.file = sonar.sql
+# sonar.mysql.import.database.url = http://sonar.ggas.com.br/download
+# sonar.mysql.import.database.file = sonar.sql
 
 ## Install sonar scanner
 sonar.scanner.version = 2.6.1
@@ -126,5 +117,5 @@ gsan.install.migrations = yes
 
 gsan.postgresql.host = localhost
 gsan.postgresql.port = 5432
-gsan.postgresql.user.name = postgres
-gsan.postgresql.user.password = postgres
+gsan.postgresql.user.name = gsan
+gsan.postgresql.user.password = gsan
