@@ -10,7 +10,6 @@ _DEFAULT_PATH="/opt"
 _MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
 _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
-               add_user 'Add user to PostgreSQL Database' \
                configure_datasource 'Datasource configuration' \
                create_gsan_databases 'Create GSAN databases' \
                install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
@@ -96,8 +95,10 @@ configure_locale_latin () {
   [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
 }
 
-add_user () {
-  postgres_add_user "gsan.postgresql.user.name" "gsan.postgresql.user.password"
+configure_postgres_access () {
+  credential_data
+
+  run_as_postgres "psql -c \"ALTER USER $_POSTGRESQL_USER_NAME WITH ENCRYPTED PASSWORD '$_POSTGRESQL_USER_PASSWORD';\""
 }
 
 configure_datasource () {
@@ -302,11 +303,17 @@ install_gsan () {
 
   _JAVA_HOME=$(get_java_home 6)
 
-  run_as_user $_OWNER "JBOSS_HOME=$_DEFAULT_PATH/jboss /etc/init.d/jboss stop"
+  change_file "append" "$_DEFAULT_PATH/jboss/server/default/conf/log4j.xml" "<param name=\"Append\" value=\"false\"\/>" "<param name=\"Threshold\" value=\"INFO\" \/>"
+
+  change_file "append" "/etc/init.d/jboss" "JBOSS_HOME=\/opt\/jboss" "export JAVA_HOME=$_JAVA_HOME"
+
+  run_as_user $_OWNER "/etc/init.d/jboss stop"
 
   run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
 
-  run_as_user $_OWNER "JBOSS_HOME=$JBOSS_GSAN /etc/init.d/jboss start"
+  run_as_user $_OWNER "cp $_DEFAULT_PATH/jboss/server/default/deploy/gcom.ear/gcom.war/WEB-INF/lib/gsan-relatorios-cliente.jar $_DEFAULT_PATH/jboss/server/default/lib/"
+
+  run_as_user $_OWNER "/etc/init.d/jboss start"
 
   cd $_CURRENT_DIR
 
@@ -335,7 +342,7 @@ main () {
   else
     [ "$(search_value gsan.configure.locale.latin)" = "yes" ] && configure_locale_latin
     if [ "$(search_value gsan.create.databases)" = "yes" ]; then
-      add_user
+      configure_postgres_access
       configure_datasource
       create_gsan_databases
     fi

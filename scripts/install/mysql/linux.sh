@@ -6,7 +6,7 @@ _APP_NAME="MySQL"
 _OPTIONS_LIST="install_mysql_server 'Install the database server' \
                install_mysql_client 'Install the database client' \
                create_database 'Create database' \
-               add_user 'Add user to $_APP_NAME Database' \
+               add_user 'Add user to Database' \
                change_password 'Change password the user' \
                remote_access 'Enable remote access'"
 
@@ -27,9 +27,9 @@ setup () {
 }
 
 mysql_root_password_input () {
-  _MYSQL_ROOT_PASSWORD=$(input_field "[default]" "Enter the password of the root user in MySQL")
+  _MYSQL_ROOT_PASSWORD=$(input_field "[default]" "Enter the password of the root user in $_MYSQL_NAME")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
     if [ "$_OS_TYPE" = "rpm" ]; then
       _MYSQL_ROOT_PASSWORD="[no_password]"
     else
@@ -59,12 +59,13 @@ mysql_user_input () {
 }
 
 install_mysql_server () {
-  confirm "Confirm the installation of MySQL Server?"
+  confirm "Confirm the installation of $_MYSQL_NAME Server?"
   [ $? -eq 1 ] && main
 
   case "$_OS_TYPE" in
     deb)
       _PASSWORD_MESSAGE=" The root password is root"
+
       debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
       debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
 
@@ -72,23 +73,24 @@ install_mysql_server () {
       ;;
     rpm)
       _PASSWORD_MESSAGE=" The root user has no password"
-      $_PACKAGE_COMMAND -y install mysql-server mysql-devel
 
-      admin_service mysqld register
+      $_PACKAGE_COMMAND -y install $_MYSQL_NAME_LOWERCASE-server $_MYSQL_NAME_LOWERCASE-devel
 
-      admin_service mysqld start
+      admin_service $_MYSQL_SERVICE register
+
+      admin_service $_MYSQL_SERVICE start
       ;;
   esac
 
-  [ $? -eq 0 ] && message "Notice" "MySQL Server successfully installed!${_PASSWORD_MESSAGE}"
+  [ $? -eq 0 ] && message "Notice" "$_MYSQL_NAME Server successfully installed!${_PASSWORD_MESSAGE}"
 }
 
 install_mysql_client () {
-  confirm "Confirm the installation of MySQL Client?"
+  confirm "Confirm the installation of $_MYSQL_NAME Client?"
   [ $? -eq 1 ] && main
 
   [ "$_OS_TYPE" = "deb" ] && _PACKAGE="mysql-client"
-  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE="mysql"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE=$_MYSQL_NAME_LOWERCASE
 
   $_PACKAGE_COMMAND -y install $_PACKAGE
 
@@ -115,7 +117,7 @@ add_user () {
 
   mysql_user_input
 
-  confirm "Confirm create user $_MYSQL_USER_NAME@$_MYSQL_HOST to $_MYSQL_DATABASE?"
+  confirm "Confirm create user $_MYSQL_USER_NAME@$_MYSQL_HOST to database $_MYSQL_DATABASE?"
   [ $? -eq 1 ] && main
 
   mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' IDENTIFIED BY '$_MYSQL_USER_PASSWORD';"
@@ -143,10 +145,8 @@ remote_access () {
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    _MYSQL_SERVICE="mysql"
     change_file "replace" "/etc/mysql/my.cnf" "bind-address" "#bind-address"
   elif [ "$_OS_TYPE" = "rpm" ]; then
-    _MYSQL_SERVICE="mysqld"
     change_file "append" "/etc/my.cnf" "symbolic-links=0" "bind-address = 0.0.0.0"
   fi
 
@@ -156,6 +156,20 @@ remote_access () {
 }
 
 main () {
+  _MYSQL_NAME="MySQL"
+  _MYSQL_SERVICE="mysql"
+
+  if [ "$_OS_TYPE" = "rpm" ]; then
+    if [ "$_OS_RELEASE" -le 6 ]; then
+      _MYSQL_SERVICE="mysqld"
+    else
+      _MYSQL_NAME="MariaDB"
+      _MYSQL_SERVICE="mariadb"
+    fi
+  fi
+
+  _MYSQL_NAME_LOWERCASE=$(echo $_MYSQL_NAME | tr [:upper:] [:lower:])
+
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
 

@@ -1,4 +1,5 @@
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
+# http://centoshowtos.org/blog/ifconfig-on-centos-7/
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
@@ -216,7 +217,7 @@ postgres_add_user () {
   [ $? -eq 1 ] && main
   [ -z "$_PG_USER_PASSWORD" ] && message "Alert" "The password can not be blank!"
 
-  confirm "Confirm add user $_USER_NAME with password $_PG_USER_PASSWORD?"
+  confirm "Confirm add user $_PG_USER_NAME with password $_PG_USER_PASSWORD?"
   [ $? -eq 1 ] && main
 
   run_as_postgres "psql -c \"CREATE ROLE $_PG_USER_NAME LOGIN ENCRYPTED PASSWORD '$_PG_USER_PASSWORD' NOINHERIT VALID UNTIL 'infinity';\""

@@ -23,5 +23,5 @@ gsan.install.migrations = yes
 
 gsan.postgresql.host = localhost
 gsan.postgresql.port = 5432
-gsan.postgresql.user.name = gsan
-gsan.postgresql.user.password = gsan
+gsan.postgresql.user.name = postgres
+gsan.postgresql.user.password = postgres

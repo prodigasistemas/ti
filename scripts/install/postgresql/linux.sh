@@ -128,7 +128,7 @@ create_database () {
   [ $? -eq 1 ] && main
   [ -z "$_TABLESPACE" ] && message "Alert" "The tablespace can not be blank!"
 
-  confirm "Confirm create database $_DATABASE_NAME?"
+  confirm "Database: $_DATABASE_NAME\nOwner: $_OWNER_NAME\nEncoding: $_ENCODING\nTablespace: $_TABLESPACE\n\nConfirm create?"
   [ $? -eq 1 ] && main
 
   run_as_postgres "psql -c \"CREATE DATABASE $_DATABASE_NAME WITH OWNER=$_OWNER_NAME ENCODING='$_ENCODING' TABLESPACE=$_TABLESPACE;\""
