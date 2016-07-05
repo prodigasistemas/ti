@@ -91,6 +91,10 @@ install_sonar_other () {
   confirm "File download URL: $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_FILE. Confirm?"
   [ $? -eq 1 ] && main
 
+  java_check 7
+
+  _JAVA_HOME=$(get_java_home 7)
+
   wget "$_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_FILE"
   [ $? -ne 0 ] && message "Error" "Download of file $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_FILE unrealized!"
 
@@ -99,7 +103,9 @@ install_sonar_other () {
 
   _DIR_EXTRACTED=$(echo $_SONAR_OTHER_FILE | sed 's/.tar.gz//g')
   mv $_DIR_EXTRACTED $_SONAR_FOLDER
-  mv "$_SONAR_FOLDER/conf/sonar.properties_old" "$_SONAR_FOLDER/conf/sonar.properties"
+  mv "$_PROPERTIES_FOLDER/sonar.properties_old" "$_PROPERTIES_FOLDER/sonar.properties"
+
+  change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_HOME/bin/java"
 
   ln -sf "$_SONAR_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" /etc/init.d/sonar
 
@@ -109,21 +115,26 @@ install_sonar_other () {
 }
 
 install_sonar () {
-  _JAVA_COMMAND=$(input_field "sonar.java.command" "Enter the path of command Java 8" "java")
+  java_check 8
+
+  _JAVA_HOME=$(get_java_home 8)
+
+  _JAVA_COMMAND=$(input_field "sonar.java.command" "Enter the path of command Java 8" "$_JAVA_HOME/bin/java")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
-  admin_service sonar stop
+  admin_service sonar stop 2> /dev/null
 
   backup_folder $_SONAR_FOLDER
 
-  [ "$_SONAR_OPTION" = "QUBE" ] && install_sonar_qube
-  [ "$_SONAR_OPTION" = "OTHER" ] && install_sonar_other
+  _SONAR_OPTION_LOWERCASE=$(echo $_SONAR_OPTION | tr [:upper:] [:lower:])
+
+  install_sonar_$_SONAR_OPTION_LOWERCASE
 
   change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_COMMAND"
 
   if [ "$_SONAR_OPTION" = "QUBE" ] && [ "$_OS_TYPE" = "rpm" ]; then
-    admin_service sonar restart
+    admin_service sonar restart 2> /dev/null
   fi
 
   [ $? -eq 0 ] && message "Notice" "Sonar successfully installed!"

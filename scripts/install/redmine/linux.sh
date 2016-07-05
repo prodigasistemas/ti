@@ -34,6 +34,8 @@ install_dependencies () {
   [ "$_OS_TYPE" = "deb" ] && _PACKAGES="libmagickwand-dev libgmp3-dev"
   [ "$_OS_TYPE" = "rpm" ] && _PACKAGES="ImageMagick-devel"
 
+  print_colorful white bold "> Installing dependencies..."
+
   $_PACKAGE_COMMAND -y install $_PACKAGES
 }
 
@@ -46,7 +48,7 @@ configure_database () {
 
   _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
+  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
     if [ "$_OS_TYPE" = "rpm" ]; then
       _MYSQL_ROOT_PASSWORD="[no_password]"
     else
@@ -57,6 +59,8 @@ configure_database () {
   _MYSQL_REDMINE_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the password of the redmine user in MySQL")
   [ $? -eq 1 ] && main
   [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+
+  print_colorful white bold "> Configuring database..."
 
   mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
@@ -72,8 +76,6 @@ configure_database () {
   echo "  username: redmine" >> $_YAML_FILE
   echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
   echo "  encoding: utf8" >> $_YAML_FILE
-
-  [ $? -eq 0 ] && message "Notice" "Database successfully configured!"
 }
 
 install_redmine () {
@@ -99,7 +101,11 @@ install_redmine () {
 
   install_dependencies
 
+  print_colorful white bold "> Downloading Redmine..."
+
   wget http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz
+
+  [ $? -ne 0 ] && message "Error" "Download of file redmine-$_REDMINE_VERSION.tar.gz unrealized!"
 
   tar -xzf redmine-$_REDMINE_VERSION.tar.gz
 
@@ -117,7 +123,11 @@ install_redmine () {
   run_as_user $_USER_LOGGED "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
   run_as_user $_USER_LOGGED "gem install bundler"
 
+  print_colorful white bold "> Installing gems..."
+
   run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
+
+  print_colorful white bold "> Running data migration..."
 
   run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
 
@@ -125,8 +135,13 @@ install_redmine () {
 
   run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
+  print_colorful white bold "> Setting Redmine..."
+
   _UNICORN_RB_FILE="unicorn.rb"
   curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
+
+  [ $? -ne 0 ] && message "Error" "Download of file unicorn.rb unrealized!"
+
   change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
   chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
@@ -135,6 +150,9 @@ install_redmine () {
 
   _UNICORN_INIT_FILE="unicorn_init.sh"
   curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
+
+  [ $? -ne 0 ] && message "Error" "Download of file unicorn_init.sh unrealized!"
+
   change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
   change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
@@ -143,6 +161,8 @@ install_redmine () {
   mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
   rm $_UNICORN_INIT_FILE*
   ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
+
+  print_colorful white bold "> Starting Redmine..."
 
   admin_service unicorn_redmine register
 
@@ -170,6 +190,8 @@ configure_email () {
 
   confirm "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" "Configure sending email"
   [ $? -eq 1 ] && main
+
+  print_colorful white bold "> Configuring sending e-mail..."
 
   _CONFIG_FILE=$_REDMINE_FOLDER/config/configuration.yml
 
@@ -230,7 +252,11 @@ issue_reports_plugin () {
   [ $? -eq 1 ] && main
   [ -z "$_USER_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
 
+  print_colorful white bold "> Configuring issue reports plugin..."
+
   wget https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip
+
+  [ $? -ne 0 ] && message "Error" "Download of file master.zip unrealized!"
 
   unzip -oq master.zip
   rm master.zip
