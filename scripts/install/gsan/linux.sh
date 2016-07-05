@@ -10,7 +10,6 @@ _DEFAULT_PATH="/opt"
 _MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
 _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
-               change_postgres_password 'Change password the user postgres' \
                configure_datasource 'Datasource configuration' \
                create_gsan_databases 'Create GSAN databases' \
                install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
@@ -33,6 +32,16 @@ setup () {
   os_check
 }
 
+credential_data () {
+  _POSTGRESQL_USER_NAME=$(input_field "gsan.postgresql.user.name" "Enter the user name of the PostgreSQL Server")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_USER_NAME" ] && message "Alert" "The user name of the PostgreSQL Server can not be blank!"
+
+  _POSTGRESQL_USER_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter the user password of the PostgreSQL Server")
+  [ $? -eq 1 ] && main
+  [ -z "$_POSTGRESQL_USER_PASSWORD" ] && message "Alert" "The user password of the PostgreSQL Server can not be blank!"
+}
+
 input_datas () {
   _POSTGRESQL_HOST=$(input_field "gsan.postgresql.host" "Enter the host of the PostgreSQL Server" "localhost")
   [ $? -eq 1 ] && main
@@ -42,13 +51,7 @@ input_datas () {
   [ $? -eq 1 ] && main
   [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
 
-  _POSTGRESQL_USER_NAME=$(input_field "gsan.postgresql.user.name" "Enter the user name of the PostgreSQL Server")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_USER_NAME" ] && message "Alert" "The user name of the PostgreSQL Server can not be blank!"
-
-  _POSTGRESQL_USER_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter the user password of the PostgreSQL Server")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_USER_PASSWORD" ] && message "Alert" "The user password of the PostgreSQL Server can not be blank!"
+  credential_data
 }
 
 configure_locale_latin () {
@@ -92,6 +95,12 @@ configure_locale_latin () {
   [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
 }
 
+configure_postgres_access () {
+  credential_data
+
+  run_as_postgres "psql -c \"ALTER USER $_POSTGRESQL_USER_NAME WITH ENCRYPTED PASSWORD '$_POSTGRESQL_USER_PASSWORD';\""
+}
+
 configure_datasource () {
   jboss_check 4
 
@@ -117,9 +126,7 @@ create_gsan_databases () {
   _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
-  _PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter a password for the user postgres")
-  [ $? -eq 1 ] && main
-  [ -n "$_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_PASSWORD"
+  credential_data
 
   confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
   [ $? -eq 1 ] && main
@@ -135,47 +142,15 @@ create_gsan_databases () {
   run_as_postgres "rm -rf $_INDEX_FOLDER"
   run_as_postgres "mkdir $_INDEX_FOLDER"
   run_as_postgres "chmod 700 $_INDEX_FOLDER"
-  run_as_postgres "$_INFORM_PASSWORD createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_comercial"
-  run_as_postgres "$_INFORM_PASSWORD createdb --encoding=LATIN1 --tablespace=pg_default -e gsan_gerencial"
-  run_as_postgres "$_INFORM_PASSWORD psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
+
+  _DATABASES="gsan_comercial gsan_gerencial"
+  for database in $_DATABASES; do
+    run_as_postgres "psql -c \"CREATE DATABASE $database WITH OWNER=$_POSTGRESQL_USER_NAME ENCODING='LATIN1' TABLESPACE=pg_default;\""
+  done
+
+  run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
 
   [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
-}
-
-config_path () {
-  if [ "$_OS_TYPE" = "deb" ]; then
-    _PG_CONFIG_PATH="/etc/postgresql/$_POSTGRESQL_VERSION/main"
-  elif [ "$_OS_TYPE" = "rpm" ]; then
-    _PG_CONFIG_PATH="/var/lib/pgsql/$_POSTGRESQL_VERSION/data"
-  fi
-}
-
-change_postgres_password () {
-  _OLD_PASSWORD=$(input_field "[default]" "Enter a old password for the user postgres")
-  [ $? -eq 1 ] && main
-
-  _NEW_PASSWORD=$(input_field "gsan.postgresql.user.password" "Enter a new password for the user postgres")
-  [ $? -eq 1 ] && main
-  [ -z "$_NEW_PASSWORD" ] && message "Alert" "The password can not be blank!"
-
-  [ -n "$_OLD_PASSWORD" ] && _INFORM_PASSWORD="PGPASSWORD=$_OLD_PASSWORD"
-
-  confirm "Confirm change postgres password?"
-  [ $? -eq 1 ] && main
-
-  run_as_postgres "${_INFORM_PASSWORD} psql -c \"ALTER USER postgres WITH ENCRYPTED PASSWORD '$_NEW_PASSWORD';\""
-
-  config_path
-
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "ident$" "md5"
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "trust$" "md5"
-  change_file "replace" "$_PG_CONFIG_PATH/pg_hba.conf" "peer$" "md5"
-
-  [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
-
-  admin_service postgresql$_SERVICE_VERSION restart
-
-  [ $? -eq 0 ] && message "Notice" "postgres password changed successfully!"
 }
 
 install_mybatis_migration () {
@@ -328,11 +303,17 @@ install_gsan () {
 
   _JAVA_HOME=$(get_java_home 6)
 
-  run_as_user $_OWNER "JBOSS_HOME=$_DEFAULT_PATH/jboss /etc/init.d/jboss stop"
+  change_file "append" "$_DEFAULT_PATH/jboss/server/default/conf/log4j.xml" "<param name=\"Append\" value=\"false\"\/>" "<param name=\"Threshold\" value=\"INFO\" \/>"
+
+  change_file "append" "/etc/init.d/jboss" "JBOSS_HOME=\/opt\/jboss" "export JAVA_HOME=$_JAVA_HOME"
+
+  run_as_user $_OWNER "/etc/init.d/jboss stop"
 
   run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
 
-  run_as_user $_OWNER "JBOSS_HOME=$JBOSS_GSAN /etc/init.d/jboss start"
+  run_as_user $_OWNER "cp $_DEFAULT_PATH/jboss/server/default/deploy/gcom.ear/gcom.war/WEB-INF/lib/gsan-relatorios-cliente.jar $_DEFAULT_PATH/jboss/server/default/lib/"
+
+  run_as_user $_OWNER "/etc/init.d/jboss start"
 
   cd $_CURRENT_DIR
 
@@ -360,8 +341,8 @@ main () {
     fi
   else
     [ "$(search_value gsan.configure.locale.latin)" = "yes" ] && configure_locale_latin
-    [ -n "$(search_app gsan.postgresql.user.password)" ] && change_postgres_password
     if [ "$(search_value gsan.create.databases)" = "yes" ]; then
+      configure_postgres_access
       configure_datasource
       create_gsan_databases
     fi

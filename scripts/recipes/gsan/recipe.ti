@@ -13,7 +13,6 @@ jboss.config.rmi.port = 8099
 postgresql.server.version = 9.5
 postgresql.server.host = localhost
 postgresql.server.port = 5432
-postgresql.server.postgres.password = postgres
 
 # Install GSAN
 gsan.configure.locale.latin = yes

@@ -1,4 +1,5 @@
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
+# http://centoshowtos.org/blog/ifconfig-on-centos-7/
 
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
@@ -183,29 +184,55 @@ run_as_user () {
 }
 
 run_as_postgres () {
-  su - postgres -c "$1" 2> /dev/null
+  su - postgres -c "$1"
 }
 
 postgres_version() {
   [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
   if [ "$_OS_TYPE" = "rpm" ]; then
-    _POSTGRESQL_VERSION=$(run_as_postgres "psql -V" | cut -d' ' -f3)
+    _POSTGRESQL_VERSION=$(psql -V 2> /dev/null | cut -d' ' -f3)
     _POSTGRESQL_VERSION=${_POSTGRESQL_VERSION:0:3}
   fi
 
   echo $_POSTGRESQL_VERSION
 }
 
+postgres_config_path () {
+  if [ "$_OS_TYPE" = "deb" ]; then
+    echo "/etc/postgresql/$_POSTGRESQL_VERSION/main"
+  elif [ "$_OS_TYPE" = "rpm" ]; then
+    echo "/var/lib/pgsql/$_POSTGRESQL_VERSION/data"
+  fi
+}
+
+postgres_add_user () {
+  _FIELD1=$1
+  _FIELD2=$2
+
+  _PG_USER_NAME=$(input_field "$_FIELD1" "Enter a user name")
+  [ $? -eq 1 ] && main
+  [ -z "$_PG_USER_NAME" ] && message "Alert" "The user name can not be blank!"
+
+  _PG_USER_PASSWORD=$(input_field "$_FIELD2" "Enter a password for the user $_PG_USER_NAME")
+  [ $? -eq 1 ] && main
+  [ -z "$_PG_USER_PASSWORD" ] && message "Alert" "The password can not be blank!"
+
+  confirm "Confirm add user $_PG_USER_NAME with password $_PG_USER_PASSWORD?"
+  [ $? -eq 1 ] && main
+
+  run_as_postgres "psql -c \"CREATE ROLE $_PG_USER_NAME LOGIN ENCRYPTED PASSWORD '$_PG_USER_PASSWORD' NOINHERIT VALID UNTIL 'infinity';\""
+
+  [ $? -eq 0 ] && message "Notice" "User $_PG_USER_NAME added successfully!"
+}
+
 mysql_as_root () {
-  _MYSQL_HOST=$1
-  _MYSQL_PORT=$2
-  _MYSQL_ROOT_PASSWORD=$3
-  _MYSQL_COMMAND=$4
+  _MYSQL_ROOT_PASSWORD=$1
+  _MYSQL_COMMAND=$2
 
   if [ "$_MYSQL_ROOT_PASSWORD" = "[no_password]" ]; then
-    mysql -h $_MYSQL_HOST -P $_MYSQL_PORT -u root -e "$_MYSQL_COMMAND" 2> /dev/null
+    mysql -u root -e "$_MYSQL_COMMAND" 2> /dev/null
   else
-    mysql -h $_MYSQL_HOST -P $_MYSQL_PORT -u root -p$_MYSQL_ROOT_PASSWORD -e "$_MYSQL_COMMAND" 2> /dev/null
+    mysql -u root -p$_MYSQL_ROOT_PASSWORD -e "$_MYSQL_COMMAND" 2> /dev/null
   fi
 }
 

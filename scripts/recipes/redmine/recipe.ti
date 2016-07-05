@@ -3,20 +3,13 @@ ruby.version = 2.3.1
 
 # Install MySQL Database Server
 mysql.server
-mysql.server.grant.privileges.host = localhost
-mysql.server.grant.privileges.port = 3306
-mysql.server.grant.privileges.root.password = root
-mysql.server.grant.privileges.database = redmine
-mysql.server.grant.privileges.user.name = vagrant
-mysql.server.grant.privileges.user.password = vagrant
+mysql.server.root.password = root
 
 # Install NGINX web server
 nginx
 
 # Install Redmine
 redmine.version = 3.3.0
-redmine.mysql.host = localhost
-redmine.mysql.port = 3306
 redmine.mysql.root.password = root
 redmine.mysql.user.password = redmine
 redmine.email.domain = localhost
@@ -24,4 +17,4 @@ redmine.email.smtp = smtp.localhost
 redmine.email.user.name = username
 redmine.email.user.password = password
 redmine.nginx.domain = redmine.local
-redmine.issue_reports_plugin = yes
+redmine.issue.reports.plugin = yes
