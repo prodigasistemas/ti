@@ -184,12 +184,22 @@ run_as_user () {
 }
 
 run_as_postgres () {
-  su - postgres -c "$1"
+  _PG_COMMAND=$1
+  _ERROR_FILE="/tmp/.ti.postgresql.error"
+
+  su - postgres -c "$_PG_COMMAND" 2> $_ERROR_FILE
+
+  if [ $? -ne 0 ] && [ -e "$_ERROR_FILE" ]; then
+    _ERROR_MESSAGE=$(cat $_ERROR_FILE)
+    rm -f $_ERROR_FILE
+    [ -n "$_ERROR_MESSAGE" ] && message "Error" "$_ERROR_MESSAGE"
+  fi
 }
 
 postgres_version() {
-  [ "$_OS_TYPE" = "deb" ] && _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
-  if [ "$_OS_TYPE" = "rpm" ]; then
+  if [ "$_OS_TYPE" = "deb" ]; then
+    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+  elif [ "$_OS_TYPE" = "rpm" ]; then
     _POSTGRESQL_VERSION=$(psql -V 2> /dev/null | cut -d' ' -f3)
     _POSTGRESQL_VERSION=${_POSTGRESQL_VERSION:0:3}
   fi
@@ -228,11 +238,18 @@ postgres_add_user () {
 mysql_as_root () {
   _MYSQL_ROOT_PASSWORD=$1
   _MYSQL_COMMAND=$2
+  _ERROR_FILE="/tmp/.ti.mysql.error"
 
   if [ "$_MYSQL_ROOT_PASSWORD" = "[no_password]" ]; then
-    mysql -u root -e "$_MYSQL_COMMAND" 2> /dev/null
+    mysql -u root -e "$_MYSQL_COMMAND" 2> $_ERROR_FILE
   else
-    mysql -u root -p$_MYSQL_ROOT_PASSWORD -e "$_MYSQL_COMMAND" 2> /dev/null
+    MYSQL_PWD=$_MYSQL_ROOT_PASSWORD mysql -u root -e "$_MYSQL_COMMAND" 2> $_ERROR_FILE
+  fi
+
+  if [ $? -ne 0 ] && [ -e "$_ERROR_FILE" ]; then
+    _ERROR_MESSAGE=$(cat $_ERROR_FILE)
+    rm -f $_ERROR_FILE
+    [ -n "$_ERROR_MESSAGE" ] && message "Error" "$_ERROR_MESSAGE"
   fi
 }
 
@@ -246,7 +263,7 @@ import_database () {
   _DATABASE_FILE=$7
 
   if [ "$_DATABASE_TYPE" = "mysql" ]; then
-    mysql -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER -p$_DATABASE_PASSWORD $_DATABASE_NAME < $_DATABASE_FILE
+    MYSQL_PWD=$_DATABASE_PASSWORD mysql -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER $_DATABASE_NAME < $_DATABASE_FILE
   fi
 }
 

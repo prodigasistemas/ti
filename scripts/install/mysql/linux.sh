@@ -98,9 +98,9 @@ install_mysql_client () {
 }
 
 create_database () {
-  mysql_root_password_input
-
   mysql_database_name_input
+
+  mysql_root_password_input
 
   confirm "Confirm create database $_MYSQL_DATABASE?"
   [ $? -eq 1 ] && main
