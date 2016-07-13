@@ -64,7 +64,6 @@ configure_database () {
 
   mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP USER redmine@$_MYSQL_HOST;"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
   mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
