@@ -4,7 +4,13 @@
 
 _APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_OPTIONS_LIST="openJDK6 'OpenJDK 6' openJDK7 'OpenJDK 7' openJDK8 'OpenJDK 8' openJDK9 'OpenJDK 9' oracleJDK6 'Oracle Java 6 JDK' oracleJDK7 'Oracle Java 7 JDK' oracleJDK8 'Oracle Java 8 JDK'"
+_OPTIONS_LIST="oracleJDK6 'Oracle Java 6 JDK' \
+               oracleJDK7 'Oracle Java 7 JDK' \
+               oracleJDK8 'Oracle Java 8 JDK' \
+               openJDK6 'OpenJDK 6' \
+               openJDK7 'OpenJDK 7' \
+               openJDK8 'OpenJDK 8' \
+               openJDK9 'OpenJDK 9'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -72,6 +78,8 @@ install_oracleJDK6 () {
   _JAVA_FOLDER="jdk1.6.0_45"
   _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
 
+  [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6" ] && "Alert" "Oracle Java 6 is already installed!"
+
   download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
   cd $_DEFAULT_INSTALLATION_FOLDER && bash $_JAVA_FILE
@@ -91,6 +99,8 @@ install_oracleJDK () {
   _JAVA_PACKAGE="${_JAVA_VERSION}u${_JAVA_UPDATE}"
 
   if [ "$_OS_TYPE" = "deb" ]; then
+    [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION" ] && "Alert" "Oracle Java $_JAVA_VERSION is already installed!"
+
     download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.tar.gz"
 
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.tar.gz"
@@ -106,6 +116,8 @@ install_oracleJDK () {
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.rpm"
 
     $_PACKAGE_COMMAND localinstall -y $_JAVA_FILE
+
+    ln -sf "/usr/java/jdk1.$_JAVA_VERSION.0_$_JAVA_UPDATE" "/usr/java/oracle-$_JAVA_VERSION"
   fi
 
   delete_file $_JAVA_FILE

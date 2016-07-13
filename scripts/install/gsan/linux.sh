@@ -305,8 +305,6 @@ install_gsan () {
 
   change_file "append" "$_DEFAULT_PATH/jboss/server/default/conf/log4j.xml" "<param name=\"Append\" value=\"false\"\/>" "<param name=\"Threshold\" value=\"INFO\" \/>"
 
-  change_file "append" "/etc/init.d/jboss" "JBOSS_HOME=\/opt\/jboss" "export JAVA_HOME=$_JAVA_HOME"
-
   run_as_user $_OWNER "/etc/init.d/jboss stop"
 
   run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"

@@ -119,7 +119,7 @@ install_sonar () {
 
   _JAVA_HOME=$(get_java_home 8)
 
-  _JAVA_COMMAND=$(input_field "sonar.java.command" "Enter the path of command Java 8" "$_JAVA_HOME/bin/java")
+  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java 8" "$_JAVA_HOME/bin/java")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
@@ -149,13 +149,7 @@ create_sonar_database () {
 
   _MYSQL_ROOT_PASSWORD=$(input_field "sonar.mysql.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
-    if [ "$_OS_TYPE" = "rpm" ]; then
-      _MYSQL_ROOT_PASSWORD="[no_password]"
-    else
-       message "Alert" "The root password can not be blank!"
-    fi
-  fi
+  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
 
   mysql_user_password_input
 
@@ -348,7 +342,8 @@ type_menu () {
       main
     fi
   else
-    _SONAR_OPTION="$(search_value sonar.source) | tr [:lower:] [:upper:]"
+    _SONAR_OPTION="$(search_value sonar.source | tr [:lower:] [:upper:])"
+
     case "$_SONAR_OPTION" in
       QUBE|OTHER)
         install_sonar

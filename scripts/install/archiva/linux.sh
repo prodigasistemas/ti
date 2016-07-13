@@ -28,6 +28,8 @@ setup () {
 install_archiva () {
   java_check 7
 
+  _JAVA_HOME=$(get_java_home 7)
+
   _VERSION=$(input_field "archiva.version" "Enter the version for $_APP_NAME" "$_CURRENT_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_VERSION" ] && message "Alert" "The version can not be blank!"
@@ -43,6 +45,8 @@ install_archiva () {
 
   wget http://archive.apache.org/dist/archiva/$_VERSION/binaries/apache-archiva-$_VERSION-bin.zip
 
+  [ $? -ne 0 ] && message "Error" "Download of apache-archiva-$_VERSION-bin.zip not realized!"
+
   unzip -oq apache-archiva-$_VERSION-bin.zip
 
   rm apache-archiva-$_VERSION-bin.zip
@@ -52,6 +56,8 @@ install_archiva () {
   mv apache-archiva-$_VERSION $_ARCHIVA_FOLDER
 
   change_file replace $_ARCHIVA_FOLDER/conf/jetty.xml "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"8080\"/></Set>" "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"$_HTTP_PORT\"/></Set>"
+
+  change_file "replace" "$_ARCHIVA_FOLDER/conf/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_HOME/bin/java"
 
   ln -sf $_ARCHIVA_FOLDER/bin/archiva /etc/init.d/
 

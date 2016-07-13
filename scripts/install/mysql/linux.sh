@@ -29,13 +29,7 @@ setup () {
 mysql_root_password_input () {
   _MYSQL_ROOT_PASSWORD=$(input_field "[default]" "Enter the password of the root user in $_MYSQL_NAME")
   [ $? -eq 1 ] && main
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
-    if [ "$_OS_TYPE" = "rpm" ]; then
-      _MYSQL_ROOT_PASSWORD="[no_password]"
-    else
-       message "Alert" "The root password can not be blank!"
-    fi
-  fi
+  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
 }
 
 mysql_database_name_input () {
@@ -64,25 +58,23 @@ install_mysql_server () {
 
   case "$_OS_TYPE" in
     deb)
-      _PASSWORD_MESSAGE=" The root password is root"
-
       debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
       debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
 
       $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
       ;;
     rpm)
-      _PASSWORD_MESSAGE=" The root user has no password"
-
       $_PACKAGE_COMMAND -y install $_MYSQL_NAME_LOWERCASE-server $_MYSQL_NAME_LOWERCASE-devel
 
       admin_service $_MYSQL_SERVICE register
 
       admin_service $_MYSQL_SERVICE start
+
+      mysqladmin -u root password 'root'
       ;;
   esac
 
-  [ $? -eq 0 ] && message "Notice" "$_MYSQL_NAME Server successfully installed!${_PASSWORD_MESSAGE}"
+  [ $? -eq 0 ] && message "Notice" "$_MYSQL_NAME Server successfully installed! The root password is root"
 }
 
 install_mysql_client () {

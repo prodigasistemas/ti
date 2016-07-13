@@ -172,6 +172,10 @@ configure_jboss4 () {
 
   chown $_OWNER:$_OWNER -R "$_DEFAULT_PATH/$_REAL_JBOSS_FOLDER"
 
+  _JAVA_HOME=$(get_java_home 6)
+
+  change_file "append" "/etc/init.d/jboss" "JBOSS_HOME=\/opt\/jboss" "export JAVA_HOME=$_JAVA_HOME"
+
   admin_service jboss register
 
   run_as_user $_OWNER "JBOSS_HOME=$_JBOSS_FOLDER /etc/init.d/jboss start"

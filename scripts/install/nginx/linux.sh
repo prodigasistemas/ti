@@ -66,9 +66,10 @@ add_to_group () {
 
 main () {
   tool_check curl
-  tool_check dialog
 
   if [ "$(provisioning)" = "manual" ]; then
+    tool_check dialog
+
     _OPTION=$(menu "Select the option" "$_OPTIONS_LIST")
 
     if [ -z "$_OPTION" ]; then

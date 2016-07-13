@@ -29,8 +29,6 @@ sonar.source = other
 sonar.other.download.url = http://sonar.ggas.com.br/download
 sonar.other.download.file = sonarqube-5.0.tar.gz
 
-sonar.java.command = /opt/java-oracle-7/bin/java
-
 sonar.mysql.host = localhost
 sonar.mysql.port = 3306
 sonar.mysql.root.password = root

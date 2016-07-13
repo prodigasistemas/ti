@@ -37,7 +37,15 @@ install_ruby () {
   confirm "Do you confirm the installation of Ruby $_VERSION?"
   [ $? -eq 1 ] && main
 
-  gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+  _GPG_COMMAND="gpg"
+
+  if [ "$_OS_TYPE" = "deb" ]; then
+    _OS_VERSION=$(echo $_OS_NUMBER | cut -d. -f1)
+
+    [ "$_OS_RELEASE" -ge 16 ] _GPG_COMMAND="gpg2"
+  fi
+
+  $_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
 
   curl -sSL https://get.rvm.io | bash -s stable
 

@@ -26,9 +26,15 @@ setup () {
 install_jenkins () {
   java_check 7
 
+  _JAVA_HOME=$(get_java_home 7)
+
   _HTTP_PORT=$(input_field "jenkins.http.port" "Enter the http port for Jenkins" "8085")
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
+
+  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java 7" "$_JAVA_HOME/bin/java")
+  [ $? -eq 1 ] && main
+  [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
   if [ "$(provisioning)" = "manual" ]; then
     confirm "Do you want to download the stable repository?"
@@ -49,6 +55,7 @@ install_jenkins () {
       $_PACKAGE_COMMAND -y install jenkins
 
       change_file "replace" "/etc/default/jenkins" "^HTTP_PORT=8080" "HTTP_PORT=$_HTTP_PORT"
+      change_file "replace" "/etc/default/jenkins" "^JAVA=/usr/bin/java" "JAVA=$_JAVA_COMMAND"
       ;;
     rpm)
       wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat$_STABLE/jenkins.repo
@@ -60,6 +67,7 @@ install_jenkins () {
       admin_service jenkins register
 
       change_file "replace" "/etc/sysconfig/jenkins" "^JENKINS_PORT=\"8080\"" "JENKINS_PORT=\"$_HTTP_PORT\""
+      change_file "replace" "/etc/sysconfig/jenkins" "^JENKINS_JAVA_CMD=\"\"" "JENKINS_JAVA_CMD=\"$_JAVA_COMMAND\""
       ;;
   esac
 

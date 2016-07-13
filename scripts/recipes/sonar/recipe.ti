@@ -8,12 +8,12 @@ mysql.server.root.password = root
 # Install SonarQube from sonarqube.org
 sonar.source = qube
 
-# Configure java command path
-sonar.java.command = /opt/java-oracle-8/bin/java
-
 # Configure mysql
 sonar.mysql.root.password = root
 sonar.mysql.user.password = sonar
+
+# Install NGINX web server
+nginx
 
 ## Configure host in nginx
 sonar.nginx.domain = sonar.local

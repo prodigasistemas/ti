@@ -48,13 +48,7 @@ configure_database () {
 
   _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
   [ $? -eq 1 ] && main
-  if [ -z "$_MYSQL_ROOT_PASSWORD" ]; then
-    if [ "$_OS_TYPE" = "rpm" ]; then
-      _MYSQL_ROOT_PASSWORD="[no_password]"
-    else
-       message "Alert" "The root password can not be blank!"
-    fi
-  fi
+  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
 
   _MYSQL_REDMINE_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the password of the redmine user in MySQL")
   [ $? -eq 1 ] && main

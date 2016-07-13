@@ -1,6 +1,6 @@
 # Install versions of Java JDK
 java.version = oracleJDK6
-java.version = openJDK7
+java.version = oracleJDK7
 java.version = oracleJDK8
 
 # Install Ruby
@@ -73,9 +73,6 @@ sonar.source = qube
 # sonar.source = other
 # sonar.other.download.url = http://sonar.ggas.com.br/download
 # sonar.other.download.file = sonarqube-5.0.tar.gz
-
-## Configure java command path
-sonar.java.command = java
 
 ## Configure mysql credencial
 sonar.mysql.root.password = root
