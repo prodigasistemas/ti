@@ -30,16 +30,18 @@ download_java () {
 
 install_openJDK () {
   _OPENJDK_VERSION=$1
-  [ "$_OS_TYPE" = "deb" ] && _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
-  [ "$_OS_TYPE" = "rpm" ] && _PACKAGE_NAME="java-1.$_OPENJDK_VERSION.0-openjdk-devel"
-
-  _FIND_PACKAGE=$($_PACKAGE_COMMAND search $_PACKAGE_NAME)
 
   if [ "$_OS_TYPE" = "deb" ]; then
+    _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
+    _FIND_PACKAGE=$(apt-cache search $_PACKAGE_NAME)
+
     [ -z "$_FIND_PACKAGE" ] && message "Error" "Package $_PACKAGE_NAME not found!"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
+    _PACKAGE_NAME="java-1.$_OPENJDK_VERSION.0-openjdk-devel"
+    _FIND_PACKAGE=$($_PACKAGE_COMMAND search $_PACKAGE_NAME)
     _FIND=$(echo $_FIND_PACKAGE | grep "Nenhum pacote localizado")
+
     [ -n "$_FIND" ] && message "Error" "Package $_PACKAGE_NAME not found!"
   fi
 
