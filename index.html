@@ -34,9 +34,14 @@
     <center><img src="images/tools-installer-manual.png"></center>
 
     <h3>> Provisionamento automático</h3>
-    <h4>As receitas de instalação estão disponíveis em <a href="https://github.com/prodigasistemas/prodigasistemas.github.io/tree/master/scripts/recipes">scripts/recipes</a>. Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.</h4>
+    <h4>As receitas de instalação estão disponíveis <a href="https://github.com/prodigasistemas/prodigasistemas.github.io/tree/master/scripts/recipes">aqui</a>. Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.</h4>
+    <h5>Exemplo de instalação do Jenkins CI</h5>
+    <code>
+      curl -sS prodigasistemas.github.io/scripts/recipes/jenkins/recipe.ti > recipe.ti<br/><br/>
+      curl -sS http://prodigasistemas.github.io/scripts/menu/linux.sh | sudo bash
+    </code>
 
-    <br/>
+    <br/><br/>
 
     <center><img src="images/tools-installer-automatic.png"></center>
 
