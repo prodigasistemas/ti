@@ -45,7 +45,11 @@ install_jboss4 () {
 
   cd $_DEFAULT_PATH
 
-  wget http://downloads.sourceforge.net/project/jboss/JBoss/JBoss-4.0.1SP1/$_JBOSS_FILE.zip
+  rm $_JBOSS_FILE.zip*
+
+  wget http://ufpr.dl.sourceforge.net/project/jboss/JBoss/JBoss-4.0.1SP1/$_JBOSS_FILE.zip
+
+  [ $? -ne 0 ] && message "Error" "Download of $_JBOSS_FILE.zip not realized!"
 
   unzip -oq $_JBOSS_FILE.zip
 
