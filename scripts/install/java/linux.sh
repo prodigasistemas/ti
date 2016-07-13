@@ -78,7 +78,7 @@ install_oracleJDK6 () {
   _JAVA_FOLDER="jdk1.6.0_45"
   _JAVA_FILE="jdk-$_JAVA_VERSION-linux-$_ARCH.bin"
 
-  [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6" ] && "Alert" "Oracle Java 6 is already installed!"
+  [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6" ] && message "Alert" "Oracle Java 6 is already installed!"
 
   download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
@@ -99,7 +99,7 @@ install_oracleJDK () {
   _JAVA_PACKAGE="${_JAVA_VERSION}u${_JAVA_UPDATE}"
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION" ] && "Alert" "Oracle Java $_JAVA_VERSION is already installed!"
+    [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION" ] && message "Alert" "Oracle Java $_JAVA_VERSION is already installed!"
 
     download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.tar.gz"
 
@@ -120,7 +120,7 @@ install_oracleJDK () {
     ln -sf "/usr/java/jdk1.$_JAVA_VERSION.0_$_JAVA_UPDATE" "/usr/java/oracle-$_JAVA_VERSION"
   fi
 
-  delete_file $_JAVA_FILE
+  cd $_DEFAULT_INSTALLATION_FOLDER && delete_file $_JAVA_FILE
 
   [ $? -eq 0 ] && message "Notice" "Oracle Java $_JAVA_VERSION successfully installed${_INSTALL_FOLDER}!"
 }

@@ -361,14 +361,14 @@ java_check () {
 
   _JAVA_INSTALLED=$(command -v java)
   if [ -z "$_JAVA_INSTALLED" ]; then
-    JAVA_HOME=$(get_java_home $_VERSION_CHECK)
-    PATH=$PATH:$JAVA_HOME/bin
+    export JAVA_HOME=$(get_java_home $_VERSION_CHECK)
+    export PATH=$PATH:$JAVA_HOME/bin
 
     _JAVA_INSTALLED=$(command -v java)
     [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java is not installed!"
   fi
 
-  java -version 2> $_JAVA_TMP_FILE
+  java -version > $_JAVA_TMP_FILE 2> $_JAVA_TMP_FILE
   _JAVA_VERSION=$(cat $_JAVA_TMP_FILE | grep version | cut -d' ' -f3 | cut -d\" -f2)
   _JAVA_MAJOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f1)
   _JAVA_MINOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f2)

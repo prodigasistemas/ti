@@ -42,7 +42,7 @@ install_ruby () {
   if [ "$_OS_TYPE" = "deb" ]; then
     _OS_VERSION=$(echo $_OS_NUMBER | cut -d. -f1)
 
-    [ "$_OS_RELEASE" -ge 16 ] _GPG_COMMAND="gpg2"
+    [ "$_OS_VERSION" -ge 16 ] && _GPG_COMMAND="gpg2"
   fi
 
   $_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
@@ -68,7 +68,7 @@ install_ruby () {
 
   run_as_user $_USER_LOGGED "gem install bundler"
 
-  [ $? -eq 0 ] && message "Notice" "Success! Will be you logout or put source /etc/profile.d/rvm.sh. After, enter the command: ruby -v"
+  [ $? -eq 0 ] && message "Notice" "Success! Will be you logout or put command: 'source /etc/profile.d/rvm.sh'. After, enter the command: ruby -v"
 }
 
 add_to_group () {

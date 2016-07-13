@@ -1,6 +1,3 @@
-# Install Java JDK
-java.version = oracleJDK7
-
 # Install NGINX web server
 nginx
 
