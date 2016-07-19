@@ -29,5 +29,5 @@ gsan.postgresql.port = 5432
 gsan.postgresql.user.name = postgres
 gsan.postgresql.user.password = postgres
 
-ggas.nginx.domain = gsan.local
-ggas.nginx.host = localhost:8080
+gsan.nginx.domain = gsan.local
+gsan.nginx.host = localhost:8080
