@@ -14,7 +14,8 @@ _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859
                create_gsan_databases 'Create GSAN databases' \
                install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
                install_gsan_migrations 'Install GSAN Migrations' \
-               install_gsan 'Install GSAN'"
+               install_gsan 'Install GSAN' \
+               configure_nginx 'Configure host on NGINX'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="http://prodigasistemas.github.io"
@@ -316,6 +317,33 @@ install_gsan () {
   cd $_CURRENT_DIR
 
   [ $? -eq 0 ] && message "Notice" "GSAN successfully installed!"
+}
+
+configure_nginx () {
+  if command -v nginx > /dev/null; then
+    _DOMAIN=$(input_field "gsan.nginx.domain" "Enter the domain of GGAS" "gsan.company.gov")
+    [ $? -eq 1 ] && main
+    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+
+    _HOST=$(input_field "gsan.nginx.host" "Enter the host of GGAS server" "localhost:8080")
+    [ $? -eq 1 ] && main
+    [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
+
+    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > gsan.conf
+
+    change_file replace gsan.conf APP ggas
+    change_file replace gsan.conf DOMAIN $_DOMAIN
+    change_file replace gsan.conf HOST $_HOST
+
+    mv gsan.conf /etc/nginx/conf.d/
+    rm gsan.conf*
+
+    admin_service nginx restart
+
+    [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
+  else
+    message "Alert" "NGINX is not installed! GSAN host not configured!"
+  fi
 }
 
 main () {

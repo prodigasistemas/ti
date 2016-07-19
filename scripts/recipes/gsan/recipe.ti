@@ -14,6 +14,9 @@ postgresql.server.version = 9.5
 postgresql.server.host = localhost
 postgresql.server.port = 5432
 
+# Install NGINX web server
+nginx
+
 # Install GSAN
 gsan.configure.locale.latin = yes
 gsan.create.databases = yes
@@ -25,3 +28,6 @@ gsan.postgresql.host = localhost
 gsan.postgresql.port = 5432
 gsan.postgresql.user.name = postgres
 gsan.postgresql.user.password = postgres
+
+ggas.nginx.domain = gsan.local
+ggas.nginx.host = localhost:8080
