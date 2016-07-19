@@ -375,7 +375,7 @@ main () {
     [ -n "$(search_app gsan.mybatis.migrations.version)" ] && install_mybatis_migration
     [ "$(search_value gsan.install.migrations)" = "yes" ] && install_gsan_migrations
     [ -n "$(search_app gsan)" ] && install_gsan
-    [ -n "$(search_app ggas.nginx)" ] && configure_nginx
+    [ -n "$(search_app gsan.nginx)" ] && configure_nginx
   fi
 }
 
