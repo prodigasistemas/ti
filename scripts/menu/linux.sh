@@ -14,6 +14,7 @@ _OPTIONS_LIST="java 'Java installer' \
                redmine 'Redmine installer' \
                archiva 'Archiva installer' \
                jboss 'JBoss installer' \
+               nagios 'Nagios installer' \
                gsan 'GSAN installer'"
 
 setup () {

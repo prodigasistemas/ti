@@ -11,10 +11,10 @@ _MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
 _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859-1)' \
                configure_datasource 'Datasource configuration' \
-               create_gsan_databases 'Create GSAN databases' \
+               create_gsan_databases 'Create $_APP_NAME databases' \
                install_mybatis_migration 'Install $_MYBATIS_DESCRIPTION' \
-               install_gsan_migrations 'Install GSAN Migrations' \
-               install_gsan 'Install GSAN' \
+               install_gsan_migrations 'Install $_APP_NAME Migrations' \
+               install_gsan 'Install $_APP_NAME' \
                configure_nginx 'Configure host on NGINX'"
 
 setup () {
@@ -59,7 +59,7 @@ configure_locale_latin () {
   _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
-  confirm "Do you want to configure locale for LATIN1?"
+  confirm "Do you want to create new cluster and to configure locale for LATIN1?"
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
@@ -129,7 +129,7 @@ create_gsan_databases () {
 
   credential_data
 
-  confirm "Do you confirm the creation of GSAN databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
+  confirm "Do you confirm the creation of $_APP_NAME databases (gsan_comercial and gsan_gerencial) and tablespace indices?"
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
@@ -151,7 +151,7 @@ create_gsan_databases () {
 
   run_as_postgres "psql -c \"CREATE TABLESPACE indices LOCATION '$_INDEX_FOLDER';\""
 
-  [ $? -eq 0 ] && message "Notice" "GSAN databases created successfully!"
+  [ $? -eq 0 ] && message "Notice" "$_APP_NAME databases created successfully!"
 }
 
 install_mybatis_migration () {
@@ -218,7 +218,7 @@ install_gsan_migrations () {
 
   input_datas
 
-  confirm "Host: $_POSTGRESQL_HOST\nPort: $_POSTGRESQL_PORT\nUser: $_POSTGRESQL_USER_NAME\nPassword: $_POSTGRESQL_USER_PASSWORD\nDo you confirm the install of GSAN Migrations?"
+  confirm "Host: $_POSTGRESQL_HOST\nPort: $_POSTGRESQL_PORT\nUser: $_POSTGRESQL_USER_NAME\nPassword: $_POSTGRESQL_USER_PASSWORD\nDo you confirm the install of $_APP_NAME Migrations?"
   [ $? -eq 1 ] && main
 
   tool_check git
@@ -227,7 +227,7 @@ install_gsan_migrations () {
 
   cd $_DEFAULT_PATH && git clone https://github.com/prodigasistemas/gsan-migracoes.git
 
-  [ $? -ne 0 ] && message "Error" "Download of GSAN Migrations not realized!"
+  [ $? -ne 0 ] && message "Error" "Download of $_APP_NAME Migrations not realized!"
 
   _JAVA_HOME=$(get_java_home 6)
 
@@ -259,7 +259,7 @@ install_gsan_migrations () {
 
   cd $_CURRENT_DIR
 
-  [ $? -eq 0 ] && message "Notice" "GSAN Migrations successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "$_APP_NAME Migrations successfully installed!"
 }
 
 install_gsan () {
@@ -275,7 +275,7 @@ install_gsan () {
   [ $? -eq 1 ] && main
   [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 
-  confirm "Do you confirm the install of GSAN?"
+  confirm "Do you confirm the install of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
   tool_check git
@@ -288,7 +288,7 @@ install_gsan () {
   if [ ! -e "$_DEFAULT_PATH/gsan" ]; then
     git clone https://github.com/prodigasistemas/gsan.git
 
-    [ $? -ne 0 ] && message "Error" "Download of GSAN not realized!"
+    [ $? -ne 0 ] && message "Error" "Download of $_APP_NAME not realized!"
   fi
 
   _PROPERTIES_FILE="$_DEFAULT_PATH/gsan/build.properties"
@@ -316,7 +316,7 @@ install_gsan () {
 
   cd $_CURRENT_DIR
 
-  [ $? -eq 0 ] && message "Notice" "GSAN successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "$_APP_NAME successfully installed!"
 }
 
 configure_nginx () {
@@ -331,7 +331,7 @@ configure_nginx () {
 
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > gsan.conf
 
-    change_file replace gsan.conf APP ggas
+    change_file replace gsan.conf APP gsan
     change_file replace gsan.conf DOMAIN $_DOMAIN
     change_file replace gsan.conf HOST $_HOST
 
@@ -342,7 +342,7 @@ configure_nginx () {
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
   else
-    message "Alert" "NGINX is not installed! GSAN host not configured!"
+    message "Alert" "NGINX is not installed! $_APP_NAME host not configured!"
   fi
 }
 

@@ -42,7 +42,7 @@ install_postgresql_server () {
     if [ ! -e "$_PG_SOURCE_FILE" ]; then
       tool_check wget
 
-      wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+      wget -q -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
       run_as_root "echo \"deb http://apt.postgresql.org/pub/repos/apt/ $_OS_CODENAME-pgdg main\" > $_PG_SOURCE_FILE"
 

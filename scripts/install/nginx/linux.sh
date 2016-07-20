@@ -29,7 +29,7 @@ install_nginx () {
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    curl -L http://nginx.org/keys/nginx_signing.key 2> /dev/null | apt-key add - &>/dev/null
+    wget -q -O - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
 
     run_as_root "echo \"deb http://nginx.org/packages/$_OS_NAME/ $_OS_CODENAME nginx\" > /etc/apt/sources.list.d/nginx.list"
 

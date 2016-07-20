@@ -46,7 +46,7 @@ install_jenkins () {
 
   case "$_OS_TYPE" in
     deb)
-      wget -q -O - http://pkg.jenkins-ci.org/debian$_STABLE/jenkins-ci.org.key | apt-key add -
+      wget -q -O - http://pkg.jenkins-ci.org/debian$_STABLE/jenkins-ci.org.key | sudo apt-key add -
 
       run_as_root "echo \"deb http://pkg.jenkins-ci.org/debian$_STABLE binary/\" > /etc/apt/sources.list.d/jenkins.list"
 
