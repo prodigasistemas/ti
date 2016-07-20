@@ -442,3 +442,18 @@ provisioning () {
     echo "manual"
   fi
 }
+
+php_version() {
+  case "$_OS_TYPE" in
+    deb)
+      if [ "$_OS_VERSION" -le 14 ]; then
+        echo $(apt-cache show ^php[0-9]$ | grep Version | head -n 1 | cut -d' ' -f2 | cut -d+ -f1)
+      else
+        echo $(apt-cache show ^php | grep Version | head -n 1 | cut -d' ' -f2 | cut -d- -f1)
+      fi
+      ;;
+    rpm)
+      echo $(yum info php | grep Version | head -n 1 | cut -d: -f2)
+      ;;
+  esac
+}
