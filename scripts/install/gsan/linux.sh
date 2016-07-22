@@ -275,6 +275,10 @@ install_gsan () {
   [ $? -eq 1 ] && main
   [ -z "$_OWNER" ] && message "Alert" "The JBoss owner name can not be blank!"
 
+  _DOMAIN=$(input_field "gsan.nginx.domain" "Enter the domain of $_APP_NAME" "gsan.company.gov")
+  [ $? -eq 1 ] && main
+  [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+
   confirm "Do you confirm the install of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
@@ -300,6 +304,16 @@ install_gsan () {
   echo "gsan.tipo=Online" >> $_PROPERTIES_FILE
   echo "gsan.versao=1.0.0" >> $_PROPERTIES_FILE
 
+  _INDEX_HTML_FILE="$_DEFAULT_PATH/jboss/server/default/deploy/jbossweb-tomcat50.sar/ROOT.war/index.html"
+
+  mv $_INDEX_HTML_FILE "$_INDEX_HTML_FILE.old"
+
+  echo "<html>" > $_INDEX_HTML_FILE
+  echo "  <head>" >> $_INDEX_HTML_FILE
+  echo "    <meta HTTP-EQUIV=\"REFRESH\" content=\"0; url=http://$_DOMAIN/gsan\">" >> $_INDEX_HTML_FILE
+  echo "  </head>" >> $_INDEX_HTML_FILE
+  echo "</html>" >> $_INDEX_HTML_FILE
+
   chown $_OWNER:$_OWNER -R $_DEFAULT_PATH/gsan
 
   _JAVA_HOME=$(get_java_home 6)
@@ -321,11 +335,11 @@ install_gsan () {
 
 configure_nginx () {
   if command -v nginx > /dev/null; then
-    _DOMAIN=$(input_field "gsan.nginx.domain" "Enter the domain of GGAS" "gsan.company.gov")
+    _DOMAIN=$(input_field "gsan.nginx.domain" "Enter the domain of $_APP_NAME" "gsan.company.gov")
     [ $? -eq 1 ] && main
     [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
-    _HOST=$(input_field "gsan.nginx.host" "Enter the host of GGAS server" "localhost:8080")
+    _HOST=$(input_field "gsan.nginx.host" "Enter the host of $_APP_NAME server" "localhost:8080")
     [ $? -eq 1 ] && main
     [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 

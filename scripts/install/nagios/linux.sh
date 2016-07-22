@@ -10,7 +10,7 @@
 _APP_NAME="Nagios"
 _NAGIOS_LAST_VERSION="4.1.1"
 _PLUGINS_LAST_VERSION="2.1.1"
-_OPTIONS_LIST="install_nagios 'Install $_APP_NAME' \
+_OPTIONS_LIST="install_nagios_core 'Install $_APP_NAME' \
                configure_nginx 'Configure host on NGINX'"
 
 setup () {
@@ -29,7 +29,7 @@ setup () {
   os_check
 }
 
-install_nagios () {
+install_nagios_core () {
   _NAGIOS_VERSION=$(input_field "nagios.version" "$_APP_NAME version" "$_NAGIOS_LAST_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_NAGIOS_VERSION" ] && message "Alert" "The $_APP_NAME version can not be blank!"
@@ -223,7 +223,7 @@ main () {
       $_OPTION
     fi
   else
-    [ -n "$(search_app nagios)" ] && install_nagios
+    [ -n "$(search_app nagios)" ] && install_nagios_core
     [ -n "$(search_app nagios.nginx)" ] && configure_nginx
   fi
 }
