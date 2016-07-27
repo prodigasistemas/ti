@@ -194,7 +194,7 @@ install_mybatis_migration () {
   _MAJOR_VERSION=$(echo $_VERSION | cut -d. -f1)
   _MYBATIS_JAR_FILE=$(ls $_DEFAULT_PATH/mybatis-migrations/lib/mybatis-$_MAJOR_VERSION*.jar | head -n 1)
 
-  ln -sf $_MYBATIS_JAR_FILE $JAVA_HOME/jre/lib/ext/
+  ln -sf $_MYBATIS_JAR_FILE $_JAVA_HOME/jre/lib/ext/
 
   ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $_JAVA_HOME/jre/lib/ext/
 
