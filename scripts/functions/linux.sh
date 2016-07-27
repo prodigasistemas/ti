@@ -348,6 +348,7 @@ get_java_home () {
   else
     _JAVA_HOME="/usr/lib/jvm/java-$_JAVA_VERSION-openjdk-$_ARCH"
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-1.$_JAVA_VERSION.0"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-$_JAVA_VERSION"
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/java/oracle-$_JAVA_VERSION"
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/java-oracle-$_JAVA_VERSION"
   fi
