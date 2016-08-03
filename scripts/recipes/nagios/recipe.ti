@@ -1,9 +1,4 @@
-# Install NGINX web server
-nginx
-
 # Install Nagios
-nagios.version = 4.1.1
-nagios.plugins.version = 2.1.1
+nagios.server
 nagios.user.name = nagiosadmin
 nagios.user.password = nagiosadmin
-nagios.nginx.domain = nagios.local
