@@ -45,7 +45,7 @@ install_jboss4 () {
 
   cd $_DEFAULT_PATH
 
-  rm $_JBOSS_FILE.zip*
+  rm $_JBOSS_FILE.zip* 2> /dev/null
 
   wget http://ufpr.dl.sourceforge.net/project/jboss/JBoss/JBoss-4.0.1SP1/$_JBOSS_FILE.zip
 

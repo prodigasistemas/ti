@@ -192,7 +192,7 @@ run_as_postgres () {
   if [ $? -ne 0 ] && [ -e "$_ERROR_FILE" ]; then
     _ERROR_MESSAGE=$(cat $_ERROR_FILE)
     rm -f $_ERROR_FILE
-    [ -n "$_ERROR_MESSAGE" ] && message "Error" "$_ERROR_MESSAGE"
+    [ -n "$_ERROR_MESSAGE" ] && message "Notice" "$_ERROR_MESSAGE"
   fi
 }
 

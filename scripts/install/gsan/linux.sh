@@ -59,11 +59,16 @@ configure_locale_latin () {
   _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
+  _POSTGRESQL_SELECTED_VERSION=$(input_field "postgresql.server.version" "Enter the version of the PostgreSQL Server" "9.5")
+  [ -n "$_POSTGRESQL_SELECTED_VERSION" ] && _POSTGRESQL_VERSION=$_POSTGRESQL_SELECTED_VERSION
+
   confirm "Do you want to create new cluster and to configure locale for LATIN1?"
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
     if [ "$_OS_NAME" = "ubuntu" ]; then
+      apt-get install -y language-pack-pt
+
       run_as_root "echo pt_BR ISO-8859-1 >> /var/lib/locales/supported.d/local"
       run_as_root "echo LANG=\"pt_BR\" >> /etc/environment"
       run_as_root "echo LANGUAGE=\"pt_BR:pt:en\" >> /etc/environment"
