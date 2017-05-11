@@ -11,7 +11,11 @@ http://redmine.lighttpd.net/projects/lighttpd/wiki/TutorialConfiguration
 
     sudo apt-get install lighttpd
 
-    sudo ln -s /<PATH>/tools-installer/ /opt/
+### Copie e edite o caminho da variável "server.document-root" do arquivo de configuração
+
+    cp lighttpd.conf.example lighttpd.conf
+
+### Execute o servidor local
 
     ./localserver.sh
 
