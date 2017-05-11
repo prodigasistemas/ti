@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# https://docs.docker.com/engine/installation/linux/ubuntulinux/
-# https://docs.docker.com/engine/installation/linux/debian/
+# https://store.docker.com/editions/community/docker-ce-server-ubuntu
+# https://store.docker.com/editions/community/docker-ce-server-debian
 # https://docs.docker.com/engine/installation/linux/centos/
 
 _APP_NAME="Docker"
@@ -36,15 +36,18 @@ install_docker () {
 
         if [ $_OS_CODENAME = "wheezy" ]; then
           run_as_root "echo \"deb http://http.debian.net/debian wheezy-backports main\" > /etc/apt/sources.list.d/backports.list"
+          $_PACKAGE_COMMAND install -y python-software-properties
+        else # jessie and stretch
+          $_PACKAGE_COMMAND install -y software-properties-common
         fi
       fi
 
       $_PACKAGE_COMMAND update
       $_PACKAGE_COMMAND install -y apt-transport-https ca-certificates
 
-      apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
+      curl -fsSL "https://download.docker.com/linux/$_OS_NAME/gpg" | sudo apt-key add -
 
-      run_as_root "echo \"deb https://apt.dockerproject.org/repo $_OS_NAME-$_OS_CODENAME main\" > /etc/apt/sources.list.d/docker.list"
+      add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/$_OS_NAME $(lsb_release -cs) stable"
 
       $_PACKAGE_COMMAND update
 
@@ -53,7 +56,7 @@ install_docker () {
         $_PACKAGE_COMMAND install -y linux-image-extra-$_OS_KERNEL
       fi
 
-      apt-cache policy docker-engine
+      $_PACKAGE_COMMAND install -y docker-ce
       ;;
 
     rpm)
@@ -64,11 +67,11 @@ install_docker () {
       run_as_root "echo enabled=1 >> $_REPO_FILE"
       run_as_root "echo gpgcheck=1 >> $_REPO_FILE"
       run_as_root "echo gpgkey=https://yum.dockerproject.org/gpg >> $_REPO_FILE"
+
+      $_PACKAGE_COMMAND install -y docker-engine
       ;;
 
   esac
-
-  $_PACKAGE_COMMAND install -y docker-engine
 
   admin_service docker start
 
