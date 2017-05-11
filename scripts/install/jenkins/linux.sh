@@ -46,9 +46,9 @@ install_jenkins () {
 
   case "$_OS_TYPE" in
     deb)
-      wget -q -O - http://pkg.jenkins-ci.org/debian$_STABLE/jenkins-ci.org.key | sudo apt-key add -
+      wget -q -O - "https://pkg.jenkins.io/debian$_STABLE/jenkins.io.key" | sudo apt-key add -
 
-      run_as_root "echo \"deb http://pkg.jenkins-ci.org/debian$_STABLE binary/\" > /etc/apt/sources.list.d/jenkins.list"
+      run_as_root "echo \"deb https://pkg.jenkins.io/debian$_STABLE binary/\" > /etc/apt/sources.list.d/jenkins.list"
 
       $_PACKAGE_COMMAND update
 
@@ -58,9 +58,9 @@ install_jenkins () {
       change_file "replace" "/etc/default/jenkins" "^JAVA=/usr/bin/java" "JAVA=$_JAVA_COMMAND"
       ;;
     rpm)
-      wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat$_STABLE/jenkins.repo
+      wget -O "/etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat$_STABLE/jenkins.repo"
 
-      rpm --import https://jenkins-ci.org/redhat$_STABLE/jenkins-ci.org.key
+      rpm --import "https://pkg.jenkins.io/redhat$_STABLE/jenkins.io.key"
 
       $_PACKAGE_COMMAND -y install jenkins
 
