@@ -5,7 +5,7 @@
 # http://stackoverflow.com/questions/2634590/bash-script-variable-inside-variable
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
-_APP_NAME="SonarQube"
+export _APP_NAME="SonarQube"
 _SONAR_FOLDER="/opt/sonar"
 _PROPERTIES_FOLDER="$_SONAR_FOLDER/conf"
 _NGINX_DEFAULT_HOST="localhost:9000"
@@ -31,7 +31,7 @@ _OPTIONS_DATABASE="create_sonar_database 'Create the user and sonar database' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -101,8 +101,8 @@ install_sonar_other () {
   tar -xzf "$_SONAR_OTHER_FILE"
   rm "$_SONAR_OTHER_FILE"
 
-  _DIR_EXTRACTED=$(echo $_SONAR_OTHER_FILE | sed 's/.tar.gz//g')
-  mv $_DIR_EXTRACTED $_SONAR_FOLDER
+  _DIR_EXTRACTED=${_SONAR_OTHER_FILE//.tar.gz/}
+  mv "$_DIR_EXTRACTED" $_SONAR_FOLDER
   mv "$_PROPERTIES_FOLDER/sonar.properties_old" "$_PROPERTIES_FOLDER/sonar.properties"
 
   change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_HOME/bin/java"
@@ -127,9 +127,9 @@ install_sonar () {
 
   backup_folder $_SONAR_FOLDER
 
-  _SONAR_OPTION_LOWERCASE=$(echo $_SONAR_OPTION | tr [:upper:] [:lower:])
+  _SONAR_OPTION_LOWERCASE=$(echo "$_SONAR_OPTION" | tr '[:upper:]' '[:lower:]')
 
-  install_sonar_$_SONAR_OPTION_LOWERCASE
+  install_sonar_"$_SONAR_OPTION_LOWERCASE"
 
   change_file "replace" "$_PROPERTIES_FOLDER/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_COMMAND"
 
@@ -153,11 +153,11 @@ create_sonar_database () {
 
   mysql_user_password_input
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS sonar;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE sonar;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "DROP DATABASE IF EXISTS sonar;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE DATABASE sonar;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE USER sonar@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_SONAR_PASSWORD';"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "GRANT ALL PRIVILEGES ON sonar.* TO sonar@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "FLUSH PRIVILEGES;"
 
   [ $? -eq 0 ] && message "Notice" "User and database sonar successfully created!"
 }
@@ -182,13 +182,13 @@ import_sonar_database () {
   delete_file $_DIR_SQL_TEMP
   mkdir -p $_DIR_SQL_TEMP
 
-  cd $_DIR_SQL_TEMP && wget -c $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_SQL_FILE
+  cd $_DIR_SQL_TEMP && wget -c "$_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_SQL_FILE"
   [ $? -ne 0 ] && message "Error" "Download of file $_SONAR_OTHER_DOWNLOAD_URL/$_SONAR_OTHER_SQL_FILE unrealized!"
 
-  _CHECKS_FILE_ZIPPED=$(file -b $_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE | grep [Z,z]ip)
+  _CHECKS_FILE_ZIPPED=$(file -b "$_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE" | grep '[Z,z]ip')
   if [ -n "$_CHECKS_FILE_ZIPPED" ]; then
-    cd $_DIR_SQL_TEMP && unzip $_SONAR_OTHER_SQL_FILE
-    rm $_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE
+    cd $_DIR_SQL_TEMP && unzip "$_SONAR_OTHER_SQL_FILE"
+    rm "$_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE"
     _SONAR_OTHER_SQL_FILE=$(ls $_DIR_SQL_TEMP/*.sql)
   else
     _SONAR_OTHER_SQL_FILE=$_DIR_SQL_TEMP/$_SONAR_OTHER_SQL_FILE
@@ -198,7 +198,7 @@ import_sonar_database () {
 
   import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "sonar" "sonar" "$_MYSQL_SONAR_PASSWORD" "$_SONAR_OTHER_SQL_FILE"
 
-  delete_file $_SONAR_OTHER_SQL_FILE
+  delete_file "$_SONAR_OTHER_SQL_FILE"
 
   [ $? -eq 0 ] && message "Notice" "Sonar database successfully imported!"
 }
@@ -212,8 +212,8 @@ configure_sonar_properties () {
 
   mysql_user_password_input
 
-  _PROPERTIES_USERNAME=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
-  _PROPERTIES_PASSWORD=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
+  _PROPERTIES_USERNAME=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
+  _PROPERTIES_PASSWORD=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
 
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
@@ -257,8 +257,8 @@ install_sonar_scanner () {
 
   wget "https://sonarsource.bintray.com/Distribution/sonar-scanner-cli/$_SCANNER_ZIP_FILE"
 
-  unzip -oq $_SCANNER_ZIP_FILE
-  rm $_SCANNER_ZIP_FILE
+  unzip -oq "$_SCANNER_ZIP_FILE"
+  rm "$_SCANNER_ZIP_FILE"
 
   mv "sonar-scanner-$_SCANNER_VERSION" /opt/
   ln -sf "/opt/sonar-scanner-$_SCANNER_VERSION" /opt/sonar-scanner
@@ -271,8 +271,8 @@ install_sonar_scanner () {
     echo "sonar.login=$_USER_TOKEN" >> $_PROPERTIES_FILE
 
   elif [ "$_SONAR_OPTION" = "OTHER" ]; then
-    _PROPERTIES_USERNAME=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
-    _PROPERTIES_PASSWORD=$(cat $_PROPERTIES_FILE | grep sonar.jdbc.username)
+    _PROPERTIES_USERNAME=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
+    _PROPERTIES_PASSWORD=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
 
     change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
     change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
@@ -337,12 +337,12 @@ type_menu () {
     else
       _TEXT="_SONAR_SOURCE_$_SONAR_OPTION"
       _TEXT=$(echo "${!_TEXT}")
-      _TITLE="--backtitle \"Tools Installer - $_APP_NAME - $_TEXT | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
+      export _TITLE="--backtitle \"Tools Installer - $_APP_NAME - $_TEXT | OS: $_OS_DESCRIPTION | Kernel: $_OS_KERNEL\""
 
       main
     fi
   else
-    _SONAR_OPTION="$(search_value sonar.source | tr [:lower:] [:upper:])"
+    _SONAR_OPTION="$(search_value sonar.source | tr '[:lower:]' '[:upper:]')"
 
     case "$_SONAR_OPTION" in
       QUBE|OTHER)
