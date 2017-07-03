@@ -3,14 +3,14 @@
 # https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Ubuntu
 # https://wiki.jenkins-ci.org/display/JENKINS/Installing+Jenkins+on+Red+Hat+distributions
 
-_APP_NAME="Jenkins"
+export _APP_NAME="Jenkins"
 _OPTIONS_LIST="install_jenkins 'Install Jenkins' \
                configure_nginx 'Configure host on NGINX'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -77,7 +77,7 @@ install_jenkins () {
 }
 
 configure_nginx () {
-  _PORT=$(cat /etc/default/jenkins | grep "^HTTP_PORT=" | cut -d= -f2)
+  _PORT=$(grep "^HTTP_PORT=" /etc/default/jenkins | cut -d= -f2)
   _DEFAULT_HOST="localhost:$_PORT"
 
   if command -v nginx > /dev/null; then
@@ -92,8 +92,8 @@ configure_nginx () {
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > jenkins.conf
 
     change_file replace jenkins.conf APP jenkins
-    change_file replace jenkins.conf DOMAIN $_DOMAIN
-    change_file replace jenkins.conf HOST $_HOST
+    change_file replace jenkins.conf DOMAIN "$_DOMAIN"
+    change_file replace jenkins.conf HOST "$_HOST"
 
     mv jenkins.conf /etc/nginx/conf.d/
     rm jenkins.conf*
