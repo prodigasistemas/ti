@@ -5,7 +5,7 @@
 # https://github.com/mybatis/migrations/releases
 # http://stackoverflow.com/questions/4262374/failed-to-create-task-or-type-propertyfile-ant-build
 
-_APP_NAME="GSAN"
+export _APP_NAME="GSAN"
 _DEFAULT_PATH="/opt"
 _MYBATIS_VERSION="3.2.1"
 _MYBATIS_DESCRIPTION="MyBatis Migration"
@@ -20,7 +20,7 @@ _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -56,7 +56,7 @@ input_datas () {
 }
 
 configure_locale_latin () {
-  _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
+  _POSTGRESQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
   _POSTGRESQL_SELECTED_VERSION=$(input_field "postgresql.server.version" "Enter the version of the PostgreSQL Server" "9.5")
@@ -87,7 +87,7 @@ configure_locale_latin () {
     run_as_postgres "pg_createcluster --locale pt_BR.ISO-8859-1 --start $_POSTGRESQL_VERSION main"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
-    admin_service postgresql-$_POSTGRESQL_VERSION stop
+    admin_service "postgresql-$_POSTGRESQL_VERSION" stop
 
     _PGSQL_FOLDER="/var/lib/pgsql/$_POSTGRESQL_VERSION"
 
@@ -95,7 +95,7 @@ configure_locale_latin () {
 
     run_as_postgres "env LANG=LATIN1 /usr/pgsql-$_POSTGRESQL_VERSION/bin/initdb --locale=pt_BR.iso88591 --encoding=LATIN1 -D $_PGSQL_FOLDER/data/"
 
-    admin_service postgresql-$_POSTGRESQL_VERSION restart
+    admin_service "postgresql-$_POSTGRESQL_VERSION" restart
   fi
 
   [ $? -eq 0 ] && message "Notice" "LATIN1 locale configured successfully!"
@@ -117,10 +117,10 @@ configure_datasource () {
 
   curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/gsan/postgres-ds.xml" > postgres-ds.xml
 
-  change_file replace postgres-ds.xml HOST $_POSTGRESQL_HOST
-  change_file replace postgres-ds.xml PORT $_POSTGRESQL_PORT
-  change_file replace postgres-ds.xml USERNAME $_POSTGRESQL_USER_NAME
-  change_file replace postgres-ds.xml PASSWORD $_POSTGRESQL_USER_PASSWORD
+  change_file replace postgres-ds.xml HOST "$_POSTGRESQL_HOST"
+  change_file replace postgres-ds.xml PORT "$_POSTGRESQL_PORT"
+  change_file replace postgres-ds.xml USERNAME "$_POSTGRESQL_USER_NAME"
+  change_file replace postgres-ds.xml PASSWORD "$_POSTGRESQL_USER_PASSWORD"
 
   mv postgres-ds.xml $_DEFAULT_PATH/jboss/server/default/deploy/
   rm postgres-ds.xml*
@@ -129,7 +129,7 @@ configure_datasource () {
 }
 
 create_gsan_databases () {
-  _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
+  _POSTGRESQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Server is not installed!"
 
   credential_data
@@ -186,28 +186,28 @@ install_mybatis_migration () {
 
   cd $_DEFAULT_PATH
 
-  wget https://github.com/mybatis/migrations/releases/download/$_MYBATIS_FILE/$_MYBATIS_FILE.zip
+  wget "https://github.com/mybatis/migrations/releases/download/$_MYBATIS_FILE/$_MYBATIS_FILE.zip"
 
   [ $? -ne 0 ] && message "Error" "Download of $_MYBATIS_FILE.zip not realized!"
 
-  unzip -oq $_MYBATIS_FILE.zip
+  unzip -oq "$_MYBATIS_FILE.zip"
 
-  ln -sf $_MYBATIS_FILE mybatis-migrations
+  ln -sf "$_MYBATIS_FILE mybatis-migrations"
 
-  rm $_MYBATIS_FILE.zip
+  rm "$_MYBATIS_FILE.zip"
 
-  _MAJOR_VERSION=$(echo $_VERSION | cut -d. -f1)
-  _MYBATIS_JAR_FILE=$(ls $_DEFAULT_PATH/mybatis-migrations/lib/mybatis-$_MAJOR_VERSION*.jar | head -n 1)
+  _MAJOR_VERSION=$(echo "$_VERSION" | cut -d. -f1)
+  _MYBATIS_JAR_FILE=$(ls "$_DEFAULT_PATH/mybatis-migrations/lib/mybatis-$_MAJOR_VERSION*.jar" | head -n 1)
 
-  ln -sf $_MYBATIS_JAR_FILE $_JAVA_HOME/jre/lib/ext/
+  ln -sf "$_MYBATIS_JAR_FILE" "$_JAVA_HOME/jre/lib/ext/"
 
-  ln -sf $_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar $_JAVA_HOME/jre/lib/ext/
+  ln -sf "$_DEFAULT_PATH/mybatis-migrations/lib/$_MYBATIS_FILE.jar" "$_JAVA_HOME/jre/lib/ext/"
 
-  ln -sf $_DEFAULT_PATH/mybatis-migrations/bin/migrate /usr/local/bin
+  ln -sf "$_DEFAULT_PATH/mybatis-migrations/bin/migrate" "/usr/local/bin"
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
-  run_as_user $_USER_LOGGED "JAVA_HOME=$_JAVA_HOME migrate info"
+  run_as_user "$_USER_LOGGED" "JAVA_HOME=$_JAVA_HOME migrate info"
 
   [ $? -eq 0 ] && message "Notice" "$_MYBATIS_DESCRIPTION $_VERSION successfully installed!"
 }
@@ -215,10 +215,10 @@ install_mybatis_migration () {
 install_gsan_migrations () {
   _CURRENT_DIR=$(pwd)
 
-  _POSTGRESQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v psql")
+  _POSTGRESQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Error" "PostgreSQL Client or Server is not installed!"
 
-  _MYBATIS_INSTALLED=$(run_as_user $_USER_LOGGED "command -v migrate")
+  _MYBATIS_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v migrate")
   [ -z "$_MYBATIS_INSTALLED" ] && message "Error" "$_MYBATIS_DESCRIPTION is not installed!"
 
   input_datas
@@ -239,30 +239,30 @@ install_gsan_migrations () {
   _DATABASES="comercial gerencial"
 
   for database in $_DATABASES; do
-    cd $_DEFAULT_PATH/gsan-migracoes/$database
+    cd "$_DEFAULT_PATH/gsan-migracoes/$database"
 
     _PROPERTIES_FILE="environments/production.properties"
 
-    cp environments/production.exemplo.properties $_PROPERTIES_FILE
+    cp environments/production.exemplo.properties "$_PROPERTIES_FILE"
 
-    _SEARCH_CHARSET=$(cat $_PROPERTIES_FILE | egrep "^script_char_set")
+    _SEARCH_CHARSET=$(egrep "^script_char_set" "$_PROPERTIES_FILE")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_CHARSET" "script_char_set=LATIN1"
 
-    _SEARCH_URL=$(cat $_PROPERTIES_FILE | egrep "^url=jdbc:postgresql")
+    _SEARCH_URL=$(egrep "^url=jdbc:postgresql" "$_PROPERTIES_FILE")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_URL" "url=jdbc:postgresql://$_POSTGRESQL_HOST:$_POSTGRESQL_PORT/gsan_$database"
 
-    _SEARCH_USERNAME=$(cat $_PROPERTIES_FILE | egrep "^username=")
+    _SEARCH_USERNAME=$(egrep "^username=" "$_PROPERTIES_FILE")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_USERNAME" "username=$_POSTGRESQL_USER_NAME"
 
-    _SEARCH_PASSWORD=$(cat $_PROPERTIES_FILE | egrep "^password=")
+    _SEARCH_PASSWORD=$(egrep "^password=" "$_PROPERTIES_FILE")
     change_file "replace" "$_PROPERTIES_FILE" "$_SEARCH_PASSWORD" "password=$_POSTGRESQL_USER_PASSWORD"
 
-    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate status --env=production"
+    run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate status --env=production"
 
-    run_as_user $_USER_LOGGED "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate up --env=production"
+    run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/gsan-migracoes/$database && JAVA_HOME=$_JAVA_HOME migrate up --env=production"
   done
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "$_APP_NAME Migrations successfully installed!"
 }
@@ -311,7 +311,7 @@ install_gsan () {
 
   _INDEX_HTML_FILE="$_DEFAULT_PATH/jboss/server/default/deploy/jbossweb-tomcat50.sar/ROOT.war/index.html"
 
-  mv $_INDEX_HTML_FILE "$_INDEX_HTML_FILE.old"
+  mv "$_INDEX_HTML_FILE" "$_INDEX_HTML_FILE.old"
 
   echo "<html>" > $_INDEX_HTML_FILE
   echo "  <head>" >> $_INDEX_HTML_FILE
@@ -319,21 +319,21 @@ install_gsan () {
   echo "  </head>" >> $_INDEX_HTML_FILE
   echo "</html>" >> $_INDEX_HTML_FILE
 
-  chown $_OWNER:$_OWNER -R $_DEFAULT_PATH/gsan
+  chown "$_OWNER":"$_OWNER" -R "$_DEFAULT_PATH/gsan"
 
   _JAVA_HOME=$(get_java_home 6)
 
   change_file "append" "$_DEFAULT_PATH/jboss/server/default/conf/log4j.xml" "<param name=\"Append\" value=\"false\"\/>" "<param name=\"Threshold\" value=\"INFO\" \/>"
 
-  run_as_user $_OWNER "/etc/init.d/jboss stop"
+  run_as_user "$_OWNER" "/etc/init.d/jboss stop"
 
-  run_as_user $_OWNER "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
+  run_as_user "$_OWNER" "cd $_DEFAULT_PATH/gsan && JAVA_HOME=$_JAVA_HOME JBOSS_GSAN=$_DEFAULT_PATH/jboss GSAN_PATH=$_DEFAULT_PATH/gsan bash scripts/build/build_gcom.sh"
 
-  run_as_user $_OWNER "cp $_DEFAULT_PATH/jboss/server/default/deploy/gcom.ear/gcom.war/WEB-INF/lib/gsan-relatorios-cliente.jar $_DEFAULT_PATH/jboss/server/default/lib/"
+  run_as_user "$_OWNER" "cp $_DEFAULT_PATH/jboss/server/default/deploy/gcom.ear/gcom.war/WEB-INF/lib/gsan-relatorios-cliente.jar $_DEFAULT_PATH/jboss/server/default/lib/"
 
-  run_as_user $_OWNER "/etc/init.d/jboss start"
+  run_as_user "$_OWNER" "/etc/init.d/jboss start"
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "$_APP_NAME successfully installed!"
 }
@@ -351,8 +351,8 @@ configure_nginx () {
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > gsan.conf
 
     change_file replace gsan.conf APP gsan
-    change_file replace gsan.conf DOMAIN $_DOMAIN
-    change_file replace gsan.conf HOST $_HOST
+    change_file replace gsan.conf DOMAIN "$_DOMAIN"
+    change_file replace gsan.conf HOST "$_HOST"
 
     mv gsan.conf /etc/nginx/conf.d/
     rm gsan.conf*
@@ -366,11 +366,11 @@ configure_nginx () {
 }
 
 main () {
-  [ "$_OS_ARCH" = "32" ] && _ARCH="i386"
-  [ "$_OS_ARCH" = "64" ] && _ARCH="amd64"
+  [ "$_OS_ARCH" = "32" ] && export _ARCH="i386"
+  [ "$_OS_ARCH" = "64" ] && export _ARCH="amd64"
 
   _POSTGRESQL_VERSION=$(postgres_version)
-  _POSTGRESQL_VERSION_COMPACT=$(echo $_POSTGRESQL_VERSION | sed 's/\.//g')
+  export _POSTGRESQL_VERSION_COMPACT=${_POSTGRESQL_VERSION//./}
 
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
