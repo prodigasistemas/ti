@@ -4,7 +4,7 @@
 # http://wildfly.org/
 # http://unix.stackexchange.com/questions/32908/how-to-insert-the-content-of-a-file-into-another-file-before-a-pattern-marker
 
-_APP_NAME="JBoss"
+export _APP_NAME="JBoss"
 _DEFAULT_PATH="/opt"
 _JBOSS_FOLDER="$_DEFAULT_PATH/jboss"
 _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
@@ -18,7 +18,7 @@ _OPTIONS_LIST="install_jboss4 'Install $_JBOSS4_DESCRIPTION' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -59,7 +59,7 @@ install_jboss4 () {
 
   [ "$_OS_TYPE" = "rpm" ] && ln -sf "$_DEFAULT_PATH/$_JBOSS_FILE" "/usr/local/jboss"
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "$_JBOSS4_DESCRIPTION successfully installed!"
 }
@@ -111,9 +111,9 @@ configure_jboss4 () {
 
   cp $_ORIGIN_FILE "$_ORIGIN_FILE.backup"
 
-  _LINE=$(cat $_ORIGIN_FILE | grep -n "$_SEARCH" | cut -d: -f1)
+  _LINE=$(grep -n "$_SEARCH" $_ORIGIN_FILE | cut -d: -f1)
 
-  { head -n $(($_LINE-1)) $_ORIGIN_FILE; cat $_INSERT_FILE; tail -n +$_LINE $_ORIGIN_FILE; } > .tempfile
+  { head -n $((_LINE-1)) $_ORIGIN_FILE; cat $_INSERT_FILE; tail -n +"$_LINE" $_ORIGIN_FILE; } > .tempfile
 
   mv .tempfile $_ORIGIN_FILE
 
@@ -121,7 +121,7 @@ configure_jboss4 () {
 
   # Change config params
   _RUN_FILE="$_JBOSS_FOLDER/bin/run.conf"
-  _ORIGIN_CONFIG=$(cat $_RUN_FILE | sed '/^ *#/d' | egrep "JAVA_OPTS=")
+  _ORIGIN_CONFIG=$(sed '/^ *#/d' $_RUN_FILE | egrep "JAVA_OPTS=")
   change_file "replace" "$_RUN_FILE" "$_ORIGIN_CONFIG" "   JAVA_OPTS=\"-server -Xms${_JAVA_OPTS_XMS} -Xmx${_JAVA_OPTS_XMX} -XX:MaxPermSize=${_JAVA_OPTS_MAX_PERM_SIZE}\""
 
   _SERVICE_FILE="$_JBOSS_FOLDER/server/default/conf/jboss-service.xml"
@@ -135,7 +135,7 @@ configure_jboss4 () {
 
   export JBOSS_HOME=$_JBOSS_FOLDER
 
-  _FIND_JBOSS_HOME=$(cat /etc/rc.local | grep JBOSS_HOME)
+  _FIND_JBOSS_HOME=$(grep "JBOSS_HOME" "/etc/rc.local")
   if [ -z "$_FIND_JBOSS_HOME" ]; then
     if [ "$_OS_TYPE" = "deb" ]; then
       change_file "append" "/etc/rc.local" "# By default this script does nothing." "export JBOSS_HOME=$_JBOSS_FOLDER"
@@ -149,13 +149,13 @@ configure_jboss4 () {
   rm -rf /tmp/jboss-libs-master/
 
   # Configure jboss user
-  _FIND_JBOSS_USER=$(cat /etc/passwd | grep ^jboss)
+  _FIND_JBOSS_USER=$(grep ^jboss /etc/passwd)
   [ -z "$_FIND_JBOSS_USER" ] && adduser jboss
 
   # Configure owner user
-  _FIND_USER=$(cat /etc/passwd | grep ^$_OWNER)
+  _FIND_USER=$(grep "^$_OWNER" /etc/passwd)
 
-  [ -z "$_FIND_USER" ] && adduser $_OWNER
+  [ -z "$_FIND_USER" ] && adduser "$_OWNER"
 
   # Configure initializer script
   chmod +x $_JBOSS_FOLDER/bin/*.sh
@@ -168,9 +168,9 @@ configure_jboss4 () {
 
   ln -sf $_JBOSS_FOLDER/bin/$_SCRIPT_NAME /etc/init.d/jboss
 
-  _REAL_JBOSS_FOLDER=$(echo $(ls -l /opt/jboss | cut -d'>' -f2))
+  _REAL_JBOSS_FOLDER=$(echo "$(ls -l /opt/jboss | cut -d'>' -f2)")
 
-  chown $_OWNER:$_OWNER -R "$_DEFAULT_PATH/$_REAL_JBOSS_FOLDER"
+  chown "$_OWNER":"$_OWNER" -R "$_DEFAULT_PATH/$_REAL_JBOSS_FOLDER"
 
   _JAVA_HOME=$(get_java_home 6)
 
@@ -178,9 +178,9 @@ configure_jboss4 () {
 
   admin_service jboss register
 
-  run_as_user $_OWNER "JBOSS_HOME=$_JBOSS_FOLDER /etc/init.d/jboss start"
+  run_as_user "$_OWNER" "JBOSS_HOME=$_JBOSS_FOLDER /etc/init.d/jboss start"
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "$_JBOSS4_DESCRIPTION successfully configured!"
 }
@@ -237,7 +237,7 @@ install_wildfly8 () {
 
   /etc/init.d/wildfly start
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "WildFly 8 successfully installed!"
 }
