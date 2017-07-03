@@ -1,6 +1,6 @@
 #!/bin/bash
 
-_APP_NAME="Main menu"
+export _APP_NAME="Main menu"
 _OPTIONS_LIST="java 'Java installer' \
                ruby 'Ruby installer' \
                nginx 'NGINX installer' \
@@ -20,7 +20,7 @@ _OPTIONS_LIST="java 'Java installer' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -44,7 +44,7 @@ main () {
     if [ -z "$_MAIN_OPTION" ]; then
       clear && exit 0
     else
-      curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh | bash
+      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh" | bash
 
       [ $? -ne 0 ] && message "Alert" "Installer not found!"
 
@@ -55,7 +55,7 @@ main () {
     for app in $_APPLICATIONS; do
       print_colorful yellow bold "> Loading $app installer..."
 
-      curl -sS $_CENTRAL_URL_TOOLS/scripts/install/$app/linux.sh | bash
+      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$app/linux.sh" | bash
     done
   fi
 }
