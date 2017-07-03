@@ -4,7 +4,7 @@
 # https://about.gitlab.com/downloads/#ubuntu1404
 # https://about.gitlab.com/downloads/#centos6
 
-_APP_NAME="GitLab"
+export _APP_NAME="GitLab"
 _HTTP_PORT_DEFAULT="7070"
 _NGINX_DEFAULT_HOST="localhost:$_HTTP_PORT_DEFAULT"
 _GITLAB_CONFIG="/etc/gitlab/gitlab.rb"
@@ -17,7 +17,7 @@ _OPTIONS_LIST="install_gitlab 'Install the GitLab' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -54,14 +54,14 @@ install_gitlab () {
   confirm "Do you confirm the installation of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
-  [ "$_OS_TYPE" = "deb" ] && _PACKAGES="openssh-server ca-certificates"
-  [ "$_OS_TYPE" = "rpm" ] && _PACKAGES="openssh-server openssh-clients"
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGES="ca-certificates"
+  [ "$_OS_TYPE" = "rpm" ] && _PACKAGES="openssh-clients"
 
-  curl -sS https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.$_OS_TYPE.sh | bash
+  curl -sS "https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/script.$_OS_TYPE.sh" | sudo bash
 
-  $_PACKAGE_COMMAND -y install $_PACKAGES gitlab-ce
+  $_PACKAGE_COMMAND install -y "$_PACKAGES" openssh-server gitlab-ce
 
-  _GITLAB_EXTERNAL_URL=$(cat $_GITLAB_CONFIG | egrep ^$_GITLAB_STRING_SEARCH)
+  _GITLAB_EXTERNAL_URL=$(egrep ^$_GITLAB_STRING_SEARCH $_GITLAB_CONFIG)
 
   change_file "replace" "$_GITLAB_CONFIG" "^$_GITLAB_EXTERNAL_URL" "external_url 'http://$_DOMAIN'"
 
