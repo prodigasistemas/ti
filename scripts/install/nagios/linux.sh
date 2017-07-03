@@ -9,14 +9,14 @@
 # http://tecadmin.net/monitor-remote-linux-host-using-nagios/
 # https://assets.nagios.com/downloads/nagioscore/docs/nrpe/NRPE.pdf
 
-_APP_NAME="Nagios"
+export _APP_NAME="Nagios"
 _OPTIONS_LIST="install_nagios_server 'Install $_APP_NAME server' \
                install_nagios_client 'Install $_APP_NAME client'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -36,7 +36,7 @@ centos_epel() {
   [ "$_OS_ARCH" = "32" ] && _ARCH="i386"
   [ "$_OS_ARCH" = "64" ] && _ARCH="x86_64"
 
-  rpm -Uvh http://mirror.globo.com/epel/$_OS_RELEASE/$_ARCH/epel-release-$_VERSION.noarch.rpm
+  rpm -Uvh "http://mirror.globo.com/epel/$_OS_RELEASE/$_ARCH/epel-release-$_VERSION.noarch.rpm"
 
   [ $? -ne 0 ] && message "Error" "Download of epel-release-$_VERSION.noarch.rpm not realized!"
 }
