@@ -3,7 +3,7 @@
 # http://stackoverflow.com/questions/20988371/linux-bash-get-releasever-and-basearch-values
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
-_APP_NAME="NGINX"
+export _APP_NAME="NGINX"
 _GROUP="nginx"
 _OPTIONS_LIST="install_nginx 'Install NGINX' \
                add_to_group 'Add a user to the group $_GROUP'"
@@ -11,7 +11,7 @@ _OPTIONS_LIST="install_nginx 'Install NGINX' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -53,7 +53,7 @@ install_nginx () {
 
   chmod 775 /var/log/nginx
 
-  [ "$_OS_TYPE" = "rpm" ] && admin_service nginx start
+  admin_service nginx start
 
   add_user_to_group $_GROUP "[no_alert]"
 
@@ -66,6 +66,7 @@ add_to_group () {
 
 main () {
   tool_check curl
+  tool_check wget
 
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
