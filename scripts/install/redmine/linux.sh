@@ -4,7 +4,7 @@
 # http://www.redmine.org/projects/redmine/wiki/Install_Redmine_25x_on_Centos_65_complete
 # http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
-_APP_NAME="Redmine"
+export _APP_NAME="Redmine"
 _REDMINE_LAST_VERSION="3.3.0"
 _DEFAULT_PATH="/opt"
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
@@ -17,7 +17,7 @@ _OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_LAST_VERSION in $_
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -56,11 +56,11 @@ configure_database () {
 
   print_colorful white bold "> Configuring database..."
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "DROP DATABASE IF EXISTS redmine;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE redmine CHARACTER SET utf8;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "DROP DATABASE IF EXISTS redmine;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE DATABASE redmine CHARACTER SET utf8;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "FLUSH PRIVILEGES;"
 
   echo "production:" > $_YAML_FILE
   echo "  adapter: mysql2" >> $_YAML_FILE
@@ -73,16 +73,15 @@ configure_database () {
 
 install_redmine () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
-  _USER_GROUP=$(echo $(groups $_USER_LOGGED | cut -d: -f2) | cut -d' ' -f1)
-  _USER_GROUPS=$(echo $(groups $_USER_LOGGED | cut -d: -f2))
+  _USER_GROUP=$(echo "$(groups "$_USER_LOGGED" | cut -d: -f2)" | cut -d' ' -f1)
 
-  _RUBY_INSTALLED=$(run_as_user $_USER_LOGGED "command -v ruby")
+  _RUBY_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v ruby")
   [ -z "$_RUBY_INSTALLED" ] && message "Alert" "Ruby language is not installed!"
 
-  _RVM_INSTALLED=$(run_as_user $_USER_LOGGED "command -v rvm")
+  _RVM_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v rvm")
   [ -z "$_RVM_INSTALLED" ] && message "Alert" "Ruby Version Manager (RVM) is not installed!"
 
-  _MYSQL_INSTALLED=$(run_as_user $_USER_LOGGED "command -v mysql")
+  _MYSQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v mysql")
   [ -z "$_MYSQL_INSTALLED" ] && message "Alert" "MySQL Client or Server is not installed!"
 
   _REDMINE_VERSION=$(input_field "redmine.version" "Redmine version" "$_REDMINE_LAST_VERSION")
@@ -96,37 +95,37 @@ install_redmine () {
 
   print_colorful white bold "> Downloading Redmine..."
 
-  wget http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz
+  wget "http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz"
 
   [ $? -ne 0 ] && message "Error" "Download of file redmine-$_REDMINE_VERSION.tar.gz unrealized!"
 
-  tar -xzf redmine-$_REDMINE_VERSION.tar.gz
+  tar -xzf "redmine-$_REDMINE_VERSION.tar.gz"
 
-  rm redmine-$_REDMINE_VERSION.tar.gz
+  rm "redmine-$_REDMINE_VERSION.tar.gz"
 
   backup_folder $_REDMINE_FOLDER
 
-  mv redmine-$_REDMINE_VERSION $_REDMINE_FOLDER
+  mv "redmine-$_REDMINE_VERSION" $_REDMINE_FOLDER
 
   configure_database
 
-  chown $_USER_LOGGED:$_USER_GROUP -R $_REDMINE_FOLDER
+  chown "$_USER_LOGGED":"$_USER_GROUP" -R $_REDMINE_FOLDER
 
-  run_as_user $_USER_LOGGED "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
-  run_as_user $_USER_LOGGED "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
-  run_as_user $_USER_LOGGED "gem install bundler"
+  run_as_user "$_USER_LOGGED" "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
+  run_as_user "$_USER_LOGGED" "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
+  run_as_user "$_USER_LOGGED" "gem install bundler"
 
   print_colorful white bold "> Installing gems..."
 
-  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
+  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
 
   print_colorful white bold "> Running data migration..."
 
-  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
+  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
 
-  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
+  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
 
-  run_as_user $_USER_LOGGED "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
+  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
   print_colorful white bold "> Setting Redmine..."
 
@@ -137,7 +136,7 @@ install_redmine () {
 
   change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
-  chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_RB_FILE
+  chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_RB_FILE
   mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
   rm $_UNICORN_RB_FILE*
 
@@ -149,7 +148,7 @@ install_redmine () {
   change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
   change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
   change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
-  chown $_USER_LOGGED:$_USER_GROUP $_UNICORN_INIT_FILE
+  chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_INIT_FILE
   chmod +x $_UNICORN_INIT_FILE
   mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
   rm $_UNICORN_INIT_FILE*
@@ -259,7 +258,7 @@ issue_reports_plugin () {
   cp $_ISSUE_REPORTS_FOLDER/update-redmine/custom_fields.js $_REDMINE_FOLDER/public/javascripts
 
   _ISSUE_FORM_FILE=$_REDMINE_FOLDER/app/views/issues/_form.html.erb
-  _FIND_TAG=$(cat $_ISSUE_FORM_FILE | grep custom_fields)
+  _FIND_TAG=$(grep custom_fields "$_ISSUE_FORM_FILE")
 
   [ -z "$_FIND_TAG" ] && echo "<%= javascript_include_tag 'custom_fields' %>" >> $_ISSUE_FORM_FILE
 
