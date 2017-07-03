@@ -3,8 +3,8 @@
 # https://www.ruby-lang.org/en/downloads
 # http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
-_APP_NAME="Ruby"
-_DEFAULT_VERSION="2.3.1"
+export _APP_NAME="Ruby"
+_DEFAULT_VERSION="2.3.4"
 _GROUP="rvm"
 _OPTIONS_LIST="install_ruby 'Install Ruby' \
                add_to_group 'Add a user to the group $_GROUP'"
@@ -12,7 +12,7 @@ _OPTIONS_LIST="install_ruby 'Install Ruby' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -40,7 +40,7 @@ install_ruby () {
   _GPG_COMMAND="gpg"
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    _OS_VERSION=$(echo $_OS_NUMBER | cut -d. -f1)
+    _OS_VERSION=$(echo "$_OS_NUMBER" | cut -d. -f1)
 
     [ "$_OS_VERSION" -ge 16 ] && _GPG_COMMAND="gpg2"
   fi
@@ -55,18 +55,18 @@ install_ruby () {
 
   case $_OS_TYPE in
     deb)
-      rvmsudo rvm install $_VERSION
-      rvmsudo rvm alias create default $_VERSION
+      rvmsudo rvm install "$_VERSION"
+      rvmsudo rvm alias create default "$_VERSION"
       ;;
     rpm)
-      run_as_user $_USER_LOGGED "rvmsudo rvm install $_VERSION"
-      run_as_user $_USER_LOGGED "rvmsudo rvm alias create default $_VERSION"
+      run_as_user "$_USER_LOGGED" "rvmsudo rvm install $_VERSION"
+      run_as_user "$_USER_LOGGED" "rvmsudo rvm alias create default $_VERSION"
       ;;
   esac
 
   run_as_root "echo \"gem: --no-rdoc --no-ri\" > /etc/gemrc"
 
-  run_as_user $_USER_LOGGED "gem install bundler"
+  run_as_user "$_USER_LOGGED" "gem install bundler"
 
   [ $? -eq 0 ] && message "Notice" "Success! Will be you logout or put command: 'source /etc/profile.d/rvm.sh'. After, enter the command: ruby -v"
 }
