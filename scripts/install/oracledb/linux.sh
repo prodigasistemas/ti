@@ -4,13 +4,13 @@
 # https://hub.docker.com/r/wnameless/oracle-xe-11g/
 # http://stackoverflow.com/questions/19335444/how-to-assign-a-port-mapping-to-an-existing-docker-container
 
-_APP_NAME="Oracle Database XE"
+export _APP_NAME="Oracle Database XE"
 _OPTIONS_LIST="install_oracleb 'Install Oracle Database 11g Express Edition with Docker'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -46,11 +46,11 @@ install_oracleb () {
 
   [ ! -e "$_TI_FOLDER" ] && mkdir -p "$_TI_FOLDER"
 
-  echo "ssh.port = $_SSH_PORT" > $_ORACLE_CONFIG
-  echo "connection.port = $_CONECTION_PORT" >> $_ORACLE_CONFIG
-  echo "http.port = $_HTTP_PORT" >> $_ORACLE_CONFIG
+  echo "ssh.port = $_SSH_PORT" > "$_ORACLE_CONFIG"
+  echo "connection.port = $_CONECTION_PORT" >> "$_ORACLE_CONFIG"
+  echo "http.port = $_HTTP_PORT" >> "$_ORACLE_CONFIG"
 
-  docker run --name oracle-xe-11g -d -p $_SSH_PORT:22 -p $_CONECTION_PORT:1521 -p $_HTTP_PORT:8080 --restart="always" wnameless/oracle-xe-11g
+  docker run --name oracle-xe-11g -d -p "$_SSH_PORT:22" -p "$_CONECTION_PORT:1521" -p "$_HTTP_PORT:8080" --restart="always" wnameless/oracle-xe-11g
 
   [ $? -eq 0 ] && message "Notice" "Oracle Database successfully installed! Source: hub.docker.com/r/wnameless/oracle-xe-11g"
 }
