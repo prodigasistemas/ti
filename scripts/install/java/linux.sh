@@ -2,7 +2,7 @@
 # http://www.oracle.com/technetwork/java/javase/downloads/index.html
 # http://unix.stackexchange.com/questions/6345/how-can-i-get-distribution-name-and-version-number-in-a-simple-shell-script
 
-_APP_NAME="Java"
+export _APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
 _OPTIONS_LIST="oracleJDK6 'Oracle Java 6 JDK' \
                oracleJDK7 'Oracle Java 7 JDK' \
@@ -15,7 +15,7 @@ _OPTIONS_LIST="oracleJDK6 'Oracle Java 6 JDK' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -31,7 +31,7 @@ setup () {
 download_java () {
   tool_check wget
 
-  cd $_DEFAULT_INSTALLATION_FOLDER && wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/jdk-$1-linux-$3"
+  cd $_DEFAULT_INSTALLATION_FOLDER && wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/$1-$2/$4jdk-$1-linux-$3"
 }
 
 install_openJDK () {
@@ -39,19 +39,20 @@ install_openJDK () {
 
   if [ "$_OS_TYPE" = "deb" ]; then
     _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
-    _FIND_PACKAGE=$(apt-cache search $_PACKAGE_NAME)
+    _FIND_PACKAGE=$(apt-cache search "$_PACKAGE_NAME")
+    _FORCE_YES="--force-yes"
 
     [ -z "$_FIND_PACKAGE" ] && message "Error" "Package $_PACKAGE_NAME not found!"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
     _PACKAGE_NAME="java-1.$_OPENJDK_VERSION.0-openjdk-devel"
-    _FIND_PACKAGE=$($_PACKAGE_COMMAND search $_PACKAGE_NAME)
-    _FIND=$(echo $_FIND_PACKAGE | grep "Nenhum pacote localizado")
+    _FIND_PACKAGE=$($_PACKAGE_COMMAND search "$_PACKAGE_NAME")
+    _FIND=$(echo "$_FIND_PACKAGE" | grep "Nenhum pacote localizado")
 
     [ -n "$_FIND" ] && message "Error" "Package $_PACKAGE_NAME not found!"
   fi
 
-  $_PACKAGE_COMMAND install -y $_PACKAGE_NAME
+  $_PACKAGE_COMMAND install -y "$_PACKAGE_NAME" "$_FORCE_YES"
 
   [ $? -eq 0 ] && message "Notice" "Java $_OPENJDK_VERSION successfully installed!"
 }
@@ -82,11 +83,11 @@ install_oracleJDK6 () {
 
   download_java $_JAVA_VERSION $_BINARY_VERSION "$_ARCH.bin"
 
-  cd $_DEFAULT_INSTALLATION_FOLDER && bash $_JAVA_FILE
+  cd $_DEFAULT_INSTALLATION_FOLDER && bash "$_JAVA_FILE"
 
   ln -sf $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-6
 
-  delete_file $_JAVA_FILE
+  delete_file "$_JAVA_FILE"
 
   [ $? -eq 0 ] && message "Notice" "Oracle Java 6 successfully installed in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-6'!"
 }
@@ -95,32 +96,33 @@ install_oracleJDK () {
   _JAVA_VERSION=$1
   _JAVA_UPDATE=$2
   _BINARY_VERSION=$3
+  _HASH_VERSION=$4
   _JAVA_FOLDER="jdk1.${_JAVA_VERSION}.0_${_JAVA_UPDATE}"
   _JAVA_PACKAGE="${_JAVA_VERSION}u${_JAVA_UPDATE}"
 
   if [ "$_OS_TYPE" = "deb" ]; then
     [ -e "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION" ] && message "Alert" "Oracle Java $_JAVA_VERSION is already installed!"
 
-    download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.tar.gz"
+    download_java "$_JAVA_PACKAGE" "$_BINARY_VERSION" "$_ARCH.tar.gz" "$_HASH_VERSION"
 
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.tar.gz"
     _INSTALL_FOLDER="in '$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION'"
 
-    cd $_DEFAULT_INSTALLATION_FOLDER && tar -xzf $_JAVA_FILE
+    cd $_DEFAULT_INSTALLATION_FOLDER && tar -xzf "$_JAVA_FILE"
 
-    ln -sf $_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER $_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION
+    ln -sf "$_DEFAULT_INSTALLATION_FOLDER/$_JAVA_FOLDER" "$_DEFAULT_INSTALLATION_FOLDER/java-oracle-$_JAVA_VERSION"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
-    download_java $_JAVA_PACKAGE $_BINARY_VERSION "$_ARCH.rpm"
+    download_java "$_JAVA_PACKAGE" "$_BINARY_VERSION" "$_ARCH.rpm" "$_HASH_VERSION"
 
     _JAVA_FILE="jdk-$_JAVA_PACKAGE-linux-$_ARCH.rpm"
 
-    $_PACKAGE_COMMAND localinstall -y $_JAVA_FILE
+    $_PACKAGE_COMMAND localinstall -y "$_JAVA_FILE"
 
     ln -sf "/usr/java/jdk1.$_JAVA_VERSION.0_$_JAVA_UPDATE" "/usr/java/oracle-$_JAVA_VERSION"
   fi
 
-  cd $_DEFAULT_INSTALLATION_FOLDER && delete_file $_JAVA_FILE
+  cd $_DEFAULT_INSTALLATION_FOLDER && delete_file "$_JAVA_FILE"
 
   [ $? -eq 0 ] && message "Notice" "Oracle Java $_JAVA_VERSION successfully installed${_INSTALL_FOLDER}!"
 }
@@ -130,7 +132,7 @@ install_oracleJDK7 () {
 }
 
 install_oracleJDK8 () {
-  install_oracleJDK "8" "92" "b14"
+  install_oracleJDK "8" "131" "b11" "d54c1d3a095b4ff2b6607d096fa80163/"
 }
 
 main () {
@@ -148,7 +150,7 @@ main () {
       confirm "Do you confirm the installation of $_JAVA_VERSION ($_OS_ARCH bits)?"
       [ $? -eq 1 ] && main
 
-      install_$_JAVA_VERSION
+      "install_$_JAVA_VERSION"
     fi
   else
     if [ -n "$(search_app java)" ]; then
@@ -156,7 +158,7 @@ main () {
       for java_version in $_JAVA_VERSIONS; do
         print_colorful yellow bold "> Installing $java_version..."
 
-        install_$java_version
+        "install_$java_version"
       done
     fi
   fi
