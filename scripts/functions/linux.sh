@@ -1,3 +1,4 @@
+#!/bin/bash
 # http://www.thegeekstuff.com/2009/11/unix-sed-tutorial-append-insert-replace-and-count-file-lines/
 # http://centoshowtos.org/blog/ifconfig-on-centos-7/
 
@@ -5,7 +6,7 @@ os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
   _OS_KERNEL=$(uname -r)
 
-  if [ $(which lsb_release 2>/dev/null) ]; then
+  if [ "$(which lsb_release 2>/dev/null)" ]; then
     _OS_TYPE="deb"
     _OS_NAME=$(lsb_release -i | cut -f2 | awk '{ print tolower($1) }')
     _OS_CODENAME=$(lsb_release -cs)
@@ -14,8 +15,8 @@ os_check () {
     _PACKAGE_COMMAND="apt-get"
   elif [ -e "/etc/redhat-release" ]; then
     _OS_TYPE="rpm"
-    _OS_NAME=$(cat /etc/redhat-release | awk '{ print tolower($1) }')
-    _OS_RELEASE=$(cat /etc/redhat-release | sed 's/CentOS //; s/Linux //g' | cut -d' ' -f2 | cut -d. -f1)
+    _OS_NAME=$(awk '{ print tolower($1) }' /etc/redhat-release)
+    _OS_RELEASE=$(sed 's/CentOS //; s/Linux //g' /etc/redhat-release | cut -d' ' -f2 | cut -d. -f1)
     _OS_DESCRIPTION="$(cat /etc/redhat-release) $_OS_ARCH bits"
     _PACKAGE_COMMAND="yum"
   else
@@ -29,11 +30,11 @@ os_check () {
 
 tool_check() {
   print_colorful white bold "> Checking for $1..."
-  if command -v $1 > /dev/null; then
+  if command -v "$1" > /dev/null; then
     print_colorful white bold "> Detected $1!"
   else
     print_colorful white bold "> Installing $1..."
-    $_PACKAGE_COMMAND install -y $1
+    $_PACKAGE_COMMAND install -y "$1"
   fi
 }
 
@@ -66,11 +67,11 @@ print_colorful () {
 }
 
 search_applications () {
-  echo $(cat $_RECIPE_FILE | sed '/^ *$/d; /^ *#/d' | cut -d. -f1 | uniq)
+  sed '/^ *$/d; /^ *#/d' "$_RECIPE_FILE" | cut -d. -f1 | uniq
 }
 
 search_app () {
-  echo $(cat $_RECIPE_FILE | egrep ^$1 | cut -d. -f1 | uniq)
+  egrep ^"$1" "$_RECIPE_FILE" | cut -d. -f1 | uniq
 }
 
 search_value () {
@@ -79,19 +80,19 @@ search_value () {
 
   [ -z "$_SEARCH_FILE" ] && _SEARCH_FILE=$_RECIPE_FILE
 
-  echo $(echo $(cat $_SEARCH_FILE | grep $_SEARCH_VALUE | cut -d= -f2))
+  grep "$_SEARCH_VALUE" "$_SEARCH_FILE" | cut -d= -f2
 }
 
 search_versions () {
-  echo $(cat $_RECIPE_FILE | egrep ^$1 | cut -d= -f2 | uniq)
+  egrep ^"$1" "$_RECIPE_FILE" | cut -d= -f2 | uniq
 }
 
 menu () {
-  echo $(eval dialog $_TITLE --stdout --menu \"$1\" 0 0 0 $2)
+  eval dialog "$_TITLE" --stdout --menu \""$1"\" 0 0 0 "$2"
 }
 
 input () {
-  echo $(eval dialog $_TITLE --stdout --inputbox \"$1\" 0 0 \"$2\")
+  eval dialog "$_TITLE" --stdout --inputbox \""$1"\" 0 0 \""$2"\"
 }
 
 input_field () {
@@ -100,12 +101,12 @@ input_field () {
   _INPUT_VALUE=$3
 
   if [ "$(provisioning)" = "manual" ]; then
-    echo $(eval dialog $_TITLE --stdout --inputbox \"$_INPUT_MESSAGE\" 0 0 \"$_INPUT_VALUE\")
+    eval dialog "$_TITLE" --stdout --inputbox \""$_INPUT_MESSAGE"\" 0 0 \""$_INPUT_VALUE"\"
   else
     if [ "$_INPUT_FIELD" = "[default]" ]; then
-      echo $_INPUT_VALUE
+      echo "$_INPUT_VALUE"
     else
-      echo $(search_value $_INPUT_FIELD)
+      search_value "$_INPUT_FIELD"
     fi
   fi
 }
@@ -116,7 +117,7 @@ message () {
   _MESSAGE_COMMAND=$3
 
   if [ "$(provisioning)" = "manual" ]; then
-    eval dialog --title \"$_MESSAGE_TITLE\" --msgbox \"$_MESSAGE_TEXT\" 0 0
+    eval dialog --title \""$_MESSAGE_TITLE"\" --msgbox \""$_MESSAGE_TEXT"\" 0 0
 
     if [ -z "$_MESSAGE_COMMAND" ]; then
       main
@@ -129,11 +130,11 @@ message () {
     if [ -z "$_MESSAGE_COMMAND" ]; then
       [ "$_MESSAGE_TITLE" != "Notice" ] && exit 1
     else
-      _FIND=$(echo $_MESSAGE_COMMAND | grep "clear &&")
+      _FIND=$(echo "$_MESSAGE_COMMAND" | grep "clear &&")
       if [ -z "$_FIND" ]; then
         $3
       else
-        _COMMAND=$(echo $_MESSAGE_COMMAND | sed "s|clear && ||g")
+        _COMMAND=${_MESSAGE_COMMAND//clear && /}
         $_COMMAND
       fi
     fi
@@ -146,17 +147,17 @@ confirm () {
 
   if [ "$(provisioning)" = "manual" ]; then
     if [ -n "$_CONFIRM_TITLE" ]; then
-      dialog --title "$_CONFIRM_TITLE" --yesno "$1" 0 0
+      dialog --title "$_CONFIRM_TITLE" --yesno "$_CONFIRM_QUESTION" 0 0
     else
-      dialog --yesno "$1" 0 0
+      dialog --yesno "$_CONFIRM_QUESTION" 0 0
     fi
   else
-    print_colorful yellow bold "$2"
+    print_colorful yellow bold "$_CONFIRM_TITLE"
   fi
 }
 
 change_file () {
-  _CF_BACKUP=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _CF_BACKUP=".backup-$(date +"%Y%m%d%H%M%S%N")"
   _CF_OPERATION=$1
   _CF_FILE=$2
   _CF_FROM=$3
@@ -164,13 +165,13 @@ change_file () {
 
   case $_CF_OPERATION in
     replace)
-      sed -i$_CF_BACKUP -e "s|$_CF_FROM|$_CF_TO|g" $_CF_FILE
+      sed -i"$_CF_BACKUP" -e "s|$_CF_FROM|$_CF_TO|g" "$_CF_FILE"
       ;;
     append)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ a $_CF_TO" $_CF_FILE
+      sed -i"$_CF_BACKUP" -e "/$_CF_FROM/ a $_CF_TO" "$_CF_FILE"
       ;;
     insert)
-      sed -i$_CF_BACKUP -e "/$_CF_FROM/ i $_CF_TO" $_CF_FILE
+      sed -i"$_CF_BACKUP" -e "/$_CF_FROM/ i $_CF_TO" "$_CF_FILE"
       ;;
   esac
 }
@@ -180,7 +181,7 @@ run_as_root () {
 }
 
 run_as_user () {
-  su - $1 -c "$2"
+  su - "$1" -c "$2"
 }
 
 run_as_postgres () {
@@ -198,13 +199,13 @@ run_as_postgres () {
 
 postgres_version() {
   if [ "$_OS_TYPE" = "deb" ]; then
-    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d [:space:])
+    _POSTGRESQL_VERSION=$(apt-cache show postgresql | grep Version | head -n 1 | cut -d: -f2 | cut -d+ -f1 | tr -d '[:space:]')
   elif [ "$_OS_TYPE" = "rpm" ]; then
     _POSTGRESQL_VERSION=$(psql -V 2> /dev/null | cut -d' ' -f3)
     _POSTGRESQL_VERSION=${_POSTGRESQL_VERSION:0:3}
   fi
 
-  echo $_POSTGRESQL_VERSION
+  echo "$_POSTGRESQL_VERSION"
 }
 
 postgres_config_path () {
@@ -259,7 +260,7 @@ import_database () {
   _DATABASE_FILE=$7
 
   if [ "$_DATABASE_TYPE" = "mysql" ]; then
-    MYSQL_PWD=$_DATABASE_PASSWORD mysql -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER $_DATABASE_NAME < $_DATABASE_FILE
+    MYSQL_PWD=$_DATABASE_PASSWORD mysql -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" "$_DATABASE_NAME" < "$_DATABASE_FILE"
   fi
 }
 
@@ -270,38 +271,38 @@ backup_database () {
   _DATABASE_NAME=$2
   _DATABASE_USER=$3
   _DATABASE_PASSWORD=$4
-  _DATABASE_BACKUP_DATE=".backup-`date +"%Y%m%d%H%M%S%N"`"
+  _DATABASE_BACKUP_DATE=".backup-$(date +"%Y%m%d%H%M%S%N")"
 
   if [ "$_DATABASE_TYPE" = "mysql" ]; then
-    mysqldump -h $_DATABASE_HOST -P $_DATABASE_PORT -u $_DATABASE_USER -p$_DATABASE_PASSWORD $_DATABASE_NAME | gzip -9 > "$_DATABASE_NAME$_DATABASE_BACKUP_DATE.sql.gz"
+    mysqldump -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" -p"$_DATABASE_PASSWORD" "$_DATABASE_NAME" | gzip -9 > "$_DATABASE_NAME$_DATABASE_BACKUP_DATE.sql.gz"
   fi
 }
 
 delete_file () {
-  [ -e "$1" ] && rm -rf $1
+  [ -e "$1" ] && rm -rf "$1"
 }
 
 backup_folder () {
   _BACKUP_FOLDER="/opt/backups"
-  _LAST_FOLDER=$(echo $1 | cut -d/ -f3)
+  _LAST_FOLDER=$(echo "$1" | cut -d/ -f3)
 
   [ ! -e "$_BACKUP_FOLDER" ] && mkdir -p "$_BACKUP_FOLDER"
 
-  [ -e "$1" ] && mv "$1" "$_BACKUP_FOLDER/$_LAST_FOLDER-`date +"%Y%m%d%H%M%S%N"`"
+  [ -e "$1" ] && mv "$1" "$_BACKUP_FOLDER/$_LAST_FOLDER-$(date +"%Y%m%d%H%M%S%N")"
 }
 
 register_service () {
   _REGISTER_SERVICE_NAME=$1
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    update-rc.d $_REGISTER_SERVICE_NAME defaults
+    update-rc.d "$_REGISTER_SERVICE_NAME" defaults
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
 
     if [ "$_OS_RELEASE" -le 6 ]; then
-      chkconfig $_REGISTER_SERVICE_NAME on
+      chkconfig "$_REGISTER_SERVICE_NAME" on
     else
-      systemctl enable $_REGISTER_SERVICE_NAME
+      systemctl enable "$_REGISTER_SERVICE_NAME"
     fi
 
   fi
@@ -312,14 +313,14 @@ action_service () {
   _ACTION_SERVICE_OPTION=$2
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    service $_ACTION_SERVICE_NAME $_ACTION_SERVICE_OPTION
+    service "$_ACTION_SERVICE_NAME" "$_ACTION_SERVICE_OPTION"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
 
     if [ "$_OS_RELEASE" -le 6 ]; then
-      service $_ACTION_SERVICE_NAME $_ACTION_SERVICE_OPTION
+      service "$_ACTION_SERVICE_NAME" "$_ACTION_SERVICE_OPTION"
     else
-      systemctl $_ACTION_SERVICE_OPTION $_ACTION_SERVICE_NAME
+      systemctl "$_ACTION_SERVICE_OPTION" "$_ACTION_SERVICE_NAME"
     fi
 
   fi
@@ -331,11 +332,11 @@ admin_service () {
 
   case $_ADMIN_SERVICE_OPTION in
     register)
-      register_service $_ADMIN_SERVICE_NAME
+      register_service "$_ADMIN_SERVICE_NAME"
       ;;
 
     start|restart|reload|stop|status)
-      action_service $_ADMIN_SERVICE_NAME $_ADMIN_SERVICE_OPTION
+      action_service "$_ADMIN_SERVICE_NAME" "$_ADMIN_SERVICE_OPTION"
       ;;
   esac
 }
@@ -353,7 +354,7 @@ get_java_home () {
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/java-oracle-$_JAVA_VERSION"
   fi
 
-  echo $_JAVA_HOME
+  echo "$_JAVA_HOME"
 }
 
 java_check () {
@@ -362,7 +363,8 @@ java_check () {
 
   _JAVA_INSTALLED=$(command -v java)
   if [ -z "$_JAVA_INSTALLED" ]; then
-    export JAVA_HOME=$(get_java_home $_VERSION_CHECK)
+    JAVA_HOME=$(get_java_home "$_VERSION_CHECK")
+    export JAVA_HOME
     export PATH=$PATH:$JAVA_HOME/bin
 
     _JAVA_INSTALLED=$(command -v java)
@@ -370,9 +372,9 @@ java_check () {
   fi
 
   java -version > $_JAVA_TMP_FILE 2> $_JAVA_TMP_FILE
-  _JAVA_VERSION=$(cat $_JAVA_TMP_FILE | grep version | cut -d' ' -f3 | cut -d\" -f2)
-  _JAVA_MAJOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f1)
-  _JAVA_MINOR_VERSION=$(echo $_JAVA_VERSION | cut -d. -f2)
+  _JAVA_VERSION=$(grep version "$_JAVA_TMP_FILE" | cut -d' ' -f3 | cut -d\" -f2)
+  _JAVA_MAJOR_VERSION=$(echo "$_JAVA_VERSION" | cut -d. -f1)
+  _JAVA_MINOR_VERSION=$(echo "$_JAVA_VERSION" | cut -d. -f2)
   rm $_JAVA_TMP_FILE
 
   if [ "$_JAVA_MINOR_VERSION" -lt "$_VERSION_CHECK" ]; then
@@ -388,7 +390,7 @@ jboss_check () {
       _JBOSS4_DESCRIPTION="JBoss 4.0.1SP1"
       _FILE="/opt/jboss/readme.html"
 
-      [ -e "$_FILE" ] && _SEARCH=$(cat $_FILE | grep "$_JBOSS4_DESCRIPTION")
+      [ -e "$_FILE" ] && _SEARCH=$(grep "$_JBOSS4_DESCRIPTION" "$_FILE")
 
       _MESSAGE="$_JBOSS4_DESCRIPTION is not installed!"
       ;;
@@ -399,7 +401,7 @@ jboss_check () {
 
 disable_selinux () {
   if [ "$_OS_TYPE" = "rpm" ]; then
-    _SELINUX_ENABLED=$(cat /etc/selinux/config | grep "^SELINUX=enforcing")
+    _SELINUX_ENABLED=$(grep "^SELINUX=enforcing" /etc/selinux/config)
 
     if [ -n "$_SELINUX_ENABLED" ]; then
       message "Alert" "$_SELINUX_ENABLED detected. Is changed to SELINUX=permissive"
@@ -418,13 +420,13 @@ add_user_to_group () {
   [ $? -eq 1 ] && main
   [ -z "$_USER" ] && message "Alert" "The user name can not be blank!"
 
-  _FIND_USER=$(cat /etc/passwd | grep $_USER)
+  _FIND_USER=$(grep "$_USER" /etc/passwd)
   [ -z "$_FIND_USER" ] && message "Alert" "User not found!"
 
   if [ "$_OS_NAME" = "debian" ]; then
-    gpasswd -a $_USER $_GROUP
+    gpasswd -a "$_USER" "$_GROUP"
   else
-    usermod -aG $_GROUP $_USER
+    usermod -aG "$_GROUP" "$_USER"
   fi
 
   if [ "$_SHOW_ALERT" != "[no_alert]" ]; then
@@ -448,13 +450,13 @@ php_version() {
   case "$_OS_TYPE" in
     deb)
       if [ "$_OS_VERSION" -le 14 ]; then
-        echo $(apt-cache show ^php[0-9]$ | grep Version | head -n 1 | cut -d' ' -f2 | cut -d+ -f1)
+        apt-cache show ^php[0-9]$ | grep Version | head -n 1 | cut -d' ' -f2 | cut -d+ -f1
       else
-        echo $(apt-cache show ^php | grep Version | head -n 1 | cut -d' ' -f2 | cut -d- -f1)
+        apt-cache show ^php | grep Version | head -n 1 | cut -d' ' -f2 | cut -d- -f1
       fi
       ;;
     rpm)
-      echo $(yum info php | grep Version | head -n 1 | cut -d: -f2)
+      yum info php | grep Version | head -n 1 | cut -d: -f2
       ;;
   esac
 }
