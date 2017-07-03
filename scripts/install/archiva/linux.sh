@@ -2,7 +2,7 @@
 
 # http://archiva.apache.org/docs/2.2.1/adminguide/standalone.html
 
-_APP_NAME="Archiva"
+export _APP_NAME="Archiva"
 _CURRENT_VERSION="2.2.1"
 _ARCHIVA_FOLDER="/opt/apache-archiva"
 _DEFAULT_PORT="8070"
@@ -12,7 +12,7 @@ _OPTIONS_LIST="install_archiva 'Install Archiva' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -43,17 +43,17 @@ install_archiva () {
 
   admin_service archiva stop 2> /dev/null
 
-  wget http://archive.apache.org/dist/archiva/$_VERSION/binaries/apache-archiva-$_VERSION-bin.zip
+  wget "http://archive.apache.org/dist/archiva/$_VERSION/binaries/apache-archiva-$_VERSION-bin.zip"
 
   [ $? -ne 0 ] && message "Error" "Download of apache-archiva-$_VERSION-bin.zip not realized!"
 
-  unzip -oq apache-archiva-$_VERSION-bin.zip
+  unzip -oq "apache-archiva-$_VERSION-bin.zip"
 
-  rm apache-archiva-$_VERSION-bin.zip
+  rm "apache-archiva-$_VERSION-bin.zip"
 
   backup_folder $_ARCHIVA_FOLDER
 
-  mv apache-archiva-$_VERSION $_ARCHIVA_FOLDER
+  mv "apache-archiva-$_VERSION" $_ARCHIVA_FOLDER
 
   change_file replace $_ARCHIVA_FOLDER/conf/jetty.xml "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"8080\"/></Set>" "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"$_HTTP_PORT\"/></Set>"
 
@@ -86,8 +86,8 @@ configure_nginx () {
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > archiva.conf
 
     change_file replace archiva.conf APP archiva
-    change_file replace archiva.conf DOMAIN $_DOMAIN
-    change_file replace archiva.conf HOST $_HOST
+    change_file replace archiva.conf DOMAIN "$_DOMAIN"
+    change_file replace archiva.conf HOST "$_HOST"
 
     mv archiva.conf /etc/nginx/conf.d/
     rm archiva.conf*
