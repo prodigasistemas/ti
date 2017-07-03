@@ -2,7 +2,7 @@
 
 # http://www.orafaq.com/wiki/NLS_LANG
 
-_APP_NAME="GGAS"
+export _APP_NAME="GGAS"
 _DEFAULT_PATH="/opt"
 _GRADLE_VERSION="2.2.1"
 _OPTIONS_LIST="install_ggas 'Install GGAS' \
@@ -12,7 +12,7 @@ _OPTIONS_LIST="install_ggas 'Install GGAS' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -49,7 +49,7 @@ install_ggas () {
 
   [ $? -ne 0 ] && message "Error" "Download of $_APP_NAME not realized!"
 
-  chown $_USER_LOGGED:$_USER_LOGGED -R $_DEFAULT_PATH/ggas
+  chown "$_USER_LOGGED":"$_USER_LOGGED" -R "$_DEFAULT_PATH/ggas"
 
   print_colorful yellow bold "> Installing Gradle $_GRADLE_VERSION..."
 
@@ -69,17 +69,17 @@ install_ggas () {
 
   cd $_DEFAULT_PATH/ggas
 
-  run_as_user $_USER_LOGGED "JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build"
+  run_as_user "$_USER_LOGGED" "JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build"
 
   print_colorful yellow bold "> Deploying $_APP_NAME..."
 
   /etc/init.d/wildfly stop
 
-  run_as_user $_USER_LOGGED "cp $_DEFAULT_PATH/ggas/workspace/build/libs/workspace*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
+  run_as_user "$_USER_LOGGED" "cp $_DEFAULT_PATH/ggas/workspace/build/libs/workspace*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
 
   /etc/init.d/wildfly start
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "$_APP_NAME successfully installed!"
 }
@@ -88,7 +88,7 @@ import_ggas_database () {
   _CURRENT_DIR=$(pwd)
 
   if [ -e "$_ORACLE_CONFIG" ]; then
-    _SSH_PORT=$(search_value ssh.port $_ORACLE_CONFIG)
+    _SSH_PORT=$(search_value ssh.port "$_ORACLE_CONFIG")
   else
     _SSH_PORT=2222
   fi
@@ -117,8 +117,8 @@ import_ggas_database () {
   _SEARCH_STRING="CREATE OR REPLACE FUNCTION \"GGAS_ADMIN\".\"SQUIRREL_GET_ERROR_OFFSET\""
   change_file "replace" "ggas/sql/GGAS_SCRIPT_INICIAL_ORACLE_02_ESTRUTURA_CONSTRAINTS_CARGA_INICIAL.sql" "$_SEARCH_STRING" "-- $_SEARCH_STRING"
 
-  for i in sql/*.sql ; do echo " " >> $i ; done
-  for i in sql/*.sql ; do echo "exit;" >> $i ; done
+  for i in sql/*.sql ; do echo " " >> "$i" ; done
+  for i in sql/*.sql ; do echo "exit;" >> "$i" ; done
 
   mkdir sql/01 ggas/sql/02
 
@@ -126,13 +126,9 @@ import_ggas_database () {
   mv sql/*.sql sql/02/
 
   _IMPORT_SCRIPT="ggas/sql/import_db.sh"
-  echo '#!/bin/bash' > $_IMPORT_SCRIPT
-  echo 'export NLS_LANG=AMERICAN_AMERICA.AL32UTF8' >> $_IMPORT_SCRIPT
-  echo 'export PATH=$PATH:/u01/app/oracle/product/11.2.0/xe/bin' >> $_IMPORT_SCRIPT
-  echo 'export ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe' >> $_IMPORT_SCRIPT
-  echo 'export ORACLE_SID=XE' >> $_IMPORT_SCRIPT
-  echo 'for i in /tmp/sql/01/*.sql ; do echo "> Importing file $i ..." ; sqlplus system/oracle @$i ; done' >> $_IMPORT_SCRIPT
-  echo 'for i in /tmp/sql/02/*.sql ; do echo "> Importing file $i ..." ; sqlplus GGAS_ADMIN/GGAS_ADMIN @$i ; done' >> $_IMPORT_SCRIPT
+
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_IMPORT_SCRIPT" > $_IMPORT_SCRIPT
+
   chmod +x $_IMPORT_SCRIPT
 
   print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
@@ -147,13 +143,13 @@ import_ggas_database () {
 
   delete_file "/tmp/ggas"
 
-  cd $_CURRENT_DIR
+  cd "$_CURRENT_DIR"
 
   [ $? -eq 0 ] && message "Notice" "Import $_APP_NAME database was successful!"
 }
 
 configure_nginx () {
-  _PORT=$(cat /opt/wildfly/standalone/configuration/standalone.xml | grep "jboss.http.port" | cut -d: -f2 | cut -d} -f1)
+  _PORT=$(grep "jboss.http.port" "/opt/wildfly/standalone/configuration/standalone.xml" | cut -d: -f2 | cut -d'}' -f1)
   _DEFAULT_HOST="localhost:$_PORT"
 
   if command -v nginx > /dev/null; then
@@ -168,8 +164,8 @@ configure_nginx () {
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > ggas.conf
 
     change_file replace ggas.conf APP ggas
-    change_file replace ggas.conf DOMAIN $_DOMAIN
-    change_file replace ggas.conf HOST $_HOST
+    change_file replace ggas.conf DOMAIN "$_DOMAIN"
+    change_file replace ggas.conf HOST "$_HOST"
 
     mv ggas.conf /etc/nginx/conf.d/
     rm ggas.conf*
