@@ -2,7 +2,7 @@
 # https://easyengine.io/tutorials/mysql/remote-access
 # http://stackoverflow.com/questions/7739645/install-mysql-on-ubuntu-without-password-prompt
 
-_APP_NAME="MySQL"
+export _APP_NAME="MySQL"
 _OPTIONS_LIST="install_mysql_server 'Install the database server' \
                install_mysql_client 'Install the database client' \
                create_database 'Create database' \
@@ -13,7 +13,7 @@ _OPTIONS_LIST="install_mysql_server 'Install the database server' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -61,14 +61,14 @@ install_mysql_server () {
       debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
       debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
 
-      $_PACKAGE_COMMAND -y install mysql-server libmysqlclient-dev
+      $_PACKAGE_COMMAND -y --force-yes install mysql-server libmysqlclient-dev
       ;;
     rpm)
-      $_PACKAGE_COMMAND -y install $_MYSQL_NAME_LOWERCASE-server $_MYSQL_NAME_LOWERCASE-devel
+      $_PACKAGE_COMMAND -y install "$_MYSQL_NAME_LOWERCASE-server" "$_MYSQL_NAME_LOWERCASE-devel"
 
-      admin_service $_MYSQL_SERVICE register
+      admin_service "$_MYSQL_SERVICE" register
 
-      admin_service $_MYSQL_SERVICE start
+      admin_service "$_MYSQL_SERVICE" start
 
       mysqladmin -u root password 'root'
       ;;
@@ -81,10 +81,10 @@ install_mysql_client () {
   confirm "Confirm the installation of $_MYSQL_NAME Client?"
   [ $? -eq 1 ] && main
 
-  [ "$_OS_TYPE" = "deb" ] && _PACKAGE="mysql-client"
+  [ "$_OS_TYPE" = "deb" ] && _PACKAGE="mysql-client" && _FORCE_YES="--force-yes"
   [ "$_OS_TYPE" = "rpm" ] && _PACKAGE=$_MYSQL_NAME_LOWERCASE
 
-  $_PACKAGE_COMMAND -y install $_PACKAGE
+  $_PACKAGE_COMMAND -y install "$_PACKAGE" "$_FORCE_YES"
 
   [ $? -eq 0 ] && message "Notice" "MySQL Client successfully installed!"
 }
@@ -97,7 +97,7 @@ create_database () {
   confirm "Confirm create database $_MYSQL_DATABASE?"
   [ $? -eq 1 ] && main
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE DATABASE $_MYSQL_DATABASE;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE DATABASE $_MYSQL_DATABASE;"
 
   [ $? -eq 0 ] && message "Notice" "Database $_MYSQL_DATABASE created successfully!"
 }
@@ -112,9 +112,9 @@ add_user () {
   confirm "Confirm create user $_MYSQL_USER_NAME@$_MYSQL_HOST to database $_MYSQL_DATABASE?"
   [ $? -eq 1 ] && main
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "CREATE USER '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' IDENTIFIED BY '$_MYSQL_USER_PASSWORD';"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "GRANT ALL PRIVILEGES ON $_MYSQL_DATABASE.* TO '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' WITH GRANT OPTION;"
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "FLUSH PRIVILEGES;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE USER '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' IDENTIFIED BY '$_MYSQL_USER_PASSWORD';"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "GRANT ALL PRIVILEGES ON $_MYSQL_DATABASE.* TO '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' WITH GRANT OPTION;"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "FLUSH PRIVILEGES;"
 
   [ $? -eq 0 ] && message "Notice" "User $_MYSQL_USER_NAME added and granted successfully!"
 }
@@ -127,7 +127,7 @@ change_password () {
   confirm "Confirm change $_MYSQL_USER_NAME@$_MYSQL_HOST password?"
   [ $? -eq 1 ] && main
 
-  mysql_as_root $_MYSQL_ROOT_PASSWORD "SET PASSWORD FOR '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' = PASSWORD('$_MYSQL_USER_PASSWORD');"
+  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "SET PASSWORD FOR '$_MYSQL_USER_NAME'@'$_MYSQL_HOST' = PASSWORD('$_MYSQL_USER_PASSWORD');"
 
   [ $? -eq 0 ] && message "Notice" "Password changed successfully!"
 }
@@ -142,7 +142,7 @@ remote_access () {
     change_file "append" "/etc/my.cnf" "symbolic-links=0" "bind-address = 0.0.0.0"
   fi
 
-  admin_service $_MYSQL_SERVICE restart
+  admin_service "$_MYSQL_SERVICE" restart
 
   [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }
@@ -160,7 +160,7 @@ main () {
     fi
   fi
 
-  _MYSQL_NAME_LOWERCASE=$(echo $_MYSQL_NAME | tr [:upper:] [:lower:])
+  _MYSQL_NAME_LOWERCASE=$(echo $_MYSQL_NAME | tr '[:upper:]' '[:lower:]')
 
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
