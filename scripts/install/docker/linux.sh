@@ -4,7 +4,7 @@
 # https://store.docker.com/editions/community/docker-ce-server-debian
 # https://docs.docker.com/engine/installation/linux/centos/
 
-_APP_NAME="Docker"
+export _APP_NAME="Docker"
 _GROUP="docker"
 _OPTIONS_LIST="install_docker 'Install Docker' \
                add_to_group 'Add a user to the group $_GROUP'"
@@ -12,7 +12,7 @@ _OPTIONS_LIST="install_docker 'Install Docker' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -34,7 +34,7 @@ install_docker () {
       if [ "$_OS_NAME" = "debian" ]; then
         $_PACKAGE_COMMAND purge -y lxc-docker* docker.io*
 
-        if [ $_OS_CODENAME = "wheezy" ]; then
+        if [ "$_OS_CODENAME" = "wheezy" ]; then
           run_as_root "echo \"deb http://http.debian.net/debian wheezy-backports main\" > /etc/apt/sources.list.d/backports.list"
           $_PACKAGE_COMMAND install -y python-software-properties
         else # jessie and stretch
@@ -53,7 +53,7 @@ install_docker () {
 
       if [ "$_OS_NAME" = "ubuntu" ]; then
         $_PACKAGE_COMMAND purge -y lxc-docker
-        $_PACKAGE_COMMAND install -y linux-image-extra-$_OS_KERNEL
+        $_PACKAGE_COMMAND install -y "linux-image-extra-$_OS_KERNEL"
       fi
 
       $_PACKAGE_COMMAND install -y docker-ce
@@ -96,7 +96,7 @@ main () {
     message "Alert" "Docker requires a 64-bit installation regardless of your distribution version!" "clear && exit 1"
   else
     if [ "$_OS_NAME" = "debian" ]; then
-      if [ $_MAJOR_VERSION -lt 3 ]; then
+      if [ "$_MAJOR_VERSION" -lt 3 ]; then
         message "Alert" "Prerequisites Docker: the major version of Kernel ($_OS_KERNEL) is less than 3!" "clear && exit 1"
       fi
 
