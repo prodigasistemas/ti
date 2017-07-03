@@ -11,7 +11,7 @@
 # https://www.unixmen.com/postgresql-9-4-released-install-centos-7/
 # http://dba.stackexchange.com/questions/33943/granting-access-to-all-tables-for-a-user
 
-_APP_NAME="PostgreSQL"
+export _APP_NAME="PostgreSQL"
 _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
                install_postgresql_client 'Install the database client' \
                add_user 'Add user to $_APP_NAME' \
@@ -22,7 +22,7 @@ _OPTIONS_LIST="install_postgresql_server 'Install the database server' \
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
 
-  ping -c 1 $(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1) > /dev/null
+  ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
 
   _FUNCTIONS_FILE="/tmp/.tools.installer.functions.linux.sh"
@@ -49,47 +49,47 @@ install_postgresql_server () {
       $_PACKAGE_COMMAND update
     fi
 
-    _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort | sed 's/\ /;/g')
+    _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort | sed 's/\ /; /g' | sed ':a;/0$/!{N;s/\n//;ba}')
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
     _VERSIONS_LIST="9.3; 9.4; 9.5; "
 
   fi
 
-  _LAST_VERSION=$(echo $_VERSIONS_LIST | grep -oE "[^ ]+$" | sed 's/;//g')
+  _LAST_VERSION=$(echo "$_VERSIONS_LIST" | rev | cut -d';' -f 2 | rev | tr -d '[:space:]')
 
-  _POSTGRESQL_VERSION=$(input_field "postgresql.server.version" "Versions available: $_VERSIONS_LIST Enter a version" "$_LAST_VERSION")
+  _POSTGRESQL_VERSION=$(input_field "postgresql.server.version" "Versions available:\n\n$_VERSIONS_LIST\n\nEnter a version" "$_LAST_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_POSTGRESQL_VERSION" ] && message "Alert" "The PostgreSQL version can not be blank!"
 
-  _VERSION_VALID=$(echo $_VERSIONS_LIST | egrep "$_POSTGRESQL_VERSION;")
+  _VERSION_VALID=$(echo "$_VERSIONS_LIST" | egrep "$_POSTGRESQL_VERSION;")
   [ -z "$_VERSION_VALID" ] && message "Alert" "PostgreSQL version invalid!"
 
   confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION Server?"
   [ $? -eq 1 ] && main
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    $_PACKAGE_COMMAND install -y postgresql-$_POSTGRESQL_VERSION postgresql-contrib-$_POSTGRESQL_VERSION postgresql-server-dev-$_POSTGRESQL_VERSION
+    $_PACKAGE_COMMAND install -y "postgresql-$_POSTGRESQL_VERSION" "postgresql-contrib-$_POSTGRESQL_VERSION" "postgresql-server-dev-$_POSTGRESQL_VERSION"
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
     [ "$_OS_ARCH" = "32" ] && _ARCH="i386"
     [ "$_OS_ARCH" = "64" ] && _ARCH="x86_64"
 
-    _POSTGRESQL_VERSION_COMPACT=$(echo $_POSTGRESQL_VERSION | sed 's/\.//g')
+    _POSTGRESQL_VERSION_COMPACT=${_POSTGRESQL_VERSION//./}
 
     yum install -y "http://yum.postgresql.org/$_POSTGRESQL_VERSION/redhat/rhel-$_OS_RELEASE-$_ARCH/pgdg-centos$_POSTGRESQL_VERSION_COMPACT-$_POSTGRESQL_VERSION-2.noarch.rpm"
 
-    $_PACKAGE_COMMAND install -y postgresql$_POSTGRESQL_VERSION_COMPACT-server postgresql$_POSTGRESQL_VERSION_COMPACT-contrib postgresql$_POSTGRESQL_VERSION_COMPACT-devel
+    $_PACKAGE_COMMAND install -y "postgresql$_POSTGRESQL_VERSION_COMPACT-server" "postgresql$_POSTGRESQL_VERSION_COMPACT-contrib" "postgresql$_POSTGRESQL_VERSION_COMPACT-devel"
 
     if [ "$_OS_RELEASE" -le 6 ]; then
-      service postgresql-$_POSTGRESQL_VERSION initdb
+      service "postgresql-$_POSTGRESQL_VERSION" initdb
     else
-      /usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup initdb
+      "/usr/pgsql-$_POSTGRESQL_VERSION/bin/postgresql$_POSTGRESQL_VERSION_COMPACT-setup" initdb
     fi
 
-    admin_service postgresql-$_POSTGRESQL_VERSION register
+    admin_service "postgresql-$_POSTGRESQL_VERSION" register
 
-    admin_service postgresql-$_POSTGRESQL_VERSION start
+    admin_service "postgresql-$_POSTGRESQL_VERSION" start
   fi
 
   [ $? -eq 0 ] && message "Notice" "PostgreSQL $_POSTGRESQL_VERSION Server successfully installed!"
@@ -174,12 +174,14 @@ remote_access () {
 
   [ "$_OS_TYPE" = "rpm" ] && _SERVICE_VERSION="-$_POSTGRESQL_VERSION"
 
-  admin_service postgresql$_SERVICE_VERSION restart
+  admin_service "postgresql$_SERVICE_VERSION" restart
 
   [ $? -eq 0 ] && message "Notice" "Enabling remote access successfully held!"
 }
 
 main () {
+  tool_check wget
+
   _POSTGRESQL_VERSION=$(postgres_version)
 
   if [ "$(provisioning)" = "manual" ]; then
