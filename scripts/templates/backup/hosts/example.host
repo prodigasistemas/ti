@@ -1,0 +1,9 @@
+# Format:
+# folder:name:path:filter
+# database:type:user:password:db1 db2 db3
+
+folder:nginx:/etc/nginx/conf.d:*.conf
+folder:jenkins:/var/lib/jenkins:*
+
+database:mysql:user:password:db1 db2
+database:postgresql:user:password:db1 db2 db3

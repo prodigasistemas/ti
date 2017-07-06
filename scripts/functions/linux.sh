@@ -274,7 +274,7 @@ backup_database () {
   _DATABASE_BACKUP_DATE=".backup-$(date +"%Y%m%d%H%M%S%N")"
 
   if [ "$_DATABASE_TYPE" = "mysql" ]; then
-    mysqldump -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" -p"$_DATABASE_PASSWORD" "$_DATABASE_NAME" | gzip -9 > "$_DATABASE_NAME$_DATABASE_BACKUP_DATE.sql.gz"
+    MYSQL_PWD=$_DATABASE_PASSWORD mysqldump -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" "$_DATABASE_NAME" | gzip -9 > "$_DATABASE_NAME$_DATABASE_BACKUP_DATE.sql.gz"
   fi
 }
 

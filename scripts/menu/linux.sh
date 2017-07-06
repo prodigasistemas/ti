@@ -15,7 +15,8 @@ _OPTIONS_LIST="java 'Java installer' \
                archiva 'Archiva installer' \
                jboss 'JBoss installer' \
                nagios 'Nagios installer' \
-               gsan 'GSAN installer'"
+               gsan 'GSAN installer' \
+               backup 'Backup installer'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"

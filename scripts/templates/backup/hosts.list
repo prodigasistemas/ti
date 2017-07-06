@@ -1,0 +1,6 @@
+# Format:
+# hostname:local/ip-address:port:access-user
+#
+# Examples:
+# example:local
+# dbserver:192.168.1.5:22:support
