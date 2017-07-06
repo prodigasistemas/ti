@@ -49,7 +49,7 @@ install_backup () {
   if [ -z "$_FIND_RECORD" ]; then
     su -c "echo \"0 23 * * * $_FOLDER/$_SCRIPT\" >> $_CRON_USER_FILE"
 
-    chown $_USER_LOGGED:$_USER_LOGGED $_CRON_USER_FILE
+    chown "$_USER_LOGGED":"$_USER_LOGGED" "$_CRON_USER_FILE"
   fi
 
   [ $? -eq 0 ] && message "Notice" "Backup successfully installed!"
