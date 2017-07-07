@@ -2,7 +2,8 @@
 
 export _APP_NAME="Backup"
 _FOLDER="/var/tools-backup"
-_OPTIONS_LIST="install_backup 'Install Backup'"
+_OPTIONS_LIST="install_backup 'Install Backup' \
+              about 'About Backup'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
@@ -53,7 +54,20 @@ install_backup () {
     chown "$_USER_LOGGED":"$_USER_LOGGED" "$_CRON_USER_FILE"
   fi
 
-  [ $? -eq 0 ] && message "Notice" "Backup successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "Backup successfully installed in '$_FOLDER'. See about section for more details."
+}
+
+about () {
+  message "Notice" "About Backup:\n\n \
+           Installed in '$_FOLDER'\n\n \
+           Files:\n\n \
+           backup.sh   - management of databases and folders backup, running in cron job\n \
+           backup.conf - definitions of rsync host, aws bucket and max files preservation\n \
+           hosts.list  - list of hosts with your connections (via ssh)\n\n \
+           Folders:\n\n \
+           hosts   - each host in 'hosts.list' hold your configuration file. See 'example.host'\n \
+           logs    - logs per host and general synchronization\n \
+           storage - store compressed backup assets"
 }
 
 main () {
