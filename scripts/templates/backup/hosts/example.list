@@ -1,0 +1,9 @@
+# Format:
+# folder:name:path:exclude-pattern,exclude-pattern
+# database:mysql/postgresql:host:user:password:dbname1,dbname2,dbname3
+
+folder:nginx:/etc/nginx/conf.d
+folder:jenkins:/var/lib/jenkins:tmp,~*
+
+database:mysql:127.0.0.1:user:password:dbname1,dbname2
+database:postgresql:127.0.0.1:user:password:dbname1,dbname2,dbname3

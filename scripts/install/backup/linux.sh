@@ -27,17 +27,18 @@ install_backup () {
   confirm "Do you confirm the installation of Backup?"
   [ $? -eq 1 ] && main
 
-  mkdir -p $_FOLDER
-  mkdir -p "$_FOLDER/hosts"
-  mkdir -p "$_FOLDER/logs"
+  [ ! -e "$_FOLDER" ] && mkdir -p $_FOLDER
+  [ ! -e "$_FOLDER/hosts" ] && mkdir -p "$_FOLDER/hosts"
+  [ ! -e "$_FOLDER/logs" ] && mkdir -p "$_FOLDER/logs"
+
   cd $_FOLDER
 
   wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/$_SCRIPT"
 
   chmod +x "$_FOLDER/$_SCRIPT"
 
-  wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/backup.conf"
-  wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/hosts.list"
+  [ ! -e "backup.conf" ] && wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/backup.conf"
+  [ ! -e "hosts.list" ] && wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/hosts.list"
 
   cd "$_FOLDER/hosts"
   wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/hosts/example.host"
