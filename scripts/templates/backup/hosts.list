@@ -1,6 +1,7 @@
 # Format:
-# hostname:local/ip-address:port:username
+# <name>:<local/[hostname or ip-address]>:<port>:<username>
 #
 # Examples:
 # example:local
-# dbserver:192.168.1.5:22:user
+# webserver:192.168.0.10:22:user
+# dbserver:192.168.0.20:22:user

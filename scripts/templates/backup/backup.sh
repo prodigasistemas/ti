@@ -1,10 +1,13 @@
 #!/bin/bash
+# For check sintax: bash -n backup.sh
+# For debug:
+# set -v
+# set -x
 
 _FOLDER="/var/tools-backup"
 
 backup_database () {
   _DB_LIST=$(sed '/^ *$/d; /^ *#/d; /^database/!d' "$_HOST_FILE")
-  _DB_TYPE_LIST=$(sed '/^ *$/d; /^ *#/d; /^database/!d' "$_HOST_FILE" | cut -d: -f2 | uniq)
 
   if [ -n "$_DB_LIST" ]; then
     for _database in $_DB_LIST; do
@@ -16,7 +19,7 @@ backup_database () {
       _DATABASE_NAMES=${_DATABASE_NAMES//,/ }
 
       for _DB_NAME in $_DATABASE_NAMES; do
-        _SQL_FILE="$_DB_NAME-$(date +"%Y-%m-%d-%H-%M-%S").sql"
+        _SQL_FILE="$(date +"%Y%m%d-%H%M%S")-$_DB_NAME.sql"
         _BACKUP_FILE="$_SQL_FILE.gz"
         _DEST="$_HOST_FOLDER/databases/$_DB_TYPE/$_DB_NAME"
 
@@ -53,20 +56,29 @@ backup_folder () {
 
       [ -n "$_exclude" ] && _exclude=${_exclude//,/ }
 
-      _BACKUP_FILE="$_name-$(date +"%Y-%m-%d-%H-%M-%S").tar.gz"
+      _BACKUP_FILE="$(date +"%Y%m%d-%H%M%S")-$_name.tar.gz"
       _DEST="$_HOST_FOLDER/folders/$_name"
 
       make_dir "$_DEST"
 
-      if [ -n "$_exclude" ]; then
+      if [ -z "$_exclude" ]; then
+        _EXCLUDE_FILE=""
+        _EXCLUDE_FROM=""
+      else
+        _EXCLUDE_FILE="/tmp/.backup-folder-$_name.exclude"
+
+        [ -e "$_EXCLUDE_FILE" ] && rm -f "$_EXCLUDE_FILE"
+
         for _pattern in $_exclude; do
-          _EXCLUDE="--exclude=$_pattern "
+          echo "$_pattern" >> "$_EXCLUDE_FILE"
         done
+
+        _EXCLUDE_FROM="--exclude-from=$_EXCLUDE_FILE"
       fi
 
-      write_log "Compressing $_BACKUP_FILE"
+      write_log "Compressing $_BACKUP_FILE from $_HOST_ADDRESS"
 
-      perform_backup "tar" "$_DEST" "tar czf /tmp/$_BACKUP_FILE $_path --exclude-vcs $_EXCLUDE"
+      perform_backup "tar" "$_DEST" "tar czf /tmp/$_BACKUP_FILE $_path --exclude-vcs $_EXCLUDE_FROM" "$_EXCLUDE_FILE"
     done
   fi
 }
@@ -75,28 +87,34 @@ perform_backup () {
   _command_name=$1
   _destination=$2
   _command_line=$3
+  _exclude_file=$4
   _access="$_HOST_USER@$_HOST_ADDRESS"
 
   if [ "$_HOST_ADDRESS" = "local" ]; then
-    if [ -z "$(command -v $_command_name)" ]; then
+    if [ -z "$(command -v "$_command_name")" ]; then
       write_log "$_command_name is not installed!"
     else
-      eval $_command_line >> $_LOG_FILE 2>> $_LOG_FILE
+      eval "$_command_line" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
 
       [ $? -eq 0 ] && [ -e "/tmp/$_BACKUP_FILE" ] && mv "/tmp/$_BACKUP_FILE" "$_destination"
     fi
   else
-    _check_command=$(ssh -C -E "$_LOG_FILE" -p "$_HOST_PORT" "$_access" "command -v $_command_name")
+    _check_command=$(ssh -C -p "$_HOST_PORT" "$_access" "command -v $_command_name")
 
     if [ -z "$_check_command" ]; then
       write_log "$_command_name is not installed!"
     else
+      if [ -e "$_exclude_file" ]; then
+        scp -C -P "$_HOST_PORT" "$_exclude_file" "$_access:/tmp/" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
+        rm -f "$_exclude_file"
+      fi
+
       ssh -C -p "$_HOST_PORT" "$_access" "$_command_line" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
 
       if [ $? -eq 0 ]; then
         scp -C -P "$_HOST_PORT" "$_access:/tmp/$_BACKUP_FILE" "$_destination" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
 
-        ssh -C -p "$_HOST_PORT" "$_access" "rm /tmp/$_BACKUP_FILE" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
+        ssh -C -p "$_HOST_PORT" "$_access" "rm /tmp/$_BACKUP_FILE $_exclude_file" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
       fi
     fi
   fi
@@ -128,27 +146,36 @@ remove_old_files () {
 to_sync () {
   _LOG_SYNC="$_FOLDER/logs/synchronizing.log"
 
+  [ -n "$_RSYNC_HOST" ] || [ -n "$_AWS_BUCKET" ] && compact_logs
+
   if [ -n "$_RSYNC_HOST" ]; then
     if [ -z "$(command -v rsync)" ]; then
       write_sync_log "rsync is not installed!"
     else
-      write_sync_log "------------------------------------------------------------------------------------------"
-      write_sync_log "Synchronizing $_FOLDER with $_RSYNC_HOST"
+      write_head_sync "$_FOLDER with $_RSYNC_HOST"
 
-      rsync -CzpOur --delete --log-file="$_LOG_SYNC" "$_FOLDER" "$_RSYNC_HOST" >> /dev/null 2>> "$_LOG_SYNC"
+      rsync -CzpOur --delete --exclude="*.log" --log-file="$_LOG_SYNC" "$_FOLDER" "$_RSYNC_HOST" >> /dev/null 2>> "$_LOG_SYNC"
     fi
   fi
 
   if [ -n "$_AWS_BUCKET" ]; then
     if [ -z "$(command -v aws)" ]; then
-      write_log "awscli is not installed!"
+      write_sync_log "awscli is not installed!"
     else
-      write_sync_log "------------------------------------------------------------------------------------------"
-      write_sync_log "Synchronizing $_FOLDER with s3://$_AWS_BUCKET/"
+      write_head_sync "$_FOLDER with s3://$_AWS_BUCKET/"
 
-      aws s3 sync $_FOLDER "s3://$_AWS_BUCKET/" --delete >> "$_LOG_SYNC" 2>> "$_LOG_SYNC"
+      aws s3 sync $_FOLDER "s3://$_AWS_BUCKET/" --delete --exclude="$_FOLDER/logs/*.log" >> "$_LOG_SYNC" 2>> "$_LOG_SYNC"
     fi
   fi
+}
+
+write_head_sync () {
+  write_sync_log "------------------------------------------------------------------------------------------"
+  write_sync_log "Synchronizing $1"
+}
+
+compact_logs () {
+  tar czf "$_FOLDER/logs/logs.tar.gz" "$_FOLDER/logs/" --exclude="*.gz"
 }
 
 write_log () {
@@ -188,13 +215,17 @@ main () {
         _HOST_FOLDER="$_FOLDER/storage/$_HOST_NAME"
         _LOG_FILE="$_FOLDER/logs/$_HOST_NAME.log"
 
-        backup_database
+        if [ -e "$_HOST_FILE" ]; then
+          backup_database
 
-        backup_folder
+          backup_folder
+        fi
       done
     fi
 
     to_sync
+  else
+    write_log "$_HOSTS_FILE is not found!"
   fi
 }
 

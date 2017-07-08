@@ -2,8 +2,8 @@
 
 export _APP_NAME="Backup"
 _FOLDER="/var/tools-backup"
-_OPTIONS_LIST="install_backup 'Install Backup' \
-              about 'About Backup'"
+_OPTIONS_LIST="install_backup 'Install or update Backup' \
+               about 'About Backup'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
@@ -24,8 +24,15 @@ setup () {
 install_backup () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
   _SCRIPT="backup.sh"
+  _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/backup"
 
-  confirm "Do you confirm the installation of Backup?"
+  if [ -e "$_FOLDER" ]; then
+    _OPERATION="update"
+  else
+    _OPERATION="installation"
+  fi
+
+  confirm "Do you confirm the $_OPERATION of Backup?"
   [ $? -eq 1 ] && main
 
   [ ! -e "$_FOLDER" ] && mkdir -p $_FOLDER
@@ -34,15 +41,15 @@ install_backup () {
 
   cd $_FOLDER
 
-  wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/$_SCRIPT"
+  wget -q "$_TEMPLATES/$_SCRIPT"
 
   chmod +x "$_FOLDER/$_SCRIPT"
 
-  [ ! -e "backup.conf" ] && wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/backup.conf"
-  [ ! -e "hosts.list" ] && wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/hosts.list"
+  [ ! -e "backup.conf" ] && wget -q "$_TEMPLATES/backup.conf"
+  [ ! -e "hosts.list" ] && wget -q "$_TEMPLATES/hosts.list"
 
   cd "$_FOLDER/hosts"
-  wget -q "$_CENTRAL_URL_TOOLS/scripts/templates/backup/hosts/example.host"
+  wget -q "$_TEMPLATES/hosts/example.list"
 
   _CRON_USER_FILE="/var/spool/cron/crontabs/$_USER_LOGGED"
 
@@ -65,7 +72,7 @@ about () {
            backup.conf - definitions of rsync host, aws bucket and max files preservation\n \
            hosts.list  - list of hosts with your connections (via ssh)\n\n \
            Folders:\n\n \
-           hosts   - each host in 'hosts.list' hold your configuration file. See 'example.host'\n \
+           hosts   - each host in 'hosts.list' hold your configuration file. See 'example.list'\n \
            logs    - logs per host and general synchronization\n \
            storage - store compressed backup assets"
 }
