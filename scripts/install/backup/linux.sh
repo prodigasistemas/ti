@@ -61,6 +61,8 @@ install_backup () {
     chown "$_USER_LOGGED":"$_USER_LOGGED" "$_CRON_USER_FILE"
   fi
 
+  chown "$_USER_LOGGED":"$_USER_LOGGED" -R "$_FOLDER"
+
   [ $? -eq 0 ] && message "Notice" "Backup successfully installed in '$_FOLDER'. See about section for more details."
 }
 
