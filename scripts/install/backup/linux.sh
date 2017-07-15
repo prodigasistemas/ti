@@ -41,9 +41,7 @@ install_backup () {
 
   cd $_FOLDER
 
-  wget -q "$_TEMPLATES/$_SCRIPT"
-
-  [ -e "$_FOLDER/$_SCRIPT.1" ] && mv "$_FOLDER/$_SCRIPT.1" "$_FOLDER/$_SCRIPT"
+  curl -sS "$_TEMPLATES/$_SCRIPT" > "$_FOLDER/$_SCRIPT"
 
   chmod +x "$_FOLDER/$_SCRIPT"
 
@@ -51,9 +49,7 @@ install_backup () {
   [ ! -e "hosts.list" ] && wget -q "$_TEMPLATES/hosts.list"
 
   cd "$_FOLDER/hosts"
-  wget -q "$_TEMPLATES/hosts/example.list"
-
-  [ -e "$_FOLDER/hosts/example.list.1" ] && mv "$_FOLDER/hosts/example.list.1" "$_FOLDER/hosts/example.list"
+  curl -sS "$_TEMPLATES/hosts/example.list" > "$_FOLDER/hosts/example.list"
 
   _CRON_USER_FILE="/var/spool/cron/crontabs/$_USER_LOGGED"
 
