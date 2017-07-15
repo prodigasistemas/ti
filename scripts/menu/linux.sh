@@ -16,7 +16,8 @@ _OPTIONS_LIST="java 'Java installer' \
                jboss 'JBoss installer' \
                nagios 'Nagios installer' \
                gsan 'GSAN installer' \
-               backup 'Backup installer'"
+               backup 'Backup installer' \
+               puma 'Puma Manager installer'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
