@@ -27,12 +27,12 @@ install_backup () {
   _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/backup"
 
   if [ -e "$_FOLDER" ]; then
-    _OPERATION="update"
+    _OPERATION="update of backup.sh and hosts/example.list"
   else
-    _OPERATION="installation"
+    _OPERATION="installation of Backup"
   fi
 
-  confirm "Do you confirm the $_OPERATION of Backup?"
+  confirm "Do you confirm the $_OPERATION?"
   [ $? -eq 1 ] && main
 
   [ ! -e "$_FOLDER" ] && mkdir -p $_FOLDER
@@ -43,6 +43,8 @@ install_backup () {
 
   wget -q "$_TEMPLATES/$_SCRIPT"
 
+  [ -e "$_FOLDER/$_SCRIPT.1" ] && mv "$_FOLDER/$_SCRIPT.1" "$_FOLDER/$_SCRIPT"
+
   chmod +x "$_FOLDER/$_SCRIPT"
 
   [ ! -e "backup.conf" ] && wget -q "$_TEMPLATES/backup.conf"
@@ -50,6 +52,8 @@ install_backup () {
 
   cd "$_FOLDER/hosts"
   wget -q "$_TEMPLATES/hosts/example.list"
+
+  [ -e "$_FOLDER/hosts/example.list.1" ] && mv "$_FOLDER/hosts/example.list.1" "$_FOLDER/hosts/example.list"
 
   _CRON_USER_FILE="/var/spool/cron/crontabs/$_USER_LOGGED"
 

@@ -4,7 +4,7 @@
 #
 # Examples:
 # folder:nginx:/etc/nginx/conf.d
-# folder:jenkins:/var/lib/jenkins:.m2,jobs/*/workspace
+# folder:jenkins:/var/lib/jenkins:jobs/*/builds,plugins,workspace,.bundle,.cache,.gem
 #
 # database:mysql:127.0.0.1:user:password:dbname1,dbname2
 # database:postgresql:127.0.0.1:user:password:dbname1,dbname2,dbname3
