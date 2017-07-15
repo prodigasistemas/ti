@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# https://github.com/puma/puma/blob/master/tools/jungle/upstart/README.md
+# https://github.com/puma/puma/tree/master/tools/jungle/upstart
+# https://github.com/puma/puma/tree/master/tools/jungle/init.d
 
 export _APP_NAME="Puma"
-_OPTIONS_LIST="install_puma 'Install Puma Manager'"
+_OPTIONS_LIST="install_puma 'Install Puma Service'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
@@ -24,15 +25,39 @@ setup () {
 install_puma () {
   _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/puma"
 
-  confirm "Do you confirm the installation of Puma Manager (Upstart)?"
+  _SERVICES_LIST="upstart 'via Upstart for Ubuntu <= 14' \
+                  init.d 'via init.d for Ubuntu >= 16'"
+
+  _SERVICE=$(menu "Select the option" "$_SERVICES_LIST")
+
+  [ -z "$_SERVICE" ] && main
+
+  confirm "Do you confirm the installation of Puma Service via $_SERVICE?"
   [ $? -eq 1 ] && main
 
-  curl -sS "$_TEMPLATES/upstart/puma.conf" > "/etc/init/puma.conf"
-  curl -sS "$_TEMPLATES/upstart/puma-manager.conf" > "/etc/init/puma-manager.conf"
+  case $_SERVICE in
+    upstart)
+      _MESSAGE="app_path"
+
+      curl -sS "$_TEMPLATES/$_SERVICE/puma.conf" > /etc/init/puma.conf
+      curl -sS "$_TEMPLATES/$_SERVICE/puma-manager.conf" > /etc/init/puma-manager.conf
+      ;;
+
+    init.d)
+      _MESSAGE="app_path,username"
+
+      curl -sS "$_TEMPLATES/$_SERVICE/run-puma" > /usr/local/bin/run-puma
+      curl -sS "$_TEMPLATES/$_SERVICE/puma" > /etc/init.d/puma
+
+      chmod +x /usr/local/bin/run-puma /etc/init.d/puma
+
+      admin_service puma register
+      ;;
+  esac
 
   touch /etc/puma.conf
 
-  [ $? -eq 0 ] && message "Notice" "Puma Manager successfully installed! Add your apps in /etc/puma.conf"
+  [ $? -eq 0 ] && message "Notice" "Puma Service successfully installed! Add your apps in /etc/puma.conf with $_MESSAGE"
 }
 
 main () {
