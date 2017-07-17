@@ -28,6 +28,8 @@
   * [SonarQube](http://www.sonarqube.org)
 * Gestão de Containers
   * [Docker](https://www.docker.com)
+* Gestão de Backups
+  * [backup.sh](backup)
 
 ## É preciso ter instalado o pacote _curl_
 
@@ -47,7 +49,7 @@ O comando abaixo inicia o menu principal para instalação das ferramentas
 
 ## Provisionamento automático
 
-As receitas de instalação estão disponíveis [no link](https://github.com/prodigasistemas/prodigasistemas.github.io/tree/master/scripts/recipes). Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.
+As receitas de instalação estão disponíveis [no link](https://github.com/prodigasistemas/ti/tree/master/docs/scripts/recipes). Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.
 
 ### Exemplo de instalação do Jenkins Automation Server
 
