@@ -1,7 +1,7 @@
 # Tools Installer
 
 ## Instale e configure, rapidamente, ferramentas nas plataformas Linux
-![Linux support](https://prodigasistemas.github.io/images/linux_support.png)
+![Linux support](images/linux_support.png)
 
 ## Ferramentas
 * Servidor de automação
@@ -26,7 +26,7 @@ O comando abaixo inicia o menu principal para instalação das ferramentas
 
     curl -sS https://prodigasistemas.github.io/ti/scripts/menu/linux.sh | sudo bash
 
-![manual installer](https://prodigasistemas.github.io/images/tools-installer-manual.png)
+![manual installer](images/tools-installer-manual.png)
 
 ## Provisionamento automático
 
@@ -38,6 +38,6 @@ As receitas de instalação estão disponíveis [no link](https://github.com/pro
 
     curl -sS https://prodigasistemas.github.io/ti/scripts/menu/linux.sh | sudo bash
 
-![automatic installer](https://prodigasistemas.github.io/images/tools-installer-automatic.png)
+![automatic installer](images/tools-installer-automatic.png)
 
 [Pródiga Sistemas](http://www.prodigasistemas.com.br) © 2016
