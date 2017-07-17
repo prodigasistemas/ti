@@ -4,15 +4,32 @@
 ![Linux support](images/linux_support.png)
 
 ## Ferramentas
-* Servidor de automação
-  * [Jenkins](https://jenkins.io/)
+* Linguagens de programação
+  * [Java](https://www.oracle.com/java/index.html)
+  * [Ruby](https://www.ruby-lang.org)
 * Servidor web
-  * [Nginx](https://www.nginx.com/)
-* Banco de dados
-  * [MySQL](https://www.mysql.com/)
-  * [PostgreSQL](https://www.postgresql.org/)
+  * [Nginx](https://www.nginx.com)
+* Servidores de aplicação
+  * [JBoss](https://www.jboss.org) e [Wildfly](http://wildfly.org)
+  * [Puma Service](http://puma.io)
+* Servidores de banco de dados
+  * [MySQL](https://www.mysql.com)
+  * [PostgreSQL](https://www.postgresql.org)
+  * [Oracle Database XE](https://hub.docker.com/r/wnameless/oracle-xe-11g/) via Docker
+* Gerenciador de repositórios Java
+  * [Archiva](http://archiva.apache.org)
+* Gestão de projetos
+  * [Redmine](http://www.redmine.org)
+* Gerenciador de repositórios de código
+  * [GitLab](https://about.gitlab.com)
+* Servidor de automação
+  * [Jenkins](https://jenkins.io)
+* Qualidade de código
+  * [SonarQube](http://www.sonarqube.org)
+* Gestão de Containers
+  * [Docker](https://www.docker.com)
 
-## É preciso ter instalado o pacote curl
+## É preciso ter instalado o pacote _curl_
 
 ### No Debian ou Ubuntu
     sudo apt-get -y install curl
