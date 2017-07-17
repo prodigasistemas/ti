@@ -1,8 +1,8 @@
-# Pródiga Sistemas - Tools Installer
+# Tools Installer
 
-Central de instalação de ferramentas Open Source utilizadas por nós.
+Instale e configure, rapidamente, ferramentas em plataformas Linux
 
-Desenvolvida em [Shell Script](http://aurelio.net/shell/) e [Dialog](http://aurelio.net/shell/dialog/).
+Desenvolvido em [Shell Script](http://aurelio.net/shell/) e [Dialog](http://aurelio.net/shell/dialog/).
 
 ## Ambiente de desenvolvimento
 

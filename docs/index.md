@@ -1,51 +1,43 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-  <head>
-    <meta charset="utf-8">
-  </head>
-  <body>
-    <a href="https://github.com/prodigasistemas/prodigasistemas.github.io">
-      <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub">
-    </a>
-    <center>
-      <h1>Pródiga Sistemas - Tools Installer</h1>
-      <h2>Central de instalação de ferramentas Open Source utilizadas por nós.</h2>
-    </center>
-    <hr/>
+# Tools Installer
 
-    <h4>Distribuições Linux suportadas:</h4>
-    <center><img src="images/linux_support.png"></center>
-    <hr/>
+## Instale e configure, rapidamente, ferramentas nas plataformas Linux
+![Linux support](https://prodigasistemas.github.io/images/linux_support.png)
 
-    <h3>OBS.: É preciso ter instalado o pacote curl</h3>
+## Ferramentas
+* Servidor de automação
+  * [Jenkins](https://jenkins.io/)
+* Servidor web
+  * [Nginx](https://www.nginx.com/)
+* Banco de dados
+  * [MySQL](https://www.mysql.com/)
+  * [PostgreSQL](https://www.postgresql.org/)
 
-    <code><b>No Debian ou Ubuntu:</b> <i>sudo apt-get -y install curl</i></code>
-    <br/><br/>
-    <code><b>No CentOS:</b> <i>sudo yum -y install curl</i></code>
+## É preciso ter instalado o pacote curl
 
-    <h3>> Provisionamento manual</h3>
-    <h4>O comando abaixo inicia o menu principal para instalação das ferramentas</h4>
-    <code>
-      curl -sS https://prodigasistemas.github.io/scripts/menu/linux.sh | sudo bash
-    </code>
+### No Debian ou Ubuntu
+    sudo apt-get -y install curl
 
-    <br/><br/>
+### No CentOS
+    sudo yum -y install curl
 
-    <center><img src="images/tools-installer-manual.png"></center>
+## Provisionamento manual
 
-    <h3>> Provisionamento automático</h3>
-    <h4>As receitas de instalação estão disponíveis <a href="https://github.com/prodigasistemas/prodigasistemas.github.io/tree/master/scripts/recipes">aqui</a>. Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.</h4>
-    <h5>Exemplo de instalação do Jenkins CI</h5>
-    <code>
-      curl -sS https://prodigasistemas.github.io/scripts/recipes/jenkins/recipe.ti > recipe.ti<br/><br/>
-      curl -sS https://prodigasistemas.github.io/scripts/menu/linux.sh | sudo bash
-    </code>
+O comando abaixo inicia o menu principal para instalação das ferramentas
 
-    <br/><br/>
+    curl -sS https://prodigasistemas.github.io/ti/scripts/menu/linux.sh | sudo bash
 
-    <center><img src="images/tools-installer-automatic.png"></center>
+![manual installer](https://prodigasistemas.github.io/images/tools-installer-manual.png)
 
-    <hr/>
-    <center><a href="http://www.prodigasistemas.com.br/">Pródiga Sistemas</a> © 2016</center>
-  </body>
-</html>
+## Provisionamento automático
+
+As receitas de instalação estão disponíveis [no link](https://github.com/prodigasistemas/prodigasistemas.github.io/tree/master/scripts/recipes). Basta você criar um arquivo recipe.ti e executar o mesmo comando acima para as ferramentas serem instaladas e configuradas automaticamente.
+
+### Exemplo de instalação do Jenkins Automation Server
+
+    curl -sS https://prodigasistemas.github.io/ti/scripts/recipes/jenkins/recipe.ti > recipe.ti
+
+    curl -sS https://prodigasistemas.github.io/ti/scripts/menu/linux.sh | sudo bash
+
+![automatic installer](https://prodigasistemas.github.io/images/tools-installer-automatic.png)
+
+[Pródiga Sistemas](http://www.prodigasistemas.com.br) © 2016
