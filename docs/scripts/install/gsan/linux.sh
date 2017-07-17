@@ -18,7 +18,7 @@ _OPTIONS_LIST="configure_locale_latin 'Set the locale for LATIN1 (pt_BR.ISO-8859
                configure_nginx 'Configure host on NGINX'"
 
 setup () {
-  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io"
+  [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
 
   ping -c 1 "$(echo $_CENTRAL_URL_TOOLS | sed 's|http.*://||g' | cut -d: -f1)" > /dev/null
   [ $? -ne 0 ] && echo "$_CENTRAL_URL_TOOLS connection was not successful!" && exit 1
