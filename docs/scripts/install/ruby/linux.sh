@@ -4,7 +4,7 @@
 # http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
 export _APP_NAME="Ruby"
-_DEFAULT_VERSION="2.3.4"
+_DEFAULT_VERSION="2.4.2"
 _GROUP="rvm"
 _OPTIONS_LIST="install_ruby 'Install Ruby' \
                add_to_group 'Add a user to the group $_GROUP'"
@@ -42,7 +42,7 @@ install_ruby () {
   if [ "$_OS_TYPE" = "deb" ]; then
     _OS_VERSION=$(echo "$_OS_NUMBER" | cut -d. -f1)
 
-    [ "$_OS_VERSION" -ge 16 ] && _GPG_COMMAND="gpg2"
+    [ "$_OS_VERSION" -ge 16 ] && _GPG_COMMAND="gpgv2"
   fi
 
   $_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
