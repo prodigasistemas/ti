@@ -41,11 +41,9 @@ install_ruby () {
 
   if [ "$_OS_TYPE" = "deb" ]; then
     _OS_VERSION=$(echo "$_OS_NUMBER" | cut -d. -f1)
-
-    [ "$_OS_VERSION" -ge 16 ] && _GPG_COMMAND="gpgv2"
   fi
 
-  $_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+  run_as_user "$_USER_LOGGED" "$_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3"
 
   curl -sSL https://get.rvm.io | bash -s stable
 
