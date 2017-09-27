@@ -68,7 +68,7 @@ do_start_one_do() {
     config_file="$dir/config/puma-production.rb"
   fi
   if [ ! -e "$config_file" ]; then
-    config_file="${dir/current/}shared/puma.rb"
+    config_file="${dir%current}shared/puma.rb"
   fi
   log_file=`echo $i | cut -d , -f 4`
   if [ "$log_file" = "" ]; then
