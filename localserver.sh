@@ -1,5 +1,5 @@
 #!/bin/bash
 
-lighttpd -t -f lighttpd.conf
+sudo lighttpd -t -f lighttpd.conf
 
-lighttpd -D -f lighttpd.conf
+sudo lighttpd -D -f lighttpd.conf

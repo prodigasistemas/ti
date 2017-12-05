@@ -1,11 +1,18 @@
 # Install Java JDK
-java.version = oracleJDK7
+java.version = oracleJDK8
 
 # Install NGINX web server
 nginx
 
 # Install Archiva
-archiva.version = 2.2.1
+archiva.version = 2.2.3
 archiva.http.port = 8070
+
+archiva.owner.name = username
+
+archiva.settings.admin.name = username
+archiva.settings.admin.password = password
+archiva.settings.url.address = archiva.corporate.com
+
 archiva.nginx.domain = archiva.local
 archiva.nginx.host = localhost:8070

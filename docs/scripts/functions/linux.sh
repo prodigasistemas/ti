@@ -368,7 +368,7 @@ java_check () {
     export PATH=$PATH:$JAVA_HOME/bin
 
     _JAVA_INSTALLED=$(command -v java)
-    [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java is not installed!"
+    [ -z "$_JAVA_INSTALLED" ] && message "Alert" "Java $_VERSION_CHECK is not installed!"
   fi
 
   java -version > $_JAVA_TMP_FILE 2> $_JAVA_TMP_FILE

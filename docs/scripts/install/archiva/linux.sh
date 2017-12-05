@@ -3,7 +3,7 @@
 # http://archiva.apache.org/docs/2.2.1/adminguide/standalone.html
 
 export _APP_NAME="Archiva"
-_CURRENT_VERSION="2.2.1"
+_CURRENT_VERSION="2.2.3"
 _ARCHIVA_FOLDER="/opt/apache-archiva"
 _DEFAULT_PORT="8070"
 _OPTIONS_LIST="install_archiva 'Install Archiva' \
@@ -26,9 +26,12 @@ setup () {
 }
 
 install_archiva () {
-  java_check 7
+  _JAVA_VERSION=8
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
 
-  _JAVA_HOME=$(get_java_home 7)
+  java_check "$_JAVA_VERSION"
+
+  _JAVA_HOME=$(get_java_home $_JAVA_VERSION)
 
   _VERSION=$(input_field "archiva.version" "Enter the version for $_APP_NAME" "$_CURRENT_VERSION")
   [ $? -eq 1 ] && main
@@ -37,6 +40,22 @@ install_archiva () {
   _HTTP_PORT=$(input_field "archiva.http.port" "Enter the http port for $_APP_NAME" "$_DEFAULT_PORT")
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
+
+  _OWNER=$(input_field "archiva.owner.name" "Enter the $_APP_NAME owner name" "$_USER_LOGGED")
+  [ $? -eq 1 ] && main
+  [ -z "$_OWNER" ] && message "Alert" "The $_APP_NAME owner name can not be blank!"
+
+  _SETTINGS_ADMIN_NAME=$(input_field "archiva.settings.admin.name" "Enter the $_APP_NAME admin name" "admin")
+  [ $? -eq 1 ] && main
+  [ -z "$_SETTINGS_ADMIN_NAME" ] && message "Alert" "The $_APP_NAME admin name can not be blank!"
+
+  _SETTINGS_ADMIN_PASSWORD=$(input_field "archiva.settings.admin.password" "Enter the $_APP_NAME admin password")
+  [ $? -eq 1 ] && main
+  [ -z "$_SETTINGS_ADMIN_PASSWORD" ] && message "Alert" "The $_APP_NAME admin password can not be blank!"
+
+  _SETTINGS_URL_ADDRESS=$(input_field "archiva.settings.url.address" "Enter the $_APP_NAME url address" "archiva.corporate.com")
+  [ $? -eq 1 ] && main
+  [ -z "$_SETTINGS_URL_ADDRESS" ] && message "Alert" "The $_APP_NAME url address can not be blank!"
 
   confirm "Do you confirm the installation of $_APP_NAME?"
   [ $? -eq 1 ] && main
@@ -55,9 +74,40 @@ install_archiva () {
 
   mv "apache-archiva-$_VERSION" $_ARCHIVA_FOLDER
 
-  change_file replace $_ARCHIVA_FOLDER/conf/jetty.xml "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"8080\"/></Set>" "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"$_HTTP_PORT\"/></Set>"
+  change_file replace "$_ARCHIVA_FOLDER/conf/jetty.xml" "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"8080\"/></Set>" "<Set name=\"port\"><SystemProperty name=\"jetty.port\" default=\"$_HTTP_PORT\"/></Set>"
 
-  change_file "replace" "$_ARCHIVA_FOLDER/conf/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_HOME/bin/java"
+  change_file replace "$_ARCHIVA_FOLDER/conf/wrapper.conf" "^wrapper.java.command=java" "wrapper.java.command=$_JAVA_HOME/bin/java"
+
+  change_file replace "$_ARCHIVA_FOLDER/bin/archiva" "#RUN_AS_USER=" "RUN_AS_USER=$_OWNER"
+
+  _SETTINGS_FILE=settings.xml
+  _TMP_SETTINGS="/tmp/$_SETTINGS_FILE"
+  _USER_FOLDER=$(grep $_OWNER /etc/passwd | cut -d: -f6)
+  _M2_FOLDER="$_USER_FOLDER/.m2"
+
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/archiva/$_SETTINGS_FILE" > $_TMP_SETTINGS
+
+  change_file replace $_TMP_SETTINGS USERNAME "$_SETTINGS_ADMIN_NAME"
+  change_file replace $_TMP_SETTINGS PASSWORD "$_SETTINGS_ADMIN_PASSWORD"
+  change_file replace $_TMP_SETTINGS URL_ADDRESS "$_SETTINGS_URL_ADDRESS"
+
+  if [ ! -e "$_M2_FOLDER" ]; then
+    mkdir -p "$_M2_FOLDER"
+    chown "$_OWNER":"$_OWNER" "$_M2_FOLDER"
+  fi
+
+  if [ -e "$_M2_FOLDER/$_SETTINGS_FILE" ]; then
+    cp "$_M2_FOLDER/$_SETTINGS_FILE" "$_M2_FOLDER/$_SETTINGS_FILE.backup"
+    chown "$_OWNER":"$_OWNER" "$_M2_FOLDER/$_SETTINGS_FILE.backup"
+  fi
+
+  mv $_TMP_SETTINGS "$_M2_FOLDER"
+
+  rm $_TMP_SETTINGS.backup*
+
+  chown "$_OWNER":"$_OWNER" "$_M2_FOLDER/$_SETTINGS_FILE"
+
+  chown "$_OWNER":"$_OWNER" -R "$_ARCHIVA_FOLDER"
 
   ln -sf $_ARCHIVA_FOLDER/bin/archiva /etc/init.d/
 
