@@ -16,6 +16,7 @@ _OPTIONS_LIST="java 'Java installer' \
                jboss 'JBoss installer' \
                nagios 'Nagios installer' \
                gsan 'GSAN installer' \
+               ggas 'GGAS installer' \
                backup 'Backup installer' \
                puma 'Puma Service installer'"
 
