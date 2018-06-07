@@ -50,7 +50,7 @@ install_oracleb () {
   echo "connection.port = $_CONECTION_PORT" >> "$_ORACLE_CONFIG"
   echo "http.port = $_HTTP_PORT" >> "$_ORACLE_CONFIG"
 
-  docker run --name oracle-xe-11g -d -p "$_SSH_PORT:22" -p "$_CONECTION_PORT:1521" -p "$_HTTP_PORT:8080" --restart="always" wnameless/oracle-xe-11g
+  docker run --name oracle-xe-11g -d -p "$_SSH_PORT:22" -p "$_CONECTION_PORT:1521" -p "$_HTTP_PORT:8080" --restart="always" wnameless/oracle-xe-11g:16.04
 
   [ $? -eq 0 ] && message "Notice" "Oracle Database successfully installed! Source: hub.docker.com/r/wnameless/oracle-xe-11g"
 }
