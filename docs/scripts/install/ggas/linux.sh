@@ -111,16 +111,17 @@ import_ggas_database () {
   fi
 
   delete_file "/tmp/ggas"
-  cp -r $_DEFAULT_PATH/ggas/sql /tmp/ggas/
+  mkdir -p "/tmp/ggas/sql"
+  cp -r $_DEFAULT_PATH/ggas/sql /tmp/ggas/sql
   cd /tmp/ggas
 
   _SEARCH_STRING="CREATE OR REPLACE FUNCTION \"GGAS_ADMIN\".\"SQUIRREL_GET_ERROR_OFFSET\""
-  change_file "replace" "ggas/sql/GGAS_SCRIPT_INICIAL_ORACLE_02_ESTRUTURA_CONSTRAINTS_CARGA_INICIAL.sql" "$_SEARCH_STRING" "-- $_SEARCH_STRING"
+  change_file "replace" "sql/GGAS_SCRIPT_INICIAL_ORACLE_02_ESTRUTURA_CONSTRAINTS_CARGA_INICIAL.sql" "$_SEARCH_STRING" "-- $_SEARCH_STRING"
 
   for i in sql/*.sql ; do echo " " >> "$i" ; done
   for i in sql/*.sql ; do echo "exit;" >> "$i" ; done
 
-  mkdir sql/01 ggas/sql/02
+  mkdir sql/01 sql/02
 
   mv sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql sql/01/
   mv sql/*.sql sql/02/
