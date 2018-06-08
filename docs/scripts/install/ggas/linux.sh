@@ -126,11 +126,13 @@ import_ggas_database () {
   mv sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql sql/01/
   mv sql/*.sql sql/02/
 
-  _IMPORT_SCRIPT="sql/import_db.sh"
+  _IMPORT_SCRIPT="import_db.sh"
 
-  curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_IMPORT_SCRIPT" > $_IMPORT_SCRIPT
-
+  wget "$_CENTRAL_URL_TOOLS/scripts/install/ggas/sql/$_IMPORT_SCRIPT"
+  
   chmod +x $_IMPORT_SCRIPT
+  
+  mv $_IMPORT_SCRIPT sql/
 
   print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
 
