@@ -111,8 +111,8 @@ import_ggas_database () {
   fi
 
   delete_file "/tmp/ggas"
-  mkdir -p "/tmp/ggas/sql"
-  cp -r $_DEFAULT_PATH/ggas/sql /tmp/ggas/sql
+  mkdir -p /tmp/ggas/
+  cp -r "$_DEFAULT_PATH/ggas/sql/" /tmp/ggas/
   cd /tmp/ggas
 
   _SEARCH_STRING="CREATE OR REPLACE FUNCTION \"GGAS_ADMIN\".\"SQUIRREL_GET_ERROR_OFFSET\""
