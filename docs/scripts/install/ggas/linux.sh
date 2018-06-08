@@ -126,7 +126,7 @@ import_ggas_database () {
   mv sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql sql/01/
   mv sql/*.sql sql/02/
 
-  _IMPORT_SCRIPT="ggas/sql/import_db.sh"
+  _IMPORT_SCRIPT="sql/import_db.sh"
 
   curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_IMPORT_SCRIPT" > $_IMPORT_SCRIPT
 
