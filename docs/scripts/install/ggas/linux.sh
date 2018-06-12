@@ -84,6 +84,37 @@ install_ggas () {
   [ $? -eq 0 ] && message "Notice" "$_APP_NAME successfully installed!"
 }
 
+get_section () {
+  version=$1
+  order=$2
+
+  section=$(echo $version | cut -d. -f$order)
+
+  [ "${#section}" == "1" ] && section="0$section"
+
+  echo $section
+}
+
+zero_fill () {
+  version=$1
+  major=$(get_section $version 1)
+  minor=$(get_section $version 2)
+  patch=$(get_section $version 3)
+
+  echo "$major.$minor.$patch"
+}
+
+rename_versions () {
+  for i in $(ls sql/GGAS_Ver*.sql)
+  do
+    file=$i
+    version=$(echo $file | cut -d- -f2 | cut -d_ -f1)
+    replace=$(zero_fill $version)
+    new_name=$(echo $file | sed "s/$version/$replace/")
+    mv $file $new_name
+  done
+}
+
 import_ggas_database () {
   _CURRENT_DIR=$(pwd)
 
@@ -121,17 +152,19 @@ import_ggas_database () {
   for i in sql/*.sql ; do echo " " >> "$i" ; done
   for i in sql/*.sql ; do echo "exit;" >> "$i" ; done
 
+  rename_versions
+
   mkdir sql/01 sql/02
 
   mv sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql sql/01/
-  mv sql/*.sql sql/02/
+  mv sql/GGAS_Ver*.sql sql/02/
 
   _IMPORT_SCRIPT="import_db.sh"
 
   wget "$_CENTRAL_URL_TOOLS/scripts/install/ggas/sql/$_IMPORT_SCRIPT"
-  
+
   chmod +x $_IMPORT_SCRIPT
-  
+
   mv $_IMPORT_SCRIPT sql/
 
   print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
