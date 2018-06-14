@@ -157,7 +157,7 @@ import_ggas_database () {
   mkdir sql/01 sql/02
 
   mv sql/GGAS_SCRIPT_INICIAL_ORACLE_0*.sql sql/01/
-  mv sql/GGAS_Ver*.sql sql/02/
+  mv sql/*.sql sql/02/
 
   _IMPORT_SCRIPT="import_db.sh"
 
