@@ -118,6 +118,8 @@ rename_versions () {
 import_ggas_database () {
   _CURRENT_DIR=$(pwd)
 
+  tool_check dos2unix
+
   if [ -e "$_ORACLE_CONFIG" ]; then
     _SSH_PORT=$(search_value ssh.port "$_ORACLE_CONFIG")
   else
@@ -146,11 +148,13 @@ import_ggas_database () {
   cp -r "$_DEFAULT_PATH/ggas/sql/" /tmp/ggas/
   cd /tmp/ggas
 
-  _SEARCH_STRING="CREATE OR REPLACE FUNCTION \"GGAS_ADMIN\".\"SQUIRREL_GET_ERROR_OFFSET\""
-  change_file "replace" "sql/GGAS_SCRIPT_INICIAL_ORACLE_02_ESTRUTURA_CONSTRAINTS_CARGA_INICIAL.sql" "$_SEARCH_STRING" "-- $_SEARCH_STRING"
+  _IMPROVE_QUERIES="improve_queries.sh"
 
-  for i in sql/*.sql ; do echo " " >> "$i" ; done
-  for i in sql/*.sql ; do echo "exit;" >> "$i" ; done
+  wget "$_CENTRAL_URL_TOOLS/scripts/install/ggas/sql/$_IMPROVE_QUERIES"
+
+  chmod +x $_IMPROVE_QUERIES
+
+  ./$_IMPROVE_QUERIES
 
   rename_versions
 
@@ -179,9 +183,17 @@ import_ggas_database () {
 
   delete_file "/tmp/ggas"
 
+  print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
+
+  print_colorful yellow bold "> Copy log file from container Oracle DB"
+
+  LOG_FILE=ggas_import_database.log
+
+  scp -P $_SSH_PORT root@localhost:/tmp/$LOG_FILE $_CURRENT_DIR
+
   cd "$_CURRENT_DIR"
 
-  [ $? -eq 0 ] && message "Notice" "Import $_APP_NAME database was successful!"
+  [ $? -eq 0 ] && message "Notice" "Import $_APP_NAME database was successful! Log file is in $_CURRENT_DIR/$LOG_FILE"
 }
 
 configure_nginx () {
