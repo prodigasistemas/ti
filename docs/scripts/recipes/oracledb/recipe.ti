@@ -5,3 +5,4 @@ docker
 oracledb.port.ssh = 2222
 oracledb.port.connection = 1521
 oracledb.port.http = 5050
+oracledb.name = oracle-xe-11g

@@ -41,6 +41,10 @@ install_oracleb () {
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
 
+  _NAME=$(input_field "oracledb.name" "Inform the instance name" "oracle-xe-11g")
+  [ $? -eq 1 ] && main
+  [ -z "$_NAME" ] && message "Alert" "The name can not be blank!"
+
   confirm "Source: hub.docker.com/r/wnameless/oracle-xe-11g\n\nConfirm the installation of Oracle Database in $_OS_DESCRIPTION?"
   [ $? -eq 1 ] && main
 
@@ -50,7 +54,7 @@ install_oracleb () {
   echo "connection.port = $_CONECTION_PORT" >> "$_ORACLE_CONFIG"
   echo "http.port = $_HTTP_PORT" >> "$_ORACLE_CONFIG"
 
-  docker run --name oracle-xe-11g -d -p "$_SSH_PORT:22" -p "$_CONECTION_PORT:1521" -p "$_HTTP_PORT:8080" --restart="always" wnameless/oracle-xe-11g:16.04
+  docker run --name $_NAME -d -p "$_SSH_PORT:22" -p "$_CONECTION_PORT:1521" -p "$_HTTP_PORT:8080" --restart="always" wnameless/oracle-xe-11g:16.04
 
   [ $? -eq 0 ] && message "Notice" "Oracle Database successfully installed! Source: hub.docker.com/r/wnameless/oracle-xe-11g"
 }
