@@ -4,7 +4,7 @@
 # http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
 export _APP_NAME="Ruby"
-_DEFAULT_VERSION="2.4.2"
+_DEFAULT_VERSION="2.5.1"
 _GROUP="rvm"
 _OPTIONS_LIST="install_ruby 'Install Ruby' \
                add_to_group 'Add a user to the group $_GROUP'"

@@ -65,15 +65,22 @@ mysql_user_password_input () {
 }
 
 install_sonar_qube () {
+  _SONAR_VERSION=$(input_field "[default]" "Enter the version of the Sonar Server. Leave it blank to get the last" "")
+  [ $? -eq 1 ] && main
+
   case "$_OS_TYPE" in
     deb)
+      [ -n "$_SONAR_VERSION" ] && _version="=$_SONAR_VERSION"
+
       run_as_root "echo deb http://downloads.sourceforge.net/project/sonar-pkg/deb binary/ > /etc/apt/sources.list.d/sonar.list"
       $_PACKAGE_COMMAND update
-      $_PACKAGE_COMMAND --force-yes -y install sonar
+      $_PACKAGE_COMMAND --force-yes -y install "sonar$_version"
       ;;
     rpm)
+      [ -n "$_SONAR_VERSION" ] && _version="-$_SONAR_VERSION"
+
       wget -O /etc/yum.repos.d/sonar.repo http://downloads.sourceforge.net/project/sonar-pkg/rpm/sonar.repo
-      $_PACKAGE_COMMAND -y install sonar
+      $_PACKAGE_COMMAND -y install "sonar$_version"
       admin_service sonar register
       ;;
   esac

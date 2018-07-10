@@ -5,7 +5,7 @@
 # http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
 export _APP_NAME="Redmine"
-_REDMINE_LAST_VERSION="3.4.2"
+_REDMINE_LAST_VERSION="3.4.6"
 _DEFAULT_PATH="/opt"
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
 

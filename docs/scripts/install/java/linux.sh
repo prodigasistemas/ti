@@ -7,10 +7,8 @@ _DEFAULT_INSTALLATION_FOLDER="/opt"
 _OPTIONS_LIST="oracleJDK6 'Oracle Java 6 JDK' \
                oracleJDK7 'Oracle Java 7 JDK' \
                oracleJDK8 'Oracle Java 8 JDK' \
-               openJDK6 'OpenJDK 6' \
                openJDK7 'OpenJDK 7' \
-               openJDK8 'OpenJDK 8' \
-               openJDK9 'OpenJDK 9'"
+               openJDK8 'OpenJDK 8'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
@@ -38,6 +36,10 @@ install_openJDK () {
   _OPENJDK_VERSION=$1
 
   if [ "$_OS_TYPE" = "deb" ]; then
+    apt-get install -y python-software-properties
+    add-apt-repository ppa:openjdk-r/ppa -y
+    apt-get update
+
     _PACKAGE_NAME="openjdk-$_OPENJDK_VERSION-jdk"
     _FIND_PACKAGE=$(apt-cache search "$_PACKAGE_NAME")
     _FORCE_YES="--force-yes"
@@ -67,10 +69,6 @@ install_openJDK7 () {
 
 install_openJDK8 () {
   install_openJDK 8
-}
-
-install_openJDK9 () {
-  install_openJDK 9
 }
 
 install_oracleJDK6 () {
@@ -132,7 +130,7 @@ install_oracleJDK7 () {
 }
 
 install_oracleJDK8 () {
-  install_oracleJDK "8" "131" "b11" "d54c1d3a095b4ff2b6607d096fa80163/"
+  install_oracleJDK "8" "172" "b11" "a58eab1ec242421181065cdc37240b08/"
 }
 
 main () {

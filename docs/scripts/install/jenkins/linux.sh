@@ -24,22 +24,21 @@ setup () {
 }
 
 install_jenkins () {
-  java_check 7
+  _java_version=8
 
-  _JAVA_HOME=$(get_java_home 7)
+  java_check $_java_version
+
+  _JAVA_HOME=$(get_java_home $_java_version)
 
   _HTTP_PORT=$(input_field "jenkins.http.port" "Enter the http port for Jenkins" "8085")
   [ $? -eq 1 ] && main
   [ -z "$_HTTP_PORT" ] && message "Alert" "The http port can not be blank!"
 
-  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java 7" "$_JAVA_HOME/bin/java")
+  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java $_java_version" "$_JAVA_HOME/bin/java")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
-  if [ "$(provisioning)" = "manual" ]; then
-    confirm "Do you want to download the stable repository?"
-    [ $? -eq 0 ] && _STABLE="-stable"
-  fi
+  _STABLE="-stable"
 
   confirm "Do you confirm the installation of Jenkins$_STABLE?"
   [ $? -eq 1 ] && main
