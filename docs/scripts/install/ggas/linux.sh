@@ -73,9 +73,9 @@ install_ggas () {
 
   print_colorful yellow bold "> Building $_APP_NAME..."
 
-  cd $_DEFAULT_PATH/ggas
+  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME $_DEFAULT_PATH/gradle/bin/gradle build"
 
-  run_as_user "$_USER_LOGGED" "JAVA_HOME=$_JAVA_HOME $_DEFAULT_PATH/gradle/bin/gradle build"
+  [ $? -ne 0 ] && message "Error" "Build of ggas not realized!"
 
   print_colorful yellow bold "> Deploying $_APP_NAME..."
 
