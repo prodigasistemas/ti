@@ -157,7 +157,8 @@ confirm () {
 }
 
 change_file () {
-  _CF_BACKUP=".backup-$(date +"%Y%m%d%H%M%S%N")"
+  _BACKUP_FOLDER=/opt/tools-installer/sed-backups
+  _CF_BACKUP="-backup-$(date +"%Y%m%d%H%M%S%N")"
   _CF_OPERATION=$1
   _CF_FILE=$2
   _CF_FROM=$3
@@ -174,6 +175,10 @@ change_file () {
       sed -i"$_CF_BACKUP" -e "/$_CF_FROM/ i $_CF_TO" "$_CF_FILE"
       ;;
   esac
+
+  [ ! -e "$_BACKUP_FOLDER" ] && mkdir -p $_BACKUP_FOLDER
+
+  [ -e "$_CF_FILE$_CF_BACKUP" ] && mv "$_CF_FILE$_CF_BACKUP" $_BACKUP_FOLDER
 }
 
 run_as_root () {
