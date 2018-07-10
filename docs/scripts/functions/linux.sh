@@ -5,6 +5,7 @@
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
   _OS_KERNEL=$(uname -r)
+  _SED_BACKUP_FOLDER=/opt/tools-installer/sed-backups
 
   if [ "$(which lsb_release 2>/dev/null)" ]; then
     _OS_TYPE="deb"
@@ -157,7 +158,6 @@ confirm () {
 }
 
 change_file () {
-  _BACKUP_FOLDER=/opt/tools-installer/sed-backups
   _CF_BACKUP="-backup-$(date +"%Y%m%d%H%M%S%N")"
   _CF_OPERATION=$1
   _CF_FILE=$2
@@ -176,9 +176,9 @@ change_file () {
       ;;
   esac
 
-  [ ! -e "$_BACKUP_FOLDER" ] && mkdir -p $_BACKUP_FOLDER
+  [ ! -e "$_SED_BACKUP_FOLDER" ] && mkdir -p $_SED_BACKUP_FOLDER
 
-  [ -e "$_CF_FILE$_CF_BACKUP" ] && mv "$_CF_FILE$_CF_BACKUP" $_BACKUP_FOLDER
+  [ -e "$_CF_FILE$_CF_BACKUP" ] && mv "$_CF_FILE$_CF_BACKUP" $_SED_BACKUP_FOLDER
 }
 
 run_as_root () {

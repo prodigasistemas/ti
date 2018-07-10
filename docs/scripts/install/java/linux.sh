@@ -4,11 +4,11 @@
 
 export _APP_NAME="Java"
 _DEFAULT_INSTALLATION_FOLDER="/opt"
-_OPTIONS_LIST="oracleJDK6 'Oracle Java 6 JDK' \
+_OPTIONS_LIST="openJDK7 'OpenJDK 7' \
+               openJDK8 'OpenJDK 8' \
+               oracleJDK6 'Oracle Java 6 JDK' \
                oracleJDK7 'Oracle Java 7 JDK' \
-               oracleJDK8 'Oracle Java 8 JDK' \
-               openJDK7 'OpenJDK 7' \
-               openJDK8 'OpenJDK 8'"
+               oracleJDK8 'Oracle Java 8 JDK'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
@@ -57,10 +57,6 @@ install_openJDK () {
   $_PACKAGE_COMMAND install -y "$_PACKAGE_NAME" "$_FORCE_YES"
 
   [ $? -eq 0 ] && message "Notice" "Java $_OPENJDK_VERSION successfully installed!"
-}
-
-install_openJDK6 () {
-  install_openJDK 6
 }
 
 install_openJDK7 () {

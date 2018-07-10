@@ -140,7 +140,7 @@ configure_nginx () {
     change_file replace archiva.conf HOST "$_HOST"
 
     mv archiva.conf /etc/nginx/conf.d/
-    rm archiva.conf*
+    rm $_SED_BACKUP_FOLDER/archiva.conf*
 
     admin_service nginx restart
 

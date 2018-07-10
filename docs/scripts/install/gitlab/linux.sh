@@ -149,7 +149,7 @@ configure_nginx () {
     change_file "replace" "gitlab.conf" "HOST" "$_HOST"
 
     mv gitlab.conf /etc/nginx/conf.d/
-    rm gitlab.conf*
+    rm $_SED_BACKUP_FOLDER/gitlab.conf*
 
     admin_service nginx restart
 

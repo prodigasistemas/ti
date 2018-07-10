@@ -355,7 +355,7 @@ configure_nginx () {
     change_file replace gsan.conf HOST "$_HOST"
 
     mv gsan.conf /etc/nginx/conf.d/
-    rm gsan.conf*
+    rm $_SED_BACKUP_FOLDER/gsan.conf*
 
     admin_service nginx restart
 

@@ -216,7 +216,7 @@ configure_nginx () {
     change_file replace ggas.conf HOST "$_HOST"
 
     mv ggas.conf /etc/nginx/conf.d/
-    rm ggas.conf*
+    rm $_SED_BACKUP_FOLDER/ggas.conf*
 
     admin_service nginx restart
 

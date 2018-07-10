@@ -95,7 +95,7 @@ configure_nginx () {
     change_file replace jenkins.conf HOST "$_HOST"
 
     mv jenkins.conf /etc/nginx/conf.d/
-    rm jenkins.conf*
+    rm $_SED_BACKUP_FOLDER/jenkins.conf*
 
     admin_service nginx restart
 

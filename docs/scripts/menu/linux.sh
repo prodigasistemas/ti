@@ -1,24 +1,24 @@
 #!/bin/bash
 
 export _APP_NAME="Main menu"
-_OPTIONS_LIST="java 'Java installer' \
-               ruby 'Ruby installer' \
-               nginx 'NGINX installer' \
-               postgresql 'PostgreSQL installer' \
-               mysql 'MySQL installer' \
-               docker 'Docker installer' \
-               oracledb 'Oracle Database XE installer' \
-               gitlab 'GitLab installer' \
-               jenkins 'Jenkins CI installer' \
-               sonar 'SonarQube installer' \
-               redmine 'Redmine installer' \
-               archiva 'Archiva installer' \
-               jboss 'JBoss installer' \
-               nagios 'Nagios installer' \
-               gsan 'GSAN installer' \
-               ggas 'GGAS installer' \
-               backup 'Backup installer' \
-               puma 'Puma Service installer'"
+_OPTIONS_LIST="java 'Java JDK' \
+               ruby 'Ruby Interpreter' \
+               nginx 'NGINX Web Server' \
+               postgresql 'PostgreSQL Database Server' \
+               mysql 'MySQL Database Server' \
+               docker 'Docker platform' \
+               oracledb 'Oracle Database XE' \
+               gitlab 'GitLab' \
+               jenkins 'Jenkins Automation Server' \
+               sonar 'SonarQube Quality' \
+               redmine 'Redmine Project Management' \
+               archiva 'Archiva' \
+               jboss 'JBoss App Server' \
+               nagios 'Nagios' \
+               gsan 'GSAN' \
+               ggas 'GGAS' \
+               backup 'Backup' \
+               puma 'Puma Service'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"

@@ -138,7 +138,7 @@ install_redmine () {
   change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
   chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_RB_FILE
   mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
-  rm $_UNICORN_RB_FILE*
+  rm $_SED_BACKUP_FOLDER/$_UNICORN_RB_FILE*
 
   _UNICORN_INIT_FILE="unicorn_init.sh"
   curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
@@ -151,7 +151,7 @@ install_redmine () {
   chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_INIT_FILE
   chmod +x $_UNICORN_INIT_FILE
   mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
-  rm $_UNICORN_INIT_FILE*
+  rm $_SED_BACKUP_FOLDER/$_UNICORN_INIT_FILE*
   ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
 
   print_colorful white bold "> Starting Redmine..."
@@ -216,7 +216,7 @@ configure_nginx () {
     change_file replace redmine.conf PATH "$_DEFAULT_PATH"
 
     mv redmine.conf /etc/nginx/conf.d/
-    rm redmine.conf*
+    rm $_SED_BACKUP_FOLDER/redmine.conf*
 
     admin_service nginx restart
 
