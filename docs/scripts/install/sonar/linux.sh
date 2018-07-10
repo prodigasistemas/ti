@@ -25,8 +25,8 @@ _OPTIONS_LIST="install_sonar 'Install the Sonar Server' \
                configure_nginx 'Configure host on NGINX'"
 
 _OPTIONS_DATABASE="create_sonar_database 'Create the user and sonar database' \
-                   import_sonar_database 'Import sonar database from SQL file' \
-                   configure_sonar_properties 'Configure the connection to the database'"
+                   configure_sonar_properties 'Configure the connection to the database' \
+                   import_sonar_database 'Import sonar database from SQL file'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
@@ -75,6 +75,7 @@ install_sonar_qube () {
       run_as_root "echo deb http://downloads.sourceforge.net/project/sonar-pkg/deb binary/ > /etc/apt/sources.list.d/sonar.list"
       $_PACKAGE_COMMAND update
       $_PACKAGE_COMMAND --force-yes -y install "sonar$_version"
+      admin_service sonar start
       ;;
     rpm)
       [ -n "$_SONAR_VERSION" ] && _version="-$_SONAR_VERSION"
@@ -122,11 +123,13 @@ install_sonar_other () {
 }
 
 install_sonar () {
-  java_check 8
+  _java_version=8
 
-  _JAVA_HOME=$(get_java_home 8)
+  java_check $_java_version
 
-  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java 8" "$_JAVA_HOME/bin/java")
+  _JAVA_HOME=$(get_java_home $_java_version)
+
+  _JAVA_COMMAND=$(input_field "[default]" "Enter the path of command Java $_java_version" "$_JAVA_HOME/bin/java")
   [ $? -eq 1 ] && main
   [ -z "$_JAVA_COMMAND" ] && message "Alert" "The Java command can not be blank!"
 
@@ -144,7 +147,7 @@ install_sonar () {
     admin_service sonar restart 2> /dev/null
   fi
 
-  [ $? -eq 0 ] && message "Notice" "Sonar successfully installed!"
+  [ $? -eq 0 ] && message "Notice" "Sonar successfully installed in http://localhost:9000"
 }
 
 create_sonar_database () {
@@ -219,8 +222,8 @@ configure_sonar_properties () {
 
   mysql_user_password_input
 
-  _PROPERTIES_USERNAME=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
-  _PROPERTIES_PASSWORD=$(grep sonar.jdbc.username $_PROPERTIES_FILE)
+  _PROPERTIES_USERNAME=$(grep sonar.jdbc.username= $_PROPERTIES_FILE)
+  _PROPERTIES_PASSWORD=$(grep sonar.jdbc.username= $_PROPERTIES_FILE)
 
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
