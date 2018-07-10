@@ -223,7 +223,7 @@ configure_sonar_properties () {
   mysql_user_password_input
 
   _PROPERTIES_USERNAME=$(grep sonar.jdbc.username= $_PROPERTIES_FILE)
-  _PROPERTIES_PASSWORD=$(grep sonar.jdbc.username= $_PROPERTIES_FILE)
+  _PROPERTIES_PASSWORD=$(grep sonar.jdbc.password= $_PROPERTIES_FILE)
 
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_USERNAME" "sonar.jdbc.username=sonar"
   change_file "replace" "$_PROPERTIES_FILE" "^$_PROPERTIES_PASSWORD" "sonar.jdbc.password=$_MYSQL_SONAR_PASSWORD"
