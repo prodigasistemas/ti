@@ -103,7 +103,7 @@ install_archiva () {
 
   mv $_TMP_SETTINGS "$_M2_FOLDER"
 
-  rm $_TMP_SETTINGS.backup*
+  rm $_SED_BACKUP_FOLDER/$_SETTINGS_FILE-backup*
 
   chown "$_OWNER":"$_OWNER" "$_M2_FOLDER/$_SETTINGS_FILE"
 

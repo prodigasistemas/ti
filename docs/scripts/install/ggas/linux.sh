@@ -27,8 +27,12 @@ setup () {
 
 install_ggas () {
   _CURRENT_DIR=$(pwd)
+  _java_version=7
+  _GGAS_REPO=http://ggas.com.br/root/ggas.git
 
-  java_check 7
+  java_check $_java_version
+
+  _JAVA_HOME=$(get_java_home $_java_version)
 
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
@@ -43,9 +47,9 @@ install_ggas () {
 
   delete_file "$_DEFAULT_PATH/ggas"
 
-  print_colorful yellow bold "> Cloning repo from http://ggas.com.br/root/ggas.git..."
+  print_colorful yellow bold "> Cloning repo from $_GGAS_REPO..."
 
-  git clone http://ggas.com.br/root/ggas.git
+  git clone $_GGAS_REPO
 
   [ $? -ne 0 ] && message "Error" "Download of $_APP_NAME not realized!"
 
@@ -69,7 +73,7 @@ install_ggas () {
 
   cd $_DEFAULT_PATH/ggas
 
-  run_as_user "$_USER_LOGGED" "JAVA_HOME=$(get_java_home 7) $_DEFAULT_PATH/gradle/bin/gradle build"
+  run_as_user "$_USER_LOGGED" "JAVA_HOME=$_JAVA_HOME $_DEFAULT_PATH/gradle/bin/gradle build"
 
   print_colorful yellow bold "> Deploying $_APP_NAME..."
 

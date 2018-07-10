@@ -360,6 +360,7 @@ get_java_home () {
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/lib/jvm/java-$_JAVA_VERSION"
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/usr/java/oracle-$_JAVA_VERSION"
     [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME="/opt/java-oracle-$_JAVA_VERSION"
+    [ ! -e "$_JAVA_HOME" ] && _JAVA_HOME=""
   fi
 
   echo "$_JAVA_HOME"
