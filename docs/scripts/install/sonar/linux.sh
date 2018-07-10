@@ -74,7 +74,7 @@ install_sonar_qube () {
 
       run_as_root "echo deb http://downloads.sourceforge.net/project/sonar-pkg/deb binary/ > /etc/apt/sources.list.d/sonar.list"
       $_PACKAGE_COMMAND update
-      $_PACKAGE_COMMAND --force-yes -y install "sonar$_version"
+      $_PACKAGE_COMMAND --force-yes -y install openjdk-8-jdk "sonar$_version"
       admin_service sonar start
       ;;
     rpm)
