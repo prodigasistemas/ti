@@ -34,6 +34,8 @@ install_ggas () {
 
   _JAVA_HOME=$(get_java_home $_java_version)
 
+  [ ! -e "$_JAVA_HOME" ] && message "Error" "Java $_java_version is not installed!"
+
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
   confirm "Confirm the installation of $_APP_NAME?"
