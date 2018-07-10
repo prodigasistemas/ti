@@ -342,6 +342,9 @@ admin_service () {
 }
 
 get_java_home () {
+  [ "$_OS_ARCH" = "32" ] && _ARCH="i386"
+  [ "$_OS_ARCH" = "64" ] && _ARCH="amd64"
+
   _JAVA_VERSION=$1
 
   if [ -n "$JAVA_HOME" ]; then

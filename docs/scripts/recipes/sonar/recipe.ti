@@ -1,5 +1,5 @@
 # Install Java JDK
-java.version = oracleJDK8
+java.version = openJDK8
 
 # Install MySQL Database Server
 mysql.server
