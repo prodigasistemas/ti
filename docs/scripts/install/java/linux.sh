@@ -67,13 +67,26 @@ download_oracle_jdk () {
 
   _version=$1
 
-  [ "$_ARCH" = "x64" ] && [ "$_version" = "6" ] && _DOWNLOAD_FILE=tjpe520vy1mm33n/jdk-6u45-linux-x64.bin
-  [ "$_ARCH" = "x64" ] && [ "$_version" = "7" ] && _DOWNLOAD_FILE=jxg251094dxk0p8/jdk-7u80-linux-x64.tar.gz
-  [ "$_ARCH" = "x64" ] && [ "$_version" = "8" ] && _DOWNLOAD_FILE=jdk-8u172-linux-x64.tar.gz
-
-  [ "$_ARCH" = "i586" ] && [ "$_version" = "6" ] && _DOWNLOAD_FILE=jdk-6u45-linux-i586.bin
-  [ "$_ARCH" = "i586" ] && [ "$_version" = "7" ] && _DOWNLOAD_FILE=jdk-7u80-linux-i586.tar.gz
-  [ "$_ARCH" = "i586" ] && [ "$_version" = "8" ] && _DOWNLOAD_FILE=jdk-8u172-linux-i586.tar.gz
+  case "$_version$_ARCH" in
+    "6x64")
+      _DOWNLOAD_FILE=tjpe520vy1mm33n/jdk-6u45-linux-x64.bin
+      ;;
+    "7x64")
+      _DOWNLOAD_FILE=jxg251094dxk0p8/jdk-7u80-linux-x64.tar.gz
+      ;;
+    "8x64")
+      _DOWNLOAD_FILE=esp1f719obwano0/jdk-8u172-linux-x64.tar.gz
+      ;;
+    "6i586")
+      _DOWNLOAD_FILE=ntwarockvw23u06/jdk-6u45-linux-i586.bin
+      ;;
+    "7i586")
+      _DOWNLOAD_FILE=a1e2bc8ost96h6s/jdk-7u80-linux-i586.tar.gz
+      ;;
+    "8i586")
+      _DOWNLOAD_FILE=p9vz8a6za4u7imz/jdk-8u172-linux-i586.tar.gz
+      ;;
+  esac
 
   cd $_DEFAULT_INSTALLATION_FOLDER
 
