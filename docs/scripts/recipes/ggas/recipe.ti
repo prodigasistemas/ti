@@ -1,6 +1,6 @@
 # Install Java JDK
-java.version = openJDK7
-java.version = openJDK8
+java.version = oracleJDK7
+java.version = oracleJDK8
 
 # Install Docker
 docker
