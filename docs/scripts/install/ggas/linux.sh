@@ -45,6 +45,14 @@ install_ggas () {
 
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
+  _DATABASE_HOST=$(input_field "ggas.database.host" "Enter the host of the Oracle DB Server" "localhost")
+  [ $? -eq 1 ] && main
+  [ -z "$_DATABASE_HOST" ] && message "Alert" "The host of the Oracle DB Server can not be blank!"
+
+  _DATABASE_PORT=$(input_field "ggas.database.port" "Enter the port of the Oracle DB Server" "1521")
+  [ $? -eq 1 ] && main
+  [ -z "$_DATABASE_PORT" ] && message "Alert" "The port of the Oracle DB Server can not be blank!"
+
   confirm "Confirm the installation of $_APP_NAME?"
   [ $? -eq 1 ] && main
 
@@ -64,9 +72,22 @@ install_ggas () {
 
   chown "$_USER_LOGGED":"$_USER_LOGGED" -R "$_DEFAULT_PATH/ggas"
 
+  print_colorful yellow bold "> Configuring connections to databases..."
+
+  HB_DEV="$_DEFAULT_PATH/ggas/src/main/resources/hibernate.properties"
+  HB_TEST="$_DEFAULT_PATH/ggas/src/main/resources/hibernate-test.properties"
+
+  sed -i "s/hibernate.connection.username=GGAS_TESTE/hibernate.connection.username=GGAS_ADMIN/" $HB_DEV
+  sed -i "s/hibernate.connection.password=GGAS_TESTE/hibernate.connection.password=GGAS_ADMIN/" $HB_DEV
+  sed -i "s/hibernate.connection.url=jdbc:oracle:thin:@localhost:1521:XE/hibernate.connection.url=jdbc:oracle:thin:@$_DATABASE_HOST:$_DATABASE_PORT:XE/" $HB_DEV
+
+  sed -i "s/hibernate.connection.username=GGAS_TESTE/hibernate.connection.username=GGAS_ADMIN/" $HB_TEST
+  sed -i "s/hibernate.connection.password=GGAS_TESTE/hibernate.connection.password=GGAS_ADMIN/" $HB_TEST
+  sed -i "s/hibernate.connection.url=jdbc:oracle:thin:@localhost:1521:XE/hibernate.connection.url=jdbc:oracle:thin:@$_DATABASE_HOST:$_DATABASE_PORT:XE/" $HB_TEST
+
   print_colorful yellow bold "> Building $_APP_NAME..."
 
-  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME_8 ./gradlew -x test -x runSelenium build"
+  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME_8 ./gradlew -x test -x runSelenium buildDependents"
 
   run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && rm -rf build && JAVA_HOME=$_JAVA_HOME_7 ./gradlew -x test -x runSelenium build"
 

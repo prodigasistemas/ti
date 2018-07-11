@@ -46,6 +46,8 @@ sonar.nginx.host = localhost:9000
 
 # Install GGAS
 ggas.import.database = yes
+ggas.database.host = localhost
+ggas.database.port = 1521
 
 ggas.nginx.domain = wildfly.local
 ggas.nginx.host = localhost:8081
