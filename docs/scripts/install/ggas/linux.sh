@@ -97,6 +97,8 @@ install_ggas () {
 
   /etc/init.d/wildfly stop
 
+  run_as_user "$_USER_LOGGED" "rm $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war.isdeploying"
+
   run_as_user "$_USER_LOGGED" "cp $_DEFAULT_PATH/ggas/build/libs/ggas*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
 
   /etc/init.d/wildfly start
