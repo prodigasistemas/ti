@@ -27,14 +27,21 @@ setup () {
 
 install_ggas () {
   _CURRENT_DIR=$(pwd)
-  _java_version=7
+
   _GGAS_REPO=http://ggas.com.br/root/ggas.git
 
-  java_check $_java_version
+  _java_8=8
+  _java_7=7
 
-  _JAVA_HOME=$(get_java_home $_java_version)
+  java_check $_java_8
+  java_check $_java_7
 
-  [ ! -e "$_JAVA_HOME" ] && message "Error" "Java $_java_version is not installed!"
+  _JAVA_HOME_8=$(get_java_home $_java_8)
+  _JAVA_HOME_7=$(get_java_home $_java_7)
+
+  [ ! -e "$_JAVA_HOME_8" ] && message "Error" "Java $_java_8 is not installed!"
+
+  [ ! -e "$_JAVA_HOME_7" ] && message "Error" "Java $_java_7 is not installed!"
 
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
@@ -57,23 +64,11 @@ install_ggas () {
 
   chown "$_USER_LOGGED":"$_USER_LOGGED" -R "$_DEFAULT_PATH/ggas"
 
-  print_colorful yellow bold "> Installing Gradle $_GRADLE_VERSION..."
-
-  cd $_DEFAULT_PATH
-
-  wget https://services.gradle.org/distributions/gradle-$_GRADLE_VERSION-bin.zip
-
-  [ $? -ne 0 ] && message "Error" "Download of Gradle $_GRADLE_VERSION not realized!"
-
-  unzip -oq gradle-$_GRADLE_VERSION-bin.zip
-
-  rm gradle-$_GRADLE_VERSION-bin.zip
-
-  ln -sf gradle-$_GRADLE_VERSION $_DEFAULT_PATH/gradle
-
   print_colorful yellow bold "> Building $_APP_NAME..."
 
-  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME $_DEFAULT_PATH/gradle/bin/gradle build"
+  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME_8 ./gradlew -x test -x runSelenium build"
+
+  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && rm -rf build && JAVA_HOME=$_JAVA_HOME_7 ./gradlew -x test -x runSelenium build"
 
   [ $? -ne 0 ] && message "Error" "Build of ggas not realized!"
 
@@ -81,7 +76,7 @@ install_ggas () {
 
   /etc/init.d/wildfly stop
 
-  run_as_user "$_USER_LOGGED" "cp $_DEFAULT_PATH/ggas/workspace/build/libs/workspace*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
+  run_as_user "$_USER_LOGGED" "cp $_DEFAULT_PATH/ggas/build/libs/ggas*.war $_DEFAULT_PATH/wildfly/standalone/deployments/ggas.war"
 
   /etc/init.d/wildfly start
 
