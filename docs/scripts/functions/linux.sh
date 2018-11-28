@@ -300,7 +300,13 @@ register_service () {
   _REGISTER_SERVICE_NAME=$1
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    update-rc.d "$_REGISTER_SERVICE_NAME" defaults
+    which systemd
+
+    if [ $? -eq 0 ]; then
+      systemctl enable "$_REGISTER_SERVICE_NAME"
+    else
+      update-rc.d "$_REGISTER_SERVICE_NAME" defaults
+    fi
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
 

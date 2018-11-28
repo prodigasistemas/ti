@@ -23,41 +23,66 @@ setup () {
 }
 
 install_puma () {
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+
   _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/puma"
 
-  _SERVICES_LIST="upstart 'via Upstart for Ubuntu <= 14' \
-                  init.d 'via init.d for Ubuntu >= 16'"
+  which systemd
 
-  _SERVICE=$(menu "Select the option" "$_SERVICES_LIST")
+  if [ $? -eq 0 ]; then
+    _SERVICE="systemd"
+  else
+    _SERVICE="upstart"
+  fi
 
-  [ -z "$_SERVICE" ] && main
+  _PUMA_SERVICE_NAME=$(input_field "puma.service.name" "Enter the puma service name")
+  [ $? -eq 1 ] && main
+  [ -z "$_PUMA_SERVICE_NAME" ] && message "Alert" "The service name can not be blank!"
 
-  confirm "Do you confirm the installation of Puma Service via $_SERVICE?"
+  _PUMA_USER_NAME=$(input_field "puma.user.name" "Enter the puma user name" "$_USER_LOGGED")
+  [ $? -eq 1 ] && main
+  [ -z "$_PUMA_USER_NAME" ] && message "Alert" "The user name can not be blank!"
+
+  confirm "Do you confirm the installation of $_PUMA_SERVICE_NAME Puma Service?"
   [ $? -eq 1 ] && main
 
   case $_SERVICE in
     upstart)
-      _MESSAGE="app_path"
-
       curl -sS "$_TEMPLATES/$_SERVICE/puma.conf" > /etc/init/puma.conf
       curl -sS "$_TEMPLATES/$_SERVICE/puma-manager.conf" > /etc/init/puma-manager.conf
+
+      sed -i "s/USER_NAME/$_PUMA_USER_NAME/g" /etc/init/puma.conf
+
+      _PUMA_CONF=/etc/puma.conf
+      _PUMA_APP_PATH=/var/www/$_PUMA_SERVICE_NAME
+
+      grep $_PUMA_APP_PATH $_PUMA_CONF > /dev/null 2> /dev/null
+
+      if [ $? -ne 0 ]; then
+        su -c "echo $_PUMA_APP_PATH >> $_PUMA_CONF"
+      fi
       ;;
 
-    init.d)
-      _MESSAGE="app_path,username"
+    systemd)
+      _PUMA_SERVICE=puma-$_PUMA_SERVICE_NAME.service
 
-      curl -sS "$_TEMPLATES/$_SERVICE/run-puma" > /usr/local/bin/run-puma
-      curl -sS "$_TEMPLATES/$_SERVICE/puma" > /etc/init.d/puma
+      curl -sS "$_TEMPLATES/$_SERVICE/puma.service" > /tmp/puma.service
 
-      chmod +x /usr/local/bin/run-puma /etc/init.d/puma
+      mv /tmp/puma.service /tmp/$_PUMA_SERVICE
 
-      admin_service puma register
+      sed -i "s/APP_NAME/$_PUMA_SERVICE_NAME/g" /tmp/$_PUMA_SERVICE
+
+      sed -i "s/USER_NAME/$_PUMA_USER_NAME/g" /tmp/$_PUMA_SERVICE
+
+      mv /tmp/$_PUMA_SERVICE /etc/systemd/system
+
+      admin_service "puma-$_PUMA_SERVICE_NAME" register
+
+      admin_service "puma-$_PUMA_SERVICE_NAME" start
       ;;
   esac
 
-  touch /etc/puma.conf
-
-  [ $? -eq 0 ] && message "Notice" "Puma Service successfully installed! Add your apps in /etc/puma.conf with $_MESSAGE"
+  [ $? -eq 0 ] && message "Notice" "$_PUMA_SERVICE_NAME Puma Service successfully installed!"
 }
 
 main () {
