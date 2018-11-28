@@ -18,7 +18,8 @@ _OPTIONS_LIST="java 'Java JDK' \
                gsan 'GSAN' \
                ggas 'GGAS' \
                backup 'Backup' \
-               puma 'Puma Service'"
+               puma 'Puma App Service' \
+               sidekiq 'Sidekiq Queue Service'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
