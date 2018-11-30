@@ -7,11 +7,19 @@
 export _APP_NAME="Redmine"
 _REDMINE_LAST_VERSION="3.4.6"
 _DEFAULT_PATH="/opt"
+
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
+_DOWNLOADS_FOLDER="$_REDMINE_FOLDER/downloads"
+_VERSIONS_FOLDER="$_REDMINE_FOLDER/versions"
+_SHARED_FOLDER="$_REDMINE_FOLDER/shared"
+_CURRENT_FOLDER="$_REDMINE_FOLDER/current"
+
+_TEMP_DIRS="cache imports pdf pids sessions sockets test thumbnails"
 
 _OPTIONS_LIST="install_redmine 'Install the Redmine $_REDMINE_LAST_VERSION in $_DEFAULT_PATH' \
                configure_email 'Configure sending email' \
                configure_nginx 'Configure host on NGINX' \
+               agile_plugin 'Install Redmine Agile plugin' \
                issue_reports_plugin 'Install Redmine issue reports plugin'"
 
 setup () {
@@ -40,35 +48,63 @@ install_dependencies () {
 }
 
 configure_database () {
-  _YAML_FILE="$_REDMINE_FOLDER/config/database.yml"
+  _YAML_FILE="$_SHARED_FOLDER/config/database.yml"
 
-  _MYSQL_HOST=$(input_field "[default]" "Enter the host of the MySQL Server" "localhost")
+  _DB_HOST=$(input_field "[default]" "Enter the host of the Database Server" "localhost")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+  [ -z "$_DB_HOST" ] && message "Alert" "The host of the Database Server can not be blank!"
 
-  _MYSQL_ROOT_PASSWORD=$(input_field "redmine.mysql.root.password" "Enter the password of the root user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_ROOT_PASSWORD" ] && message "Alert" "The root password can not be blank!"
+  if [ ! -e "$_YAML_FILE" ]; then
+    print_colorful white bold "> Configuring database..."
 
-  _MYSQL_REDMINE_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the password of the redmine user in MySQL")
-  [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_REDMINE_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+    cd $_REDMINE_FOLDER
 
-  print_colorful white bold "> Configuring database..."
+    echo "postgresql.database.name = redmine" > recipe.ti
+    echo "postgresql.database.user.name = redmine" >> recipe.ti
+    echo "postgresql.database.user.password = redmine" >> recipe.ti
 
-  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "DROP DATABASE IF EXISTS redmine;"
-  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE DATABASE redmine CHARACTER SET utf8;"
-  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "CREATE USER redmine@$_MYSQL_HOST IDENTIFIED BY '$_MYSQL_REDMINE_PASSWORD';"
-  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "GRANT ALL PRIVILEGES ON redmine.* TO redmine@$_MYSQL_HOST WITH GRANT OPTION;"
-  mysql_as_root "$_MYSQL_ROOT_PASSWORD" "FLUSH PRIVILEGES;"
+    curl -sS $_CENTRAL_URL_TOOLS/scripts/install/postgresql/linux.sh | bash
 
-  echo "production:" > $_YAML_FILE
-  echo "  adapter: mysql2" >> $_YAML_FILE
-  echo "  database: redmine" >> $_YAML_FILE
-  echo "  host: $_MYSQL_HOST" >> $_YAML_FILE
-  echo "  username: redmine" >> $_YAML_FILE
-  echo "  password: \"$_MYSQL_REDMINE_PASSWORD\"" >> $_YAML_FILE
-  echo "  encoding: utf8" >> $_YAML_FILE
+    delete_file recipe.ti
+
+    echo "production:" > $_YAML_FILE
+    echo "  adapter: postgresql" >> $_YAML_FILE
+    echo "  url: postgres://redmine:redmine@$_DB_HOST:5432/redmine" >> $_YAML_FILE
+
+    chown "$_USER_LOGGED":"$_USER_GROUP" $_YAML_FILE
+  fi
+
+  make_symbolic_link "$_YAML_FILE" "$_CURRENT_FOLDER/config/database.yml"
+}
+
+make_folders () {
+  mkdir -p $_REDMINE_FOLDER/{downloads,versions}
+  mkdir -p $_SHARED_FOLDER/{bundle,config,log,plugins}
+
+  for temp_dir in $_TEMP_DIRS; do
+    mkdir -p $_SHARED_FOLDER/tmp/$temp_dir
+  done
+}
+
+make_links () {
+  _VERSION=$1
+
+  make_symbolic_link "$_VERSIONS_FOLDER/$_VERSION" "$_CURRENT_FOLDER"
+
+  make_symbolic_link "$_SHARED_FOLDER/log" "$_VERSIONS_FOLDER/$_VERSION/log"
+
+  for temp_dir in $_TEMP_DIRS; do
+    make_symbolic_link "$_SHARED_FOLDER/tmp/$temp_dir" "$_VERSIONS_FOLDER/$_VERSION/tmp/$temp_dir"
+  done
+}
+
+puma_restart () {
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+  _PUMA_STATE=$_SHARED_FOLDER/tmp/pids/puma.state
+
+  if [ -e "$_PUMA_STATE" ]; then
+    run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && bundle exec pumactl -S $_PUMA_STATE -F $_SHARED_FOLDER/puma.rb restart"
+  fi
 }
 
 install_redmine () {
@@ -79,98 +115,112 @@ install_redmine () {
   [ -z "$_RUBY_INSTALLED" ] && message "Alert" "Ruby language is not installed!"
 
   _RVM_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v rvm")
-  [ -z "$_RVM_INSTALLED" ] && message "Alert" "Ruby Version Manager (RVM) is not installed!"
+  [ -z "$_RVM_INSTALLED" ] && message "Alert" "RVM is not installed!"
 
-  _MYSQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v mysql")
-  [ -z "$_MYSQL_INSTALLED" ] && message "Alert" "MySQL Client or Server is not installed!"
+  _POSTGRESQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v psql")
+  [ -z "$_POSTGRESQL_INSTALLED" ] && message "Alert" "PostgreSQL Client or Server is not installed!"
 
   _REDMINE_VERSION=$(input_field "redmine.version" "Redmine version" "$_REDMINE_LAST_VERSION")
   [ $? -eq 1 ] && main
   [ -z "$_REDMINE_VERSION" ] && message "Alert" "The Redmine version can not be blank!"
+
+  _LANGUAGE=$(input_field "redmine.language" "Redmine language" "pt-BR")
+  [ $? -eq 1 ] && main
+  [ -z "$_LANGUAGE" ] && _LANGUAGE=pt-BR
 
   confirm "Confirm installation Redmine $_REDMINE_VERSION?" "Redmine installer"
   [ $? -eq 1 ] && main
 
   install_dependencies
 
-  print_colorful white bold "> Downloading Redmine..."
+  print_colorful yellow bold "> Downloading Redmine $_REDMINE_VERSION..."
 
-  wget "http://www.redmine.org/releases/redmine-$_REDMINE_VERSION.tar.gz"
+  _REDMINE_PACKAGE=redmine-$_REDMINE_VERSION.tar.gz
 
-  [ $? -ne 0 ] && message "Error" "Download of file redmine-$_REDMINE_VERSION.tar.gz unrealized!"
+  make_folders
 
-  tar -xzf "redmine-$_REDMINE_VERSION.tar.gz"
+  [ -e "$_VERSIONS_FOLDER/$_REDMINE_VERSION" ] && message "Alert" "Redmine $_REDMINE_VERSION is already installed."
 
-  rm "redmine-$_REDMINE_VERSION.tar.gz"
+  cd $_DOWNLOADS_FOLDER
 
-  backup_folder $_REDMINE_FOLDER
+  if [ ! -e "$_DOWNLOADS_FOLDER/$_REDMINE_PACKAGE" ]; then
+    wget "http://www.redmine.org/releases/$_REDMINE_PACKAGE"
 
-  mv "redmine-$_REDMINE_VERSION" $_REDMINE_FOLDER
+    [ $? -ne 0 ] && message "Error" "Download of file $_REDMINE_PACKAGE unrealized!"
+  fi
+
+  tar -xzf $_REDMINE_PACKAGE
+
+  mv "redmine-$_REDMINE_VERSION" "$_VERSIONS_FOLDER/$_REDMINE_VERSION"
+
+  make_links $_REDMINE_VERSION
 
   configure_database
 
-  chown "$_USER_LOGGED":"$_USER_GROUP" -R $_REDMINE_FOLDER
+  run_as_user "$_USER_LOGGED" "ruby -v | cut -d' ' -f2 | cut -d'p' -f1 > $_CURRENT_FOLDER/.ruby-version"
 
-  run_as_user "$_USER_LOGGED" "echo \"gem 'unicorn'\" > $_REDMINE_FOLDER/Gemfile.local"
-  run_as_user "$_USER_LOGGED" "echo \"gem 'holidays'\" >> $_REDMINE_FOLDER/Gemfile.local"
-  run_as_user "$_USER_LOGGED" "gem install bundler"
+  chown "$_USER_LOGGED":"$_USER_GROUP" -R $_REDMINE_FOLDER
 
   print_colorful white bold "> Installing gems..."
 
-  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && bundle install --without development test --path $_REDMINE_FOLDER/vendor/bundle"
+  run_as_user "$_USER_LOGGED" "echo \"gem 'puma'\" > $_CURRENT_FOLDER/Gemfile.local"
+  run_as_user "$_USER_LOGGED" "echo \"gem 'holidays'\" >> $_CURRENT_FOLDER/Gemfile.local"
+
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && bundle install --without development test --path $_SHARED_FOLDER/bundle"
 
   print_colorful white bold "> Running data migration..."
 
-  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake db:migrate"
 
-  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production REDMINE_LANG=pt-BR bundle exec rake redmine:load_default_data"
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production REDMINE_LANG=$_LANGUAGE bundle exec rake redmine:load_default_data"
 
-  run_as_user "$_USER_LOGGED" "cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake tmp:cache:clear"
 
-  print_colorful white bold "> Setting Redmine..."
-
-  _UNICORN_RB_FILE="unicorn.rb"
-  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn.rb" > $_UNICORN_RB_FILE
-
-  [ $? -ne 0 ] && message "Error" "Download of file unicorn.rb unrealized!"
-
-  change_file replace $_UNICORN_RB_FILE "__APP__" "redmine"
-  change_file replace $_UNICORN_RB_FILE "__PATH__" "$_DEFAULT_PATH"
-  chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_RB_FILE
-  mv $_UNICORN_RB_FILE $_REDMINE_FOLDER/config
-  rm $_SED_BACKUP_FOLDER/$_UNICORN_RB_FILE*
-
-  _UNICORN_INIT_FILE="unicorn_init.sh"
-  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/unicorn/unicorn_init.sh" > $_UNICORN_INIT_FILE
-
-  [ $? -ne 0 ] && message "Error" "Download of file unicorn_init.sh unrealized!"
-
-  change_file replace $_UNICORN_INIT_FILE "__APP__" "redmine"
-  change_file replace $_UNICORN_INIT_FILE "__PATH__" "$_DEFAULT_PATH"
-  change_file replace $_UNICORN_INIT_FILE "__USER__" "$_USER_LOGGED"
-  chown "$_USER_LOGGED":"$_USER_GROUP" $_UNICORN_INIT_FILE
-  chmod +x $_UNICORN_INIT_FILE
-  mv $_UNICORN_INIT_FILE $_REDMINE_FOLDER/config
-  rm $_SED_BACKUP_FOLDER/$_UNICORN_INIT_FILE*
-  ln -sf $_REDMINE_FOLDER/config/$_UNICORN_INIT_FILE /etc/init.d/unicorn_redmine
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
   print_colorful white bold "> Starting Redmine..."
 
-  admin_service unicorn_redmine register
+  _PUMA_FILE="puma.rb"
 
-  admin_service unicorn_redmine start
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/puma/puma.rb" > $_PUMA_FILE
 
-  [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed! For test: cd $_REDMINE_FOLDER && RAILS_ENV=production bundle exec rails server --binding=[SERVER-IP]"
+  [ $? -ne 0 ] && message "Error" "Download of file puma.rb unrealized!"
+
+  change_file replace $_PUMA_FILE "APP_NAME" "redmine"
+  change_file replace $_PUMA_FILE "APP_PATH" "$_DEFAULT_PATH"
+
+  chown "$_USER_LOGGED":"$_USER_GROUP" $_PUMA_FILE
+
+  mv $_PUMA_FILE $_SHARED_FOLDER
+
+  cd $_REDMINE_FOLDER
+
+  echo "puma.user.name = $_USER_LOGGED" > recipe.ti
+  echo "puma.service.name = redmine" >> recipe.ti
+  echo "puma.service.path = /opt" >> recipe.ti
+
+  curl -sS $_CENTRAL_URL_TOOLS/scripts/install/puma/linux.sh | bash
+
+  delete_file recipe.ti
+
+  [ $? -eq 0 ] && message "Notice" "Redmine $_REDMINE_VERSION successfully installed!"
 }
 
 configure_email () {
+  _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+  _CONFIG_FILE=$_SHARED_FOLDER/config/configuration.yml
+
   _DOMAIN=$(input_field "redmine.email.domain" "Enter the email domain" "company.com")
   [ $? -eq 1 ] && main
   [ -z "$_DOMAIN" ] && message "Alert" "The email domain can not be blank!"
 
-  _SMTP_ADDRESS=$(input_field "redmine.email.smtp" "Enter the email SMTP address" "smtp.$_DOMAIN")
+  _SMTP_ADDRESS=$(input_field "redmine.email.smtp.address" "Enter the email SMTP address" "smtp.$_DOMAIN")
   [ $? -eq 1 ] && main
   [ -z "$_SMTP_ADDRESS" ] && message "Alert" "The email SMTP address can not be blank!"
+
+  _SMTP_PORT=$(input_field "redmine.email.smtp.port" "Enter the email SMTP port" "25")
+  [ $? -eq 1 ] && main
+  [ -z "$_SMTP_PORT" ] && message "Alert" "The email SMTP port can not be blank!"
 
   _USER_NAME=$(input_field "redmine.email.user.name" "Enter the email user name")
   [ $? -eq 1 ] && main
@@ -183,88 +233,133 @@ configure_email () {
   confirm "Domain: $_DOMAIN\nSMTP: $_SMTP_ADDRESS\nUser: $_USER_NAME\nPassword: $_USER_PASSWORD\nConfirm?" "Configure sending email"
   [ $? -eq 1 ] && main
 
-  print_colorful white bold "> Configuring sending e-mail..."
+  if [ ! -e "$_CONFIG_FILE" ]; then
+    print_colorful white bold "> Configuring sending email..."
 
-  _CONFIG_FILE=$_REDMINE_FOLDER/config/configuration.yml
+    echo "production:" > $_CONFIG_FILE
+    echo "email_delivery:" >> $_CONFIG_FILE
+    echo "  delivery_method: :smtp" >> $_CONFIG_FILE
+    echo "  smtp_settings:" >> $_CONFIG_FILE
+    echo "    address: \"$_SMTP_ADDRESS\"" >> $_CONFIG_FILE
+    echo "    port: $_SMTP_PORT" >> $_CONFIG_FILE
+    echo "    authentication: :login" >> $_CONFIG_FILE
+    echo "    domain: '$_DOMAIN'" >> $_CONFIG_FILE
+    echo "    user_name: '$_USER_NAME'" >> $_CONFIG_FILE
+    echo "    password: '$_USER_PASSWORD'" >> $_CONFIG_FILE
 
-  echo "production:" > $_CONFIG_FILE
-  echo "email_delivery:" >> $_CONFIG_FILE
-  echo "  delivery_method: :smtp" >> $_CONFIG_FILE
-  echo "  smtp_settings:" >> $_CONFIG_FILE
-  echo "    address: \"$_SMTP_ADDRESS\"" >> $_CONFIG_FILE
-  echo "    port: 25" >> $_CONFIG_FILE
-  echo "    authentication: :login" >> $_CONFIG_FILE
-  echo "    domain: '$_DOMAIN'" >> $_CONFIG_FILE
-  echo "    user_name: '$_USER_NAME'" >> $_CONFIG_FILE
-  echo "    password: '$_USER_PASSWORD'" >> $_CONFIG_FILE
+    chown "$_USER_LOGGED":"$_USER_GROUP" $_CONFIG_FILE
+  fi
 
-  /etc/init.d/unicorn_redmine upgrade
+  make_symbolic_link "$_CONFIG_FILE" "$_CURRENT_FOLDER/config/configuration.yml"
+
+  puma_restart
 
   [ $? -eq 0 ] && message "Notice" "Sending email is successfully configured!"
 }
 
 configure_nginx () {
-  if command -v nginx > /dev/null; then
-    _DOMAIN=$(input_field "redmine.nginx.domain" "Enter the domain of Redmine" "redmine.company.gov")
-    [ $? -eq 1 ] && main
-    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+  which nginx > /dev/null
+  [ $? -ne 0 ] && message "Alert" "NGINX Web Server is not installed!"
 
+  _DOMAIN=$(input_field "redmine.nginx.domain" "Enter the domain of Redmine" "redmine.company.gov")
+  [ $? -eq 1 ] && main
+  [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+
+  if [ ! -e "/etc/nginx/conf.d/redmine.conf" ]; then
     curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/ruby_on_rails.conf" > redmine.conf
 
-    change_file replace redmine.conf APP "redmine"
+    [ $? -ne 0 ] && message "Error" "Download of file ruby_on_rails.conf unrealized!"
+
     change_file replace redmine.conf DOMAIN "$_DOMAIN"
-    change_file replace redmine.conf PATH "$_DEFAULT_PATH"
+    change_file replace redmine.conf APP_NAME "redmine"
+    change_file replace redmine.conf APP_PATH "$_DEFAULT_PATH"
 
     mv redmine.conf /etc/nginx/conf.d/
-    rm $_SED_BACKUP_FOLDER/redmine.conf*
 
     admin_service nginx restart
 
     [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
-  else
-    message "Alert" "NGINX is not installed! Redmine host not configured!"
   fi
 }
 
+agile_plugin () {
+  _AGILE_PLUGIN_FOLDER=$_CURRENT_FOLDER/plugins/redmine_agile
+
+  print_colorful white bold "> Configuring agile plugin..."
+
+  cd /tmp
+
+  wget "https://www.dropbox.com/s/wmkku66ma2io7n5/redmine_agile.zip"
+
+  [ $? -ne 0 ] && message "Error" "Download of file redmine_agile.zip unrealized!"
+
+  unzip -oq redmine_agile.zip
+  rm redmine_agile.zip
+  mv "redmine_agile" "$_SHARED_FOLDER/plugins/"
+  chown "$_USER_LOGGED":"$_USER_GROUP" -R "$_SHARED_FOLDER/plugins/redmine_agile"
+
+  make_symbolic_link "$_SHARED_FOLDER/plugins/redmine_agile" "$_AGILE_PLUGIN_FOLDER"
+
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle install --without development test"
+
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake redmine:plugins NAME=redmine_agile"
+
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake redmine:plugins:migrate"
+
+  puma_restart
+
+  [ $? -eq 0 ] && message "Notice" "Redmine Agile plugin is successfully configured!"
+}
+
 issue_reports_plugin () {
-  _ISSUE_REPORTS_FOLDER=$_REDMINE_FOLDER/plugins/redmine_issue_reports
+  _ISSUE_REPORTS_FOLDER=$_CURRENT_FOLDER/plugins/redmine_issue_reports
 
-  _MYSQL_CHECK=$(command -v mysql)
-  [ -z "$_MYSQL_CHECK" ] && message "Alert" "The MySQL Client is not installed!"
+  _POSTGRESQL_CHECK=$(command -v psql)
+  [ -z "$_POSTGRESQL_CHECK" ] && message "Alert" "The PostgreSQL Client is not installed!"
 
-  _MYSQL_HOST=$(input_field "[default]" "Enter the host of the MySQL Server" "localhost")
+  _POSTGRESQL_HOST=$(input_field "[default]" "Enter the host of the PostgreSQL Server" "localhost")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_HOST" ] && message "Alert" "The host of the MySQL Server can not be blank!"
+  [ -z "$_POSTGRESQL_HOST" ] && message "Alert" "The host of the PostgreSQL Server can not be blank!"
 
-  _MYSQL_PORT=$(input_field "[default]" "Enter the port of the MySQL Server" "3306")
+  _POSTGRESQL_PORT=$(input_field "[default]" "Enter the port of the PostgreSQL Server" "5432")
   [ $? -eq 1 ] && main
-  [ -z "$_MYSQL_PORT" ] && message "Alert" "The port of the MySQL Server can not be blank!"
-
-  _USER_PASSWORD=$(input_field "redmine.mysql.user.password" "Enter the redmine password in database")
-  [ $? -eq 1 ] && main
-  [ -z "$_USER_PASSWORD" ] && message "Alert" "The redmine password can not be blank!"
+  [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
 
   print_colorful white bold "> Configuring issue reports plugin..."
 
-  wget https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip
+  if [ ! -e "$_SHARED_FOLDER/plugins/redmine_issue_reports" ]; then
+    cd /tmp
 
-  [ $? -ne 0 ] && message "Error" "Download of file master.zip unrealized!"
+    wget "https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip"
 
-  unzip -oq master.zip
-  rm master.zip
-  mv redmine_issue_reports-master $_ISSUE_REPORTS_FOLDER
+    [ $? -ne 0 ] && message "Error" "Download of file master.zip unrealized!"
 
-  cp $_ISSUE_REPORTS_FOLDER/config/config.example.yml $_ISSUE_REPORTS_FOLDER/config/config.yml
-  cp $_ISSUE_REPORTS_FOLDER/update-redmine/custom_fields.js $_REDMINE_FOLDER/public/javascripts
+    unzip -oq master.zip
+    rm master.zip
+    mv "redmine_issue_reports-master" "$_SHARED_FOLDER/plugins/redmine_issue_reports"
+    chown "$_USER_LOGGED":"$_USER_GROUP" -R $_SHARED_FOLDER/plugins/redmine_issue_reports
 
-  _ISSUE_FORM_FILE=$_REDMINE_FOLDER/app/views/issues/_form.html.erb
+    make_symbolic_link "$_SHARED_FOLDER/plugins/redmine_issue_reports" "$_ISSUE_REPORTS_FOLDER"
+
+    cp "$_ISSUE_REPORTS_FOLDER/config/config.example.yml" "$_ISSUE_REPORTS_FOLDER/config/config.yml"
+
+    import_database "postgresql" "$_POSTGRESQL_HOST" "$_POSTGRESQL_PORT" "redmine" "redmine" "redmine" "$_ISSUE_REPORTS_FOLDER/update-redmine/postgresql_config.sql"
+  else
+    make_symbolic_link "$_SHARED_FOLDER/plugins/redmine_issue_reports" "$_ISSUE_REPORTS_FOLDER"
+
+    run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake redmine:plugins:migrate"
+  fi
+
+  puma_restart
+
+  cp "$_ISSUE_REPORTS_FOLDER/update-redmine/custom_fields.js" "$_CURRENT_FOLDER/public/javascripts"
+
+  _ISSUE_FORM_FILE=$_CURRENT_FOLDER/app/views/issues/_form.html.erb
   _FIND_TAG=$(grep custom_fields "$_ISSUE_FORM_FILE")
 
   [ -z "$_FIND_TAG" ] && echo "<%= javascript_include_tag 'custom_fields' %>" >> $_ISSUE_FORM_FILE
 
-  import_database "mysql" "$_MYSQL_HOST" "$_MYSQL_PORT" "redmine" "redmine" "$_USER_PASSWORD" "$_ISSUE_REPORTS_FOLDER/update-redmine/redmine_config.sql"
-
-  [ $? -eq 0 ] && message "Notice" "Issue reports plugin is successfully configured!"
+  [ $? -eq 0 ] && message "Notice" "Redmine Issue reports plugin is successfully configured!"
 }
 
 main () {
@@ -286,7 +381,8 @@ main () {
     [ -n "$(search_app redmine)" ] && install_redmine
     [ -n "$(search_app redmine.nginx)" ] && configure_nginx
     [ -n "$(search_app redmine.email)" ] && configure_email
-    [ "$(search_value redmine.issue.reports.plugin)" = "yes" ] && issue_reports_plugin
+    [ "$(search_value redmine.plugin.agile)" = "yes" ] && agile_plugin
+    [ "$(search_value redmine.plugin.issue.reports)" = "yes" ] && issue_reports_plugin
   fi
 }
 

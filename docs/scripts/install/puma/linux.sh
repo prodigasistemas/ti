@@ -27,13 +27,17 @@ install_puma () {
 
   _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/puma"
 
-  which systemd
+  which systemd > /dev/null
 
   if [ $? -eq 0 ]; then
     _SERVICE="systemd"
   else
     _SERVICE="upstart"
   fi
+
+  _PUMA_SERVICE_PATH=$(input_field "puma.service.path" "Enter the puma service path")
+  [ $? -eq 1 ] && main
+  [ -z "$_PUMA_SERVICE_PATH" ] && message "Alert" "The service path can not be blank!"
 
   _PUMA_SERVICE_NAME=$(input_field "puma.service.name" "Enter the puma service name")
   [ $? -eq 1 ] && main
@@ -69,6 +73,8 @@ install_puma () {
       curl -sS "$_TEMPLATES/$_SERVICE/puma.service" > /tmp/puma.service
 
       mv /tmp/puma.service /tmp/$_PUMA_SERVICE
+
+      sed -i "s|APP_PATH|$_PUMA_SERVICE_PATH|g" /tmp/$_PUMA_SERVICE
 
       sed -i "s/APP_NAME/$_PUMA_SERVICE_NAME/g" /tmp/$_PUMA_SERVICE
 

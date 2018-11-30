@@ -49,7 +49,7 @@ install_postgresql_server () {
       $_PACKAGE_COMMAND update
     fi
 
-    _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sort | sed 's/\ /; /g' | sed ':a;/0$/!{N;s/\n//;ba}')
+    _VERSIONS_LIST=$(apt-cache search postgresql-server-dev | cut -d- -f4 | grep -v all | sed 's/[[:space:]]*$//' | sort | uniq | sed 's/$/; /g' | sed ':a;/0$/!{N;s/\n//;ba}')
 
   elif [ "$_OS_TYPE" = "rpm" ]; then
     _VERSIONS_LIST="9.3; 9.4; 9.5; "
@@ -65,8 +65,18 @@ install_postgresql_server () {
   _VERSION_VALID=$(echo "$_VERSIONS_LIST" | egrep "$_POSTGRESQL_VERSION;")
   [ -z "$_VERSION_VALID" ] && message "Alert" "PostgreSQL version invalid!"
 
+  which psql > /dev/null
+
+  if [ $? -eq 0 ]; then
+    psql -V | grep $_POSTGRESQL_VERSION > /dev/null
+
+    [ $? -eq 0 ] && message "Alert" "PostgreSQL $_POSTGRESQL_VERSION is already installed."
+  fi
+
   confirm "Confirm the installation of PostgreSQL $_POSTGRESQL_VERSION Server?"
   [ $? -eq 1 ] && main
+
+  print_colorful yellow bold "> Installing PostgreSQL..."
 
   if [ "$_OS_TYPE" = "deb" ]; then
     $_PACKAGE_COMMAND install -y "postgresql-$_POSTGRESQL_VERSION" "postgresql-contrib-$_POSTGRESQL_VERSION" "postgresql-server-dev-$_POSTGRESQL_VERSION"
@@ -112,13 +122,17 @@ add_user () {
 }
 
 create_database () {
-  _DATABASE_NAME=$(input_field "[default]" "Enter the database name")
+  _DATABASE_NAME=$(input_field "postgresql.database.name" "Enter the database name")
   [ $? -eq 1 ] && main
   [ -z "$_DATABASE_NAME" ] && message "Alert" "The database name can not be blank!"
 
-  _OWNER_NAME=$(input_field "[default]" "Enter the owner name")
+  _OWNER_NAME=$(input_field "postgresql.database.user.name" "Enter the owner name")
   [ $? -eq 1 ] && main
   [ -z "$_OWNER_NAME" ] && message "Alert" "The owner name can not be blank!"
+
+  _OWNER_PASSWORD=$(input_field "postgresql.database.user.password" "Enter the owner password")
+  [ $? -eq 1 ] && main
+  [ -z "$_OWNER_PASSWORD" ] && message "Alert" "The owner password can not be blank!"
 
   _ENCODING=$(input_field "[default]" "Enter the enconding" "UTF8")
   [ $? -eq 1 ] && main
@@ -128,14 +142,14 @@ create_database () {
   [ $? -eq 1 ] && main
   [ -z "$_TABLESPACE" ] && message "Alert" "The tablespace can not be blank!"
 
-  confirm "Database: $_DATABASE_NAME\nOwner: $_OWNER_NAME\nEncoding: $_ENCODING\nTablespace: $_TABLESPACE\n\nConfirm create?"
+  confirm "Database: $_DATABASE_NAME\nOwner: $_OWNER_NAME\nPassword: $_OWNER_PASSWORD\nEncoding: $_ENCODING\nTablespace: $_TABLESPACE\n\nConfirm create?"
   [ $? -eq 1 ] && main
 
-  run_as_postgres "psql -c \"CREATE DATABASE $_DATABASE_NAME WITH OWNER=$_OWNER_NAME ENCODING='$_ENCODING' TABLESPACE=$_TABLESPACE;\""
-  run_as_postgres "psql -c \"REVOKE CONNECT ON DATABASE $_DATABASE_NAME FROM PUBLIC;\""
-  run_as_postgres "psql -c \"GRANT CONNECT ON DATABASE $_DATABASE_NAME TO $_OWNER_NAME;\""
+  run_as_postgres "psql -c \"CREATE ROLE $_OWNER_NAME LOGIN ENCRYPTED PASSWORD '$_OWNER_PASSWORD' NOINHERIT VALID UNTIL 'infinity';\""
 
-  [ $? -eq 0 ] && message "Notice" "Create database $_DATABASE_NAME successfully!"
+  run_as_postgres "psql -c \"CREATE DATABASE $_DATABASE_NAME WITH OWNER=$_OWNER_NAME ENCODING='$_ENCODING' TABLESPACE=$_TABLESPACE;\""
+
+  [ $? -eq 0 ] && message "Notice" "Create database $_DATABASE_NAME with role $_OWNER_NAME successfully!"
 }
 
 change_password () {
@@ -198,6 +212,7 @@ main () {
     [ -n "$(search_app postgresql.server.version)" ] && install_postgresql_server
     [ -n "$(search_app postgresql.client.version)" ] && install_postgresql_client
     [ "$(search_value postgresql.server.remote.access)" = "yes" ] && remote_access
+    [ -n "$(search_app postgresql.database)" ] && create_database
   fi
 }
 

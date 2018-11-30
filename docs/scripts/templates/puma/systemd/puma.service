@@ -7,9 +7,9 @@ Type=simple
 
 User=USER_NAME
 
-WorkingDirectory=/var/www/APP_NAME/current
+WorkingDirectory=APP_PATH/APP_NAME/current
 
-ExecStart=/bin/bash -lc 'bundle exec puma -C /var/www/APP_NAME/shared/puma.rb'
+ExecStart=/bin/bash -lc 'bundle exec puma -C APP_PATH/APP_NAME/shared/puma.rb'
 
 Restart=always
 

@@ -81,7 +81,7 @@ search_value () {
 
   [ -z "$_SEARCH_FILE" ] && _SEARCH_FILE=$_RECIPE_FILE
 
-  grep "$_SEARCH_VALUE" "$_SEARCH_FILE" | cut -d= -f2
+  grep "$_SEARCH_VALUE" "$_SEARCH_FILE" | cut -d= -f2 | xargs
 }
 
 search_versions () {
@@ -241,6 +241,7 @@ postgres_add_user () {
   [ $? -eq 0 ] && message "Notice" "User $_PG_USER_NAME added successfully!"
 }
 
+
 mysql_as_root () {
   _MYSQL_ROOT_PASSWORD=$1
   _MYSQL_COMMAND=$2
@@ -264,9 +265,14 @@ import_database () {
   _DATABASE_PASSWORD=$6
   _DATABASE_FILE=$7
 
-  if [ "$_DATABASE_TYPE" = "mysql" ]; then
-    MYSQL_PWD=$_DATABASE_PASSWORD mysql -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" "$_DATABASE_NAME" < "$_DATABASE_FILE"
-  fi
+  case $_DATABASE_TYPE in
+    mysql)
+      MYSQL_PWD=$_DATABASE_PASSWORD mysql -h "$_DATABASE_HOST" -P "$_DATABASE_PORT" -u "$_DATABASE_USER" "$_DATABASE_NAME" < "$_DATABASE_FILE"
+      ;;
+    postgresql)
+      PGPASSWORD=$_DATABASE_PASSWORD psql -h "$_DATABASE_HOST" -p "$_DATABASE_PORT" -U "$_DATABASE_USER" "$_DATABASE_NAME" < "$_DATABASE_FILE"
+      ;;
+  esac
 }
 
 backup_database () {
@@ -283,8 +289,22 @@ backup_database () {
   fi
 }
 
+move_file () {
+  _ORIGIN=$1
+  _DESTIN=$2
+
+  [ -e "$_ORIGIN" ] && mv "$_ORIGIN" "$_DESTIN"
+}
+
 delete_file () {
   [ -e "$1" ] && rm -rf "$1"
+}
+
+make_symbolic_link () {
+  _ORIGIN=$1
+  _DESTIN=$2
+
+  rm -rf "$_DESTIN" && ln -s "$_ORIGIN" "$_DESTIN"
 }
 
 backup_folder () {

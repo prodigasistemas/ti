@@ -1,20 +1,23 @@
 # Install Ruby
-ruby.version = 2.3.1
+ruby.version = 2.4.5
 
-# Install MySQL Database Server
-mysql.server
-mysql.server.root.password = root
+# Install PostgreSQL Database Server
+postgresql.server.version = 9.6
+postgresql.server.host = localhost
+postgresql.server.port = 5432
+postgresql.server.remote.access = no
 
 # Install NGINX web server
 nginx
 
 # Install Redmine
-redmine.version = 3.3.0
-redmine.mysql.root.password = root
-redmine.mysql.user.password = redmine
+redmine.version = 3.4.6
+redmine.language = pt-BR
 redmine.email.domain = localhost
-redmine.email.smtp = smtp.localhost
+redmine.email.smtp.address = smtp.localhost
+redmine.email.smtp.port = 25
 redmine.email.user.name = username
 redmine.email.user.password = password
 redmine.nginx.domain = redmine.local
-redmine.issue.reports.plugin = yes
+redmine.plugin.agile = yes
+redmine.plugin.issue.reports = yes

@@ -28,6 +28,11 @@ install_nginx () {
   confirm "Confirm the installation of NGINX in $_OS_DESCRIPTION?"
   [ $? -eq 1 ] && main
 
+  which nginx > /dev/null
+  [ $? -eq 0 ] && message "Alert" "NGINX Web Server is already installed."
+
+  print_colorful yellow bold "> Installing NGINX..."
+
   if [ "$_OS_TYPE" = "deb" ]; then
     wget -q -O - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
 

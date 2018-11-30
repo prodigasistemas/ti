@@ -4,7 +4,7 @@
 # http://www.cyberciti.biz/faq/linux-logout-user-howto/
 
 export _APP_NAME="Ruby"
-_DEFAULT_VERSION="2.5.1"
+_DEFAULT_VERSION="2.5.3"
 _GROUP="rvm"
 _OPTIONS_LIST="install_ruby 'Install Ruby' \
                add_to_group 'Add a user to the group $_GROUP'"
@@ -43,28 +43,40 @@ install_ruby () {
     _OS_VERSION=$(echo "$_OS_NUMBER" | cut -d. -f1)
   fi
 
-  run_as_user "$_USER_LOGGED" "$_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3"
+  _RVM_INSTALLED=$(run_as_user "$_USER_LOGGED" "which rvm")
 
-  curl -sSL https://get.rvm.io | bash -s stable
+  if [ -z "$_RVM_INSTALLED" ]; then
+    print_colorful yellow bold "> Installing rvm..."
+
+    run_as_user "$_USER_LOGGED" "$_GPG_COMMAND --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3"
+
+    curl -sSL https://get.rvm.io | bash -s stable
+  fi
 
   source /etc/profile.d/rvm.sh
 
   add_user_to_group $_GROUP "[no_alert]"
 
-  case $_OS_TYPE in
-    deb)
-      rvmsudo rvm install "$_VERSION"
-      rvmsudo rvm alias create default "$_VERSION"
-      ;;
-    rpm)
-      run_as_user "$_USER_LOGGED" "rvmsudo rvm install $_VERSION"
-      run_as_user "$_USER_LOGGED" "rvmsudo rvm alias create default $_VERSION"
-      ;;
-  esac
+  _RUBY_INSTALLED=$(run_as_user "$_USER_LOGGED" "rvm list | grep $_VERSION")
 
-  run_as_root "echo \"gem: --no-rdoc --no-ri\" > /etc/gemrc"
+  if [ -z "$_RUBY_INSTALLED" ]; then
+    print_colorful yellow bold "> Installing Ruby..."
 
-  run_as_user "$_USER_LOGGED" "gem install bundler"
+    case $_OS_TYPE in
+      deb)
+        rvmsudo rvm install "$_VERSION"
+        rvmsudo rvm alias create default "$_VERSION"
+        ;;
+      rpm)
+        run_as_user "$_USER_LOGGED" "rvmsudo rvm install $_VERSION"
+        run_as_user "$_USER_LOGGED" "rvmsudo rvm alias create default $_VERSION"
+        ;;
+    esac
+
+    run_as_root "echo \"gem: --no-rdoc --no-ri\" > /etc/gemrc"
+
+    run_as_user "$_USER_LOGGED" "gem install bundler"
+  fi
 
   [ $? -eq 0 ] && message "Notice" "Success! Will be you logout or put command: 'source /etc/profile.d/rvm.sh'. After, enter the command: ruby -v"
 }
