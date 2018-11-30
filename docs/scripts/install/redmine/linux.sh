@@ -79,7 +79,7 @@ configure_database () {
 
 make_folders () {
   mkdir -p $_REDMINE_FOLDER/{downloads,versions}
-  mkdir -p $_SHARED_FOLDER/{bundle,config,log,plugins}
+  mkdir -p $_SHARED_FOLDER/{bundle,config,files,log,plugins}
 
   for temp_dir in $_TEMP_DIRS; do
     mkdir -p $_SHARED_FOLDER/tmp/$temp_dir
@@ -90,6 +90,8 @@ make_links () {
   _VERSION=$1
 
   make_symbolic_link "$_VERSIONS_FOLDER/$_VERSION" "$_CURRENT_FOLDER"
+
+  make_symbolic_link "$_SHARED_FOLDER/files" "$_VERSIONS_FOLDER/$_VERSION/files"
 
   make_symbolic_link "$_SHARED_FOLDER/log" "$_VERSIONS_FOLDER/$_VERSION/log"
 
