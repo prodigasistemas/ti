@@ -277,6 +277,7 @@ configure_nginx () {
     change_file replace redmine.conf APP_PATH "$_DEFAULT_PATH"
 
     mv redmine.conf /etc/nginx/conf.d/
+    rm $_SED_BACKUP_FOLDER/redmine.conf*
 
     admin_service nginx restart
 
