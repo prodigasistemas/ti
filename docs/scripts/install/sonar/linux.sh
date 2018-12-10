@@ -103,7 +103,17 @@ install_sonar () {
 
   chown sonar: -R "$_SONAR_FOLDER"
 
-  make_symbolic_link "$_CURRENT_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" "/etc/init.d/sonar"
+  which systemd > /dev/null
+
+  if [ $? -eq 0 ]; then
+    _SONAR_SERVICE=sonar.service
+
+    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/sonar/systemd/$_SONAR_SERVICE" > /tmp/$_SONAR_SERVICE
+
+    mv /tmp/$_SONAR_SERVICE /etc/systemd/system/
+  else
+    make_symbolic_link "$_CURRENT_FOLDER/bin/linux-x86-$_OS_ARCH/sonar.sh" "/etc/init.d/sonar"
+  fi
 
   admin_service sonar register
 
