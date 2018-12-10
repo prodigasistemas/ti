@@ -5,7 +5,7 @@
 # http://stackoverflow.com/questions/4598001/how-do-you-find-the-original-user-through-multiple-sudo-and-su-commands
 
 export _APP_NAME="Redmine"
-_REDMINE_LAST_VERSION="3.4.6"
+_REDMINE_LAST_VERSION="3.4.7"
 _DEFAULT_PATH="/opt"
 
 _REDMINE_FOLDER="$_DEFAULT_PATH/redmine"
@@ -50,11 +50,11 @@ install_dependencies () {
 configure_database () {
   _YAML_FILE="$_SHARED_FOLDER/config/database.yml"
 
-  _DB_HOST=$(input_field "[default]" "Enter the host of the Database Server" "localhost")
-  [ $? -eq 1 ] && main
-  [ -z "$_DB_HOST" ] && message "Alert" "The host of the Database Server can not be blank!"
-
   if [ ! -e "$_YAML_FILE" ]; then
+    _DB_HOST=$(input_field "[default]" "Enter the host of the Database Server" "localhost")
+    [ $? -eq 1 ] && main
+    [ -z "$_DB_HOST" ] && message "Alert" "The host of the Database Server can not be blank!"
+
     print_colorful white bold "> Configuring database..."
 
     cd $_REDMINE_FOLDER
@@ -112,6 +112,7 @@ puma_restart () {
 install_redmine () {
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
   _USER_GROUP=$(echo "$(groups "$_USER_LOGGED" | cut -d: -f2)" | cut -d' ' -f1)
+  _RUBY_LAST_VERSION=$(run_as_user "$_USER_LOGGED" "ruby -v | cut -d' ' -f2 | cut -d'p' -f1")
 
   _RUBY_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v ruby")
   [ -z "$_RUBY_INSTALLED" ] && message "Alert" "Ruby language is not installed!"
@@ -121,6 +122,10 @@ install_redmine () {
 
   _POSTGRESQL_INSTALLED=$(run_as_user "$_USER_LOGGED" "command -v psql")
   [ -z "$_POSTGRESQL_INSTALLED" ] && message "Alert" "PostgreSQL Client or Server is not installed!"
+
+  _RUBY_VERSION=$(input_field "ruby.version" "Ruby version" "$_RUBY_LAST_VERSION")
+  [ $? -eq 1 ] && main
+  [ -z "$_RUBY_VERSION" ] && message "Alert" "The Ruby version can not be blank!"
 
   _REDMINE_VERSION=$(input_field "redmine.version" "Redmine version" "$_REDMINE_LAST_VERSION")
   [ $? -eq 1 ] && main
@@ -159,13 +164,12 @@ install_redmine () {
 
   configure_database
 
-  run_as_user "$_USER_LOGGED" "ruby -v | cut -d' ' -f2 | cut -d'p' -f1 > $_CURRENT_FOLDER/.ruby-version"
-
   chown "$_USER_LOGGED":"$_USER_GROUP" -R $_REDMINE_FOLDER
 
   print_colorful white bold "> Installing gems..."
 
-  run_as_user "$_USER_LOGGED" "echo \"gem 'puma'\" > $_CURRENT_FOLDER/Gemfile.local"
+  run_as_user "$_USER_LOGGED" "echo \"ruby '$_RUBY_VERSION'\" > $_CURRENT_FOLDER/Gemfile.local"
+  run_as_user "$_USER_LOGGED" "echo \"gem 'puma'\" >> $_CURRENT_FOLDER/Gemfile.local"
   run_as_user "$_USER_LOGGED" "echo \"gem 'holidays'\" >> $_CURRENT_FOLDER/Gemfile.local"
 
   run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && bundle install --without development test --path $_SHARED_FOLDER/bundle"
@@ -197,7 +201,8 @@ install_redmine () {
 
   cd $_REDMINE_FOLDER
 
-  echo "puma.user.name = $_USER_LOGGED" > recipe.ti
+  echo "puma.ruby.version = $_RUBY_VERSION" > recipe.ti
+  echo "puma.user.name = $_USER_LOGGED" >> recipe.ti
   echo "puma.service.name = redmine" >> recipe.ti
   echo "puma.service.path = /opt" >> recipe.ti
 
@@ -286,6 +291,9 @@ configure_nginx () {
 }
 
 agile_plugin () {
+  confirm "Confirm installation Redmine Agile Plugin?"
+  [ $? -eq 1 ] && main
+
   _AGILE_PLUGIN_FOLDER=$_CURRENT_FOLDER/plugins/redmine_agile
 
   print_colorful white bold "> Configuring agile plugin..."
@@ -298,6 +306,7 @@ agile_plugin () {
 
   unzip -oq redmine_agile.zip
   rm redmine_agile.zip
+  rm -rf $_SHARED_FOLDER/plugins/redmine_agile
   mv "redmine_agile" "$_SHARED_FOLDER/plugins/"
   chown "$_USER_LOGGED":"$_USER_GROUP" -R "$_SHARED_FOLDER/plugins/redmine_agile"
 
@@ -315,22 +324,25 @@ agile_plugin () {
 }
 
 issue_reports_plugin () {
+  confirm "Confirm installation Redmine Issue Reports Plugin?"
+  [ $? -eq 1 ] && main
+
   _ISSUE_REPORTS_FOLDER=$_CURRENT_FOLDER/plugins/redmine_issue_reports
 
-  _POSTGRESQL_CHECK=$(command -v psql)
-  [ -z "$_POSTGRESQL_CHECK" ] && message "Alert" "The PostgreSQL Client is not installed!"
-
-  _POSTGRESQL_HOST=$(input_field "[default]" "Enter the host of the PostgreSQL Server" "localhost")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_HOST" ] && message "Alert" "The host of the PostgreSQL Server can not be blank!"
-
-  _POSTGRESQL_PORT=$(input_field "[default]" "Enter the port of the PostgreSQL Server" "5432")
-  [ $? -eq 1 ] && main
-  [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
-
-  print_colorful white bold "> Configuring issue reports plugin..."
-
   if [ ! -e "$_SHARED_FOLDER/plugins/redmine_issue_reports" ]; then
+    _POSTGRESQL_CHECK=$(command -v psql)
+    [ -z "$_POSTGRESQL_CHECK" ] && message "Alert" "The PostgreSQL Client is not installed!"
+
+    _POSTGRESQL_HOST=$(input_field "[default]" "Enter the host of the PostgreSQL Server" "localhost")
+    [ $? -eq 1 ] && main
+    [ -z "$_POSTGRESQL_HOST" ] && message "Alert" "The host of the PostgreSQL Server can not be blank!"
+
+    _POSTGRESQL_PORT=$(input_field "[default]" "Enter the port of the PostgreSQL Server" "5432")
+    [ $? -eq 1 ] && main
+    [ -z "$_POSTGRESQL_PORT" ] && message "Alert" "The port of the PostgreSQL Server can not be blank!"
+
+    print_colorful white bold "> Configuring issue reports plugin..."
+
     cd /tmp
 
     wget "https://github.com/prodigasistemas/redmine_issue_reports/archive/master.zip"

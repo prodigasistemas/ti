@@ -241,7 +241,6 @@ postgres_add_user () {
   [ $? -eq 0 ] && message "Notice" "User $_PG_USER_NAME added successfully!"
 }
 
-
 mysql_as_root () {
   _MYSQL_ROOT_PASSWORD=$1
   _MYSQL_COMMAND=$2
@@ -320,7 +319,7 @@ register_service () {
   _REGISTER_SERVICE_NAME=$1
 
   if [ "$_OS_TYPE" = "deb" ]; then
-    which systemd
+    which systemd > /dev/null
 
     if [ $? -eq 0 ]; then
       systemctl enable "$_REGISTER_SERVICE_NAME"

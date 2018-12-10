@@ -27,7 +27,7 @@ install_sidekiq () {
 
   _TEMPLATES="$_CENTRAL_URL_TOOLS/scripts/templates/sidekiq"
 
-  which systemd
+  which systemd > /dev/null
 
   if [ $? -eq 0 ]; then
     _SERVICE="systemd"

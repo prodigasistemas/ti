@@ -35,6 +35,9 @@ install_puma () {
     _SERVICE="upstart"
   fi
 
+  _PUMA_RUBY_VERSION=$(input_field "puma.ruby.version" "Enter the puma ruby version")
+  [ $? -eq 1 ] && main
+
   _PUMA_SERVICE_PATH=$(input_field "puma.service.path" "Enter the puma service path")
   [ $? -eq 1 ] && main
   [ -z "$_PUMA_SERVICE_PATH" ] && message "Alert" "The service path can not be blank!"
@@ -70,9 +73,14 @@ install_puma () {
     systemd)
       _PUMA_SERVICE=puma-$_PUMA_SERVICE_NAME.service
 
-      curl -sS "$_TEMPLATES/$_SERVICE/puma.service" > /tmp/puma.service
+      _PUMA_TEMPLATE=puma
+      [ -n "$_PUMA_RUBY_VERSION" ] && _PUMA_TEMPLATE=puma-with-ruby-version
+
+      curl -sS "$_TEMPLATES/$_SERVICE/$_PUMA_TEMPLATE.service" > /tmp/puma.service
 
       mv /tmp/puma.service /tmp/$_PUMA_SERVICE
+
+      sed -i "s/RUBY_VERSION/$_PUMA_RUBY_VERSION/g" /tmp/$_PUMA_SERVICE
 
       sed -i "s|APP_PATH|$_PUMA_SERVICE_PATH|g" /tmp/$_PUMA_SERVICE
 
@@ -87,6 +95,8 @@ install_puma () {
       admin_service "puma-$_PUMA_SERVICE_NAME" start
       ;;
   esac
+
+  admin_service "puma-$_PUMA_SERVICE_NAME" restart
 
   [ $? -eq 0 ] && message "Notice" "$_PUMA_SERVICE_NAME Puma Service successfully installed!"
 }
