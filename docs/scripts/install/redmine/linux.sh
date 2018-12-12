@@ -184,6 +184,13 @@ install_redmine () {
 
   run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake generate_secret_token"
 
+  for plugin in $(ls $_SHARED_FOLDER/plugins)
+  do
+    make_symbolic_link "$_SHARED_FOLDER/plugins/$plugin" "$_CURRENT_FOLDER/plugins/$plugin" ;
+  done
+
+  run_as_user "$_USER_LOGGED" "cd $_CURRENT_FOLDER && RAILS_ENV=production bundle exec rake redmine:plugins:migrate"
+
   print_colorful white bold "> Starting Redmine..."
 
   _PUMA_FILE="puma.rb"
