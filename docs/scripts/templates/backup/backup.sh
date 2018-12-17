@@ -73,12 +73,12 @@ backup_folder () {
           echo "$_pattern" >> "$_EXCLUDE_FILE"
         done
 
-        _EXCLUDE_FROM="--exclude-from=$_EXCLUDE_FILE"
+        _EXCLUDE_FROM="--exclude-from $_EXCLUDE_FILE"
       fi
 
       write_log "Compressing $_BACKUP_FILE from $_HOST_ADDRESS"
 
-      perform_backup "tar" "$_DEST" "tar czf /tmp/$_BACKUP_FILE -P $_path --exclude-vcs $_EXCLUDE_FROM" "$_EXCLUDE_FILE"
+      perform_backup "tar" "$_DEST" "tar --exclude-vcs $_EXCLUDE_FROM -czf /tmp/$_BACKUP_FILE -P $_path" "$_EXCLUDE_FILE"
     done
   fi
 }
@@ -98,6 +98,8 @@ perform_backup () {
 
       [ $? -eq 0 ] && [ -e "/tmp/$_BACKUP_FILE" ] && mv "/tmp/$_BACKUP_FILE" "$_destination"
     fi
+
+    [ -e "$_exclude_file" ] && rm -f "$_exclude_file"
   else
     _check_command=$(ssh -C -p "$_HOST_PORT" "$_access" "command -v $_command_name")
 
