@@ -96,7 +96,10 @@ perform_backup () {
     else
       eval "$_command_line" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
 
-      [ $? -eq 0 ] && [ -e "/tmp/$_BACKUP_FILE" ] && mv "/tmp/$_BACKUP_FILE" "$_destination"
+      if [ $? -eq 0 ] && [ -e "/tmp/$_BACKUP_FILE" ]; then
+        sudo chown $USER: "/tmp/$_BACKUP_FILE"
+        mv "/tmp/$_BACKUP_FILE" "$_destination"
+      fi
     fi
 
     [ -e "$_exclude_file" ] && rm -f "$_exclude_file"
@@ -116,7 +119,7 @@ perform_backup () {
       if [ $? -eq 0 ]; then
         scp -C -P "$_HOST_PORT" "$_access:/tmp/$_BACKUP_FILE" "$_destination" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
 
-        ssh -C -p "$_HOST_PORT" "$_access" "rm /tmp/$_BACKUP_FILE $_exclude_file" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
+        ssh -C -p "$_HOST_PORT" "$_access" "sudo rm /tmp/$_BACKUP_FILE $_exclude_file" >> "$_LOG_FILE" 2>> "$_LOG_FILE"
       fi
     fi
   fi
