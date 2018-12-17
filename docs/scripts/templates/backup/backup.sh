@@ -78,7 +78,7 @@ backup_folder () {
 
       write_log "Compressing $_BACKUP_FILE from $_HOST_ADDRESS"
 
-      perform_backup "tar" "$_DEST" "tar --exclude-vcs $_EXCLUDE_FROM -czf /tmp/$_BACKUP_FILE -P $_path" "$_EXCLUDE_FILE"
+      perform_backup "tar" "$_DEST" "sudo tar --exclude-vcs $_EXCLUDE_FROM -czf /tmp/$_BACKUP_FILE -P $_path" "$_EXCLUDE_FILE"
     done
   fi
 }
