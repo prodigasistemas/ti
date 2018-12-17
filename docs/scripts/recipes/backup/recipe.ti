@@ -1,0 +1,5 @@
+# Install backup
+backup.aws.access.key.id = HASH-KEY-ID
+backup.aws.secret.access.key = HASH-ACCESS-KEY
+backup.aws.region = region-name
+backup.aws.bucket = bucket-name

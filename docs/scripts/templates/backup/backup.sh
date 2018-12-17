@@ -4,7 +4,7 @@
 # set -v
 # set -x
 
-_FOLDER="/var/tools-backup"
+_FOLDER="/opt/tools/backup"
 
 backup_database () {
   _DB_LIST=$(sed '/^ *$/d; /^ *#/d; /^database/!d' "$_HOST_FILE")
@@ -78,7 +78,7 @@ backup_folder () {
 
       write_log "Compressing $_BACKUP_FILE from $_HOST_ADDRESS"
 
-      perform_backup "tar" "$_DEST" "tar czf /tmp/$_BACKUP_FILE $_path --exclude-vcs $_EXCLUDE_FROM" "$_EXCLUDE_FILE"
+      perform_backup "tar" "$_DEST" "tar czf /tmp/$_BACKUP_FILE -P $_path --exclude-vcs $_EXCLUDE_FROM" "$_EXCLUDE_FILE"
     done
   fi
 }
@@ -164,30 +164,39 @@ to_sync () {
     else
       write_head_sync "$_FOLDER with s3://$_AWS_BUCKET/"
 
+      aws s3 ls "s3://$_AWS_BUCKET" > /dev/null
+
+      if [ $? -ne 0 ]; then
+        aws s3 mb "s3://$_AWS_BUCKET"
+      fi
+
       aws s3 sync $_FOLDER "s3://$_AWS_BUCKET/" --delete --exclude="$_FOLDER/logs/*.log" >> "$_LOG_SYNC" 2>> "$_LOG_SYNC"
     fi
   fi
 }
 
 write_head_sync () {
-  write_sync_log "------------------------------------------------------------------------------------------"
   write_sync_log "Synchronizing $1"
 }
 
 compact_logs () {
-  tar czf "$_FOLDER/logs/logs.tar.gz" "$_FOLDER/logs/" --exclude="*.gz"
+  tar czf "$_FOLDER/logs/logs.tar.gz" -P "$_FOLDER/logs" --exclude="$_FOLDER/logs/*.gz"
 }
 
 write_log () {
   _MESSAGE=$1
+  _OUTPUT="[$(date +"%Y-%m-%d %H:%M:%S")] $_MESSAGE"
 
-  echo "[$(date +"%Y-%m-%d %H:%M:%S")] $_MESSAGE" >> "$_LOG_FILE"
+  echo $_OUTPUT
+  echo $_OUTPUT >> "$_LOG_FILE"
 }
 
 write_sync_log () {
   _MESSAGE=$1
+  _OUTPUT="[$(date +"%Y/%m/%d %H:%M:%S")] $_MESSAGE"
 
-  echo "$(date +"%Y/%m/%d %H:%M:%S") $_MESSAGE" >> "$_LOG_SYNC"
+  echo $_OUTPUT
+  echo $_OUTPUT >> "$_LOG_SYNC"
 }
 
 make_dir () {

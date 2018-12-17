@@ -4,7 +4,7 @@ O scritp realiza a tarefa de backup de pastas e banco de dados, em segundo plano
 
 ## Local de instalação
 
-    /var/tools-backup
+    /opt/tools/backup
 
 ## Arquivos
 

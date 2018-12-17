@@ -21,7 +21,9 @@ http://redmine.lighttpd.net/projects/lighttpd/wiki/TutorialConfiguration
 
 ### Baixe o projeto e o copie para um servidor web. Execute:
 
-    curl -sS <SERVIDOR>[:PORTA]/scripts/menu/linux.sh | sudo _CENTRAL_URL_TOOLS=<SERVIDOR>[:PORTA] bash
+    SERVIDOR=<IP-DO-SERVIDOR>:5000
+
+    curl -sS $SERVIDOR/scripts/menu/linux.sh | sudo _CENTRAL_URL_TOOLS=$SERVIDOR bash
 
 ## Provisionamento automático
 

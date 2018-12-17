@@ -5,7 +5,7 @@
 os_check () {
   _OS_ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
   _OS_KERNEL=$(uname -r)
-  _SED_BACKUP_FOLDER=/opt/tools-installer/sed-backups
+  _SED_BACKUP_FOLDER=/opt/tools/sed
 
   if [ "$(which lsb_release 2>/dev/null)" ]; then
     _OS_TYPE="deb"
@@ -30,12 +30,15 @@ os_check () {
 }
 
 tool_check() {
-  print_colorful white bold "> Checking for $1..."
-  if command -v "$1" > /dev/null; then
-    print_colorful white bold "> Detected $1!"
-  else
-    print_colorful white bold "> Installing $1..."
-    $_PACKAGE_COMMAND install -y "$1"
+  if [ "$(provisioning)" = "automatic" ]; then
+    print_colorful white bold "> Checking for $1..."
+
+    if command -v "$1" > /dev/null; then
+      print_colorful white bold "> Detected $1!"
+    else
+      print_colorful white bold "> Installing $1..."
+      $_PACKAGE_COMMAND install -y "$1"
+    fi
   fi
 }
 
@@ -81,7 +84,7 @@ search_value () {
 
   [ -z "$_SEARCH_FILE" ] && _SEARCH_FILE=$_RECIPE_FILE
 
-  grep "$_SEARCH_VALUE" "$_SEARCH_FILE" | cut -d= -f2 | xargs
+  egrep ^"$_SEARCH_VALUE" "$_SEARCH_FILE" | cut -d= -f2 | xargs
 }
 
 search_versions () {
@@ -155,6 +158,20 @@ confirm () {
   else
     print_colorful yellow bold "$_CONFIRM_TITLE"
   fi
+}
+
+textbox () {
+  _FILE=$1
+
+  dialog --title "$_FILE" --textbox "$_FILE" 0 0
+}
+
+tailbox () {
+  _FILE=$1
+
+  tail -f $_FILE > /tmp/out &
+
+  dialog --title "Monitoring $_FILE" --tailbox /tmp/out 0 0
 }
 
 change_file () {

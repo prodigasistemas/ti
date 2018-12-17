@@ -1,4 +1,8 @@
 #!/bin/bash
+# For check sintax: bash -n backup.sh
+# For debug:
+# set -v
+# set -x
 
 export _APP_NAME="Main menu"
 _OPTIONS_LIST="java 'Java JDK' \
