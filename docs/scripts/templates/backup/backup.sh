@@ -25,8 +25,6 @@ backup_database () {
 
         make_dir "$_DEST"
 
-        write_log "Dumping $_DB_TYPE database $_DB_NAME"
-
         case $_DB_TYPE in
           mysql)
             _COMMAND=mysqldump
@@ -38,6 +36,8 @@ backup_database () {
             _DB_DUMP="PGPASSWORD=$_DB_PASS $_COMMAND -h $_DB_HOST -U $_DB_USER -d $_DB_NAME"
             ;;
         esac
+
+        write_log "Dumping $_DB_TYPE database $_DB_NAME from $_HOST_ADDRESS"
 
         perform_backup "$_COMMAND" "$_DEST" "$_DB_DUMP > /tmp/$_SQL_FILE && gzip -9 /tmp/$_SQL_FILE"
       done
