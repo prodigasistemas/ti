@@ -53,7 +53,7 @@ main () {
     if [ -z "$_MAIN_OPTION" ]; then
       clear && exit 0
     else
-      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh" | bash 2> /dev/null
+      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh" | bash
 
       [ $? -ne 0 ] && message "Alert" "Installer not found!"
 

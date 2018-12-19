@@ -85,7 +85,7 @@ edit_config () {
     _NEW_VALUE=$(input_field "backup.$_PARAM" "$_VAR" "$_OLD_VALUE")
     [ $? -eq 1 ] && main
 
-    egrep "^$_VAR=" "$_CONFIG_FILE"
+    egrep "^$_VAR=" "$_CONFIG_FILE" > /dev/null
 
     if [ $? -eq 0 ]; then
       change_file replace $_CONFIG_FILE "^$_VAR=$_OLD_VALUE" "$_VAR=$_NEW_VALUE"
@@ -96,7 +96,7 @@ edit_config () {
 }
 
 config_backup () {
-  [ ! -e "$_CONFIG_FILE" ] && message "Alert" "Backup config not found!"
+  [ ! -e "$_CONFIG_FILE" ] && message "Alert" "$_CONFIG_FILE not found!"
 
   _CONFIG_LIST="view_config 'View config file' \
                 edit_config 'Edit config file'"
