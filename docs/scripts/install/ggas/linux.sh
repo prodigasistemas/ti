@@ -4,7 +4,6 @@
 
 export _APP_NAME="GGAS"
 _DEFAULT_PATH="/opt"
-_GRADLE_VERSION="2.2.1"
 _OPTIONS_LIST="install_ggas 'Install GGAS' \
                import_ggas_database 'Import GGAS Database' \
                configure_nginx 'Configure host on NGINX'"
@@ -28,20 +27,13 @@ setup () {
 install_ggas () {
   _CURRENT_DIR=$(pwd)
 
-  _GGAS_REPO=http://ggas.com.br/root/ggas.git
+  _java=8
 
-  _java_8=8
-  _java_7=7
+  java_check $_java
 
-  java_check $_java_8
-  java_check $_java_7
+  _JAVA_HOME=$(get_java_home $_java)
 
-  _JAVA_HOME_8=$(get_java_home $_java_8)
-  _JAVA_HOME_7=$(get_java_home $_java_7)
-
-  [ ! -e "$_JAVA_HOME_8" ] && message "Error" "Java $_java_8 is not installed!"
-
-  [ ! -e "$_JAVA_HOME_7" ] && message "Error" "Java $_java_7 is not installed!"
+  [ ! -e "$_JAVA_HOME" ] && message "Error" "Java $_java is not installed!"
 
   [ ! -e "$_DEFAULT_PATH/wildfly" ] && message "Error" "Wildfly is not installed!"
 
@@ -59,6 +51,7 @@ install_ggas () {
   tool_check git
   tool_check wget
   tool_check unzip
+  tool_check nodejs
 
   cd $_DEFAULT_PATH
 
@@ -87,9 +80,7 @@ install_ggas () {
 
   print_colorful yellow bold "> Building $_APP_NAME..."
 
-  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME_8 ./gradlew -x test -x runSelenium buildDependents"
-
-  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && rm -rf build && JAVA_HOME=$_JAVA_HOME_7 ./gradlew -x test -x runSelenium build"
+  run_as_user "$_USER_LOGGED" "cd $_DEFAULT_PATH/ggas && JAVA_HOME=$_JAVA_HOME ./gradlew -x test -x runSelenium build"
 
   [ $? -ne 0 ] && message "Error" "Build of ggas not realized!"
 
@@ -141,8 +132,12 @@ rename_versions () {
 
 import_ggas_database () {
   _CURRENT_DIR=$(pwd)
+  _SSHPASS="sshpass -p admin"
+  _NOPASSWORD="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+  _DEST_HOST="root@localhost"
 
   tool_check dos2unix
+  tool_check sshpass
 
   if [ -e "$_ORACLE_CONFIG" ]; then
     _SSH_PORT=$(search_value ssh.port "$_ORACLE_CONFIG")
@@ -150,21 +145,25 @@ import_ggas_database () {
     _SSH_PORT=2222
   fi
 
-  ssh -p $_SSH_PORT root@localhost
+  $_SSHPASS ssh -p $_SSH_PORT $_NOPASSWORD $_DEST_HOST
 
-  [ $? -ne 0 ] && message "Error" "ssh: connect to host localhost port $_SSH_PORT: Connection refused"
+  [ $? -ne 0 ] && message "Error" "ssh: connect to $_DEST_HOST port $_SSH_PORT: Connection refused"
 
   confirm "Confirm import $_APP_NAME database?"
   [ $? -eq 1 ] && main
 
   if [ ! -e "$_DEFAULT_PATH/ggas" ]; then
     cd $_DEFAULT_PATH
+
     tool_check git
 
-    print_colorful yellow bold "> Cloning repo from http://ggas.com.br/root/ggas.git..."
+    print_colorful yellow bold "> Cloning repo from $_GGAS_REPO..."
 
-    git clone http://ggas.com.br/root/ggas.git
+    git clone $_GGAS_REPO
+
     [ $? -ne 0 ] && message "Error" "Download of GGAS not realized!"
+
+    chown "$_USER_LOGGED":"$_USER_LOGGED" -R "$_DEFAULT_PATH/ggas"
   fi
 
   delete_file "/tmp/ggas"
@@ -176,9 +175,9 @@ import_ggas_database () {
 
   wget "$_CENTRAL_URL_TOOLS/scripts/install/ggas/sql/$_IMPROVE_QUERIES"
 
-  chmod +x $_IMPROVE_QUERIES
+  [ $? -ne 0 ] && message "Error" "Download of $_IMPROVE_QUERIES not realized!"
 
-  ./$_IMPROVE_QUERIES
+  bash $_IMPROVE_QUERIES
 
   rename_versions
 
@@ -191,69 +190,65 @@ import_ggas_database () {
 
   wget "$_CENTRAL_URL_TOOLS/scripts/install/ggas/sql/$_IMPORT_SCRIPT"
 
-  chmod +x $_IMPORT_SCRIPT
+  [ $? -ne 0 ] && message "Error" "Download of $_IMPORT_SCRIPT not realized!"
 
   mv $_IMPORT_SCRIPT sql/
 
-  print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
-
   print_colorful yellow bold "> Copy SQL files to container Oracle DB"
 
-  scp -P $_SSH_PORT -r sql root@localhost:/tmp
+  $_SSHPASS scp -P $_SSH_PORT $_NOPASSWORD -r sql "$_DEST_HOST:/tmp"
 
   print_colorful yellow bold "> Import SQL files to container Oracle DB"
 
-  ssh -p $_SSH_PORT root@localhost "/tmp/sql/import_db.sh"
+  $_SSHPASS ssh -p $_SSH_PORT $_NOPASSWORD "$_DEST_HOST" "bash /tmp/sql/import_db.sh"
 
   delete_file "/tmp/ggas"
 
-  print_colorful yellow bold "> You must run the commands in the container Oracle DB. The root password is 'admin'"
-
   print_colorful yellow bold "> Copy log file from container Oracle DB"
 
-  LOG_FILE=ggas_import_database.log
+  _LOG_FILE=ggas_import_database.log
 
-  scp -P $_SSH_PORT root@localhost:/tmp/$LOG_FILE $_CURRENT_DIR
+  $_SSHPASS scp -P $_SSH_PORT $_NOPASSWORD "$_DEST_HOST:/tmp/$_LOG_FILE" $_CURRENT_DIR
 
   cd "$_CURRENT_DIR"
 
-  [ $? -eq 0 ] && message "Notice" "Import $_APP_NAME database was successful! Log file is in $_CURRENT_DIR/$LOG_FILE"
+  [ $? -eq 0 ] && message "Notice" "Import $_APP_NAME database was successful! Log file is in $_CURRENT_DIR/$_LOG_FILE"
 }
 
 configure_nginx () {
+  which nginx > /dev/null
+  [ $? -ne 0 ] && message "Alert" "NGINX Web Server is not installed!"
+
   _PORT=$(grep "jboss.http.port" "/opt/wildfly/standalone/configuration/standalone.xml" | cut -d: -f2 | cut -d'}' -f1)
   _DEFAULT_HOST="localhost:$_PORT"
 
-  if command -v nginx > /dev/null; then
-    _DOMAIN=$(input_field "ggas.nginx.domain" "Enter the domain of GGAS" "ggas.company.gov")
-    [ $? -eq 1 ] && main
-    [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
+  _DOMAIN=$(input_field "ggas.nginx.domain" "Enter the domain of GGAS" "ggas.company.gov")
+  [ $? -eq 1 ] && main
+  [ -z "$_DOMAIN" ] && message "Alert" "The domain can not be blank!"
 
-    _HOST=$(input_field "ggas.nginx.host" "Enter the host of GGAS server" "$_DEFAULT_HOST")
-    [ $? -eq 1 ] && main
-    [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
+  _HOST=$(input_field "ggas.nginx.host" "Enter the host of GGAS server" "$_DEFAULT_HOST")
+  [ $? -eq 1 ] && main
+  [ -z "$_HOST" ] && message "Alert" "The host can not be blank!"
 
-    curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > ggas.conf
+  curl -sS "$_CENTRAL_URL_TOOLS/scripts/templates/nginx/redirect.conf" > ggas.conf
 
-    change_file replace ggas.conf APP ggas
-    change_file replace ggas.conf DOMAIN "$_DOMAIN"
-    change_file replace ggas.conf HOST "$_HOST"
+  change_file replace ggas.conf APP ggas
+  change_file replace ggas.conf DOMAIN "$_DOMAIN"
+  change_file replace ggas.conf HOST "$_HOST"
 
-    mv ggas.conf /etc/nginx/conf.d/
-    rm $_SED_BACKUP_FOLDER/ggas.conf*
+  mv ggas.conf /etc/nginx/conf.d/
+  rm $_SED_BACKUP_FOLDER/ggas.conf*
 
-    admin_service nginx restart
+  admin_service nginx restart
 
-    [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
-  else
-    message "Alert" "NGINX is not installed! GGAS host not configured!"
-  fi
+  [ $? -eq 0 ] && message "Notice" "The host is successfully configured in NGINX!"
 }
 
 main () {
   _TI_FOLDER="/opt/tools-installer"
   _ORACLE_CONFIG="$_TI_FOLDER/oracle.conf"
   _USER_LOGGED=$(run_as_root "echo $SUDO_USER")
+  _GGAS_REPO=http://ggas.com.br/root/ggas.git
 
   if [ "$(provisioning)" = "manual" ]; then
     tool_check dialog
