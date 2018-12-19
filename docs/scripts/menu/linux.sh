@@ -5,25 +5,26 @@
 # set -x
 
 export _APP_NAME="Main menu"
-_OPTIONS_LIST="java 'Java JDK' \
-               ruby 'Ruby Interpreter' \
-               nginx 'NGINX Web Server' \
-               postgresql 'PostgreSQL Database Server' \
-               mysql 'MySQL Database Server' \
-               docker 'Docker platform' \
-               oracledb 'Oracle Database XE' \
-               gitlab 'GitLab' \
-               jenkins 'Jenkins Automation Server' \
-               sonar 'SonarQube Quality' \
-               redmine 'Redmine Project Management' \
-               archiva 'Archiva' \
-               jboss 'JBoss App Server' \
-               nagios 'Nagios' \
-               gsan 'GSAN' \
-               ggas 'GGAS' \
-               backup 'Backup' \
-               puma 'Puma App Service' \
-               sidekiq 'Sidekiq Queue Service'"
+_OPTIONS_LIST="java 'Development Kit' \
+               ruby 'Language, via RVM' \
+               nginx 'Web Server' \
+               postgresql 'Database Server' \
+               mysql 'Database Server' \
+               docker 'Container Platform' \
+               oracledb 'Database XE, via Docker' \
+               gitlab 'Repository Manager ' \
+               jenkins 'Automation Server' \
+               sonar 'Code Quality' \
+               redmine 'Project Management' \
+               archiva 'Artifact Repository Manager' \
+               jboss 'Java Application Server' \
+               nagios 'Infrastructure Monitoring' \
+               gsan 'Gestão de Serviços de Saneamento' \
+               ggas 'Gestão Comercial de Gás Natural' \
+               puma 'Ruby Application Service' \
+               sidekiq 'Ruby Queue Service' \
+               backup 'Folders and Databases' \
+               restore 'Folders and Databases'"
 
 setup () {
   [ -z "$_CENTRAL_URL_TOOLS" ] && _CENTRAL_URL_TOOLS="https://prodigasistemas.github.io/ti"
@@ -52,7 +53,7 @@ main () {
     if [ -z "$_MAIN_OPTION" ]; then
       clear && exit 0
     else
-      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh" | bash
+      curl -sS "$_CENTRAL_URL_TOOLS/scripts/install/$_MAIN_OPTION/linux.sh" | bash 2> /dev/null
 
       [ $? -ne 0 ] && message "Alert" "Installer not found!"
 
