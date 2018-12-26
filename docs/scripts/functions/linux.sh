@@ -174,6 +174,10 @@ tailbox () {
   dialog --title "Monitoring $_FILE" --tailbox /tmp/out 0 0
 }
 
+checklist () {
+  eval dialog "$_TITLE" --separate-output --title \"$1\" --checklist \"$2\" 0 0 0 "$3"
+}
+
 change_file () {
   _CF_BACKUP="-backup-$(date +"%Y%m%d%H%M%S%N")"
   _CF_OPERATION=$1
