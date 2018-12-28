@@ -28,8 +28,10 @@
   * [SonarQube](http://www.sonarqube.org)
 * Gestão de Containers
   * [Docker](https://www.docker.com)
-* Gestão de Backups
-  * [backup.sh](backup)
+* Cópia de segurança de pastas e banco de dados
+  * [Backup](backup)
+* Restauração de pastas e banco de dados
+  * [Restore](restore)
 
 ## É preciso ter instalado o pacote _curl_
 
